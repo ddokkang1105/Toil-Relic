@@ -14,9 +14,9 @@
 2. Enemy entries
    - Create 3-5 assets with `Create -> ToilRelic -> Enemy`
    - Example values:
-     - Mine Vermin: HP 10, ATK 2-4
-     - Rust Golem: HP 14, ATK 3-5
-     - Ruin Wraith: HP 18, ATK 4-6
+     - Mine Vermin: HP 10, ATK 2-4, EXP 10
+     - Rust Golem: HP 14, ATK 3-5, EXP 14
+     - Ruin Wraith: HP 18, ATK 4-6, EXP 20
    - Add them into `EnemyDatabase_Main` list.
 3. Drop table
    - `Create -> ToilRelic -> Drop Table`
@@ -27,7 +27,7 @@
 1. Create empty object `GameManager` and attach `GameManager.cs`
    - Assign `EnemyDatabase_Main` and `DropTable_Default`.
 2. Create UI texts and attach:
-   - `HudController` (HP/Score/Inventory TMP texts)
+   - `HudController` (HP/Level/Score/Inventory TMP texts)
    - `BattlePanelController` (Enemy text + Log text)
 3. Create empty object `UIActions` and attach `GameActionBridge`
    - Assign `GameManager` field.

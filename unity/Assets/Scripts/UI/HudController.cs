@@ -7,6 +7,7 @@ namespace ToilRelic.Unity.UI
     public sealed class HudController : MonoBehaviour
     {
         [SerializeField] private TMP_Text hpText;
+        [SerializeField] private TMP_Text levelText;
         [SerializeField] private TMP_Text scoreText;
         [SerializeField] private TMP_Text invText;
 
@@ -30,6 +31,11 @@ namespace ToilRelic.Unity.UI
             if (scoreText != null)
             {
                 scoreText.text = $"Score {player.Score} | Treasure {player.TreasureCount}";
+            }
+
+            if (levelText != null)
+            {
+                levelText.text = $"Lv.{player.Level} | EXP {player.Experience}/{player.ExperienceToNextLevel}";
             }
 
             if (invText != null)

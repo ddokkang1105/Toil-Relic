@@ -155,11 +155,17 @@ namespace ToilRelic.Unity.Core
 
         private void ResolveVictory()
         {
+            var expReward = currentEnemy.ExpReward;
             var rolled = loot.Roll(dropTable);
             player.Add(ItemType.Junk, rolled.Junk);
             player.Add(ItemType.RelicPart, rolled.RelicPart);
+            var levelResult = player.GainExperience(expReward);
 
-            GameEvents.RaiseBattleLog($"Win. Loot: junk +{rolled.Junk}, relic part +{rolled.RelicPart}.");
+            GameEvents.RaiseBattleLog($"Win. Loot: junk +{rolled.Junk}, relic part +{rolled.RelicPart}, EXP +{expReward}.");
+            if (levelResult.LeveledUp)
+            {
+                GameEvents.RaiseBattleLog($"Level up! +{levelResult.LevelsGained} -> Lv.{levelResult.NewLevel}. HP fully restored.");
+            }
             currentEnemy = null;
             ChangeState(GameState.Camp);
             PublishPlayer();

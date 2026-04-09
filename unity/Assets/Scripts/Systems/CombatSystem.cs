@@ -10,6 +10,7 @@ namespace ToilRelic.Unity.Systems
         public int Hp { get; private set; }
         public int AttackMin { get; }
         public int AttackMax { get; }
+        public int ExpReward { get; }
 
         public EnemyRuntime(EnemyData data)
         {
@@ -18,6 +19,7 @@ namespace ToilRelic.Unity.Systems
             Hp = data.maxHp;
             AttackMin = data.attackMin;
             AttackMax = data.attackMax;
+            ExpReward = data.expReward;
         }
 
         public void TakeDamage(int amount)

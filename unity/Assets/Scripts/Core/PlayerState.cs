@@ -23,12 +23,17 @@ namespace ToilRelic.Unity.Core
     {
         [SerializeField] private int maxHp = 30;
         [SerializeField] private int hp = 30;
+        [SerializeField] private int level = 1;
+        [SerializeField] private int experience;
         [SerializeField] private int score;
         [SerializeField] private int treasureCount;
         [SerializeField] private List<InventorySlot> inventory = new();
 
         public int MaxHp => maxHp;
         public int Hp => hp;
+        public int Level => level;
+        public int Experience => experience;
+        public int ExperienceToNextLevel => RequiredExperience(level);
         public int Score => score;
         public int TreasureCount => treasureCount;
         public IReadOnlyList<InventorySlot> Inventory => inventory;
@@ -44,6 +49,28 @@ namespace ToilRelic.Unity.Core
             inventory.Add(new InventorySlot { type = ItemType.RelicPart, amount = 0 });
             inventory.Add(new InventorySlot { type = ItemType.Treasure, amount = 0 });
             hp = maxHp;
+        }
+
+        public LevelUpResult GainExperience(int amount)
+        {
+            if (amount <= 0)
+            {
+                return new LevelUpResult(false, 0, level);
+            }
+
+            experience += amount;
+            var gainedLevels = 0;
+
+            while (experience >= RequiredExperience(level))
+            {
+                experience -= RequiredExperience(level);
+                level += 1;
+                maxHp += 3;
+                hp = maxHp;
+                gainedLevels += 1;
+            }
+
+            return new LevelUpResult(gainedLevels > 0, gainedLevels, level);
         }
 
         public int GetAmount(ItemType type)
@@ -104,5 +131,24 @@ namespace ToilRelic.Unity.Core
         }
 
         public bool IsAlive => hp > 0;
+
+        private static int RequiredExperience(int currentLevel)
+        {
+            return 20 + ((currentLevel - 1) * 10);
+        }
+    }
+
+    public readonly struct LevelUpResult
+    {
+        public readonly bool LeveledUp;
+        public readonly int LevelsGained;
+        public readonly int NewLevel;
+
+        public LevelUpResult(bool leveledUp, int levelsGained, int newLevel)
+        {
+            LeveledUp = leveledUp;
+            LevelsGained = levelsGained;
+            NewLevel = newLevel;
+        }
     }
 }

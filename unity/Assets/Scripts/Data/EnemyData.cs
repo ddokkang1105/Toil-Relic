@@ -9,5 +9,6 @@ namespace ToilRelic.Unity.Data
         public int maxHp = 12;
         public int attackMin = 2;
         public int attackMax = 5;
+        public int expReward = 12;
     }
 }
