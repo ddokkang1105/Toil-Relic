@@ -62,7 +62,6 @@ public sealed class Game
         ConsoleUI.Section($"사냥 시작: {enemy.Name}", $"HP {enemy.Hp}");
 
         var result = _combat.Fight(_player, enemy);
-        Console.WriteLine(result.Log);
 
         if (result.PlayerWon)
         {
