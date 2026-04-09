@@ -31,7 +31,8 @@ public static class ConsoleUI
 
     public static void Status(Player player)
     {
-        Console.WriteLine($"{player.Name} | HP {player.Hp}/{player.MaxHp} | 보물 {player.TreasureCount} | 점수 {player.Score}");
+        Console.WriteLine(
+            $"{player.Name} | HP {player.Hp}/{player.MaxHp} | 보물 {player.TreasureCount} | 레벨 {player.LevelProgress:F2} | EXP {player.Experience}/{player.ExperienceToNextLevel}");
     }
 
     public static void Menu(string title, Dictionary<int, string> options)

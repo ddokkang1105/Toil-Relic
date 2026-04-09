@@ -51,7 +51,9 @@ public sealed class Game
             }
         }
 
-        ConsoleUI.Footer("게임 종료", $"최종 보물 수: {_player.TreasureCount}, 점수: {_player.Score}");
+        ConsoleUI.Footer(
+            "게임 종료",
+            $"최종 보물 수: {_player.TreasureCount}, 레벨: {_player.LevelProgress:F2} (EXP {_player.Experience}/{_player.ExperienceToNextLevel})");
     }
 
     private void Hunt()
@@ -65,10 +67,15 @@ public sealed class Game
         if (result.PlayerWon)
         {
             var loot = _loot.RollLoot();
+            var levelResult = _player.GainExperience(enemy.ExpReward);
             _player.AddItem(ItemType.Junk, loot.Junk);
             _player.AddItem(ItemType.RelicPart, loot.RelicPart);
 
-            ConsoleUI.Section("전리품", $"잡템 +{loot.Junk}, 보물 재료 +{loot.RelicPart}");
+            ConsoleUI.Section("전리품", $"잡템 +{loot.Junk}, 보물 재료 +{loot.RelicPart}, EXP +{enemy.ExpReward}");
+            if (levelResult.LeveledUp)
+            {
+                ConsoleUI.Section("레벨업", $"+{levelResult.LevelsGained} 상승! 현재 레벨: {levelResult.NewLevel}");
+            }
         }
         else if (result.PlayerFled)
         {

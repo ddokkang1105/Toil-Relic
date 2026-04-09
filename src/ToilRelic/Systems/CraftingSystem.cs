@@ -21,7 +21,7 @@ public sealed class CraftingSystem
         player.Consume(ItemType.RelicPart, RelicCost);
         player.AddItem(ItemType.Treasure, 1);
 
-        return new CraftResult(true, "보물을 제작했다! 점수 +100");
+        return new CraftResult(true, "보물을 제작했다! 보물 +1");
     }
 }
 
