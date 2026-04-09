@@ -2,6 +2,7 @@ using ToilRelic.Unity.Data;
 using ToilRelic.Unity.Save;
 using ToilRelic.Unity.Systems;
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace ToilRelic.Unity.Core
 {
@@ -189,7 +190,7 @@ namespace ToilRelic.Unity.Core
             player.Add(ItemType.HealingPotion, rolled.HealingPotion);
             var levelResult = player.GainExperience(expReward);
 
-            GameEvents.RaiseBattleLog($"Win. Loot: junk +{rolled.Junk}, relic part +{rolled.RelicPart}, healing potion +{rolled.HealingPotion}, EXP +{expReward}.");
+            GameEvents.RaiseBattleLog($"Win. Loot: {BuildLootLog(rolled.Junk, rolled.RelicPart, rolled.HealingPotion, expReward)}.");
             if (levelResult.LeveledUp)
             {
                 GameEvents.RaiseBattleLog($"Level up! +{levelResult.LevelsGained} -> Lv.{levelResult.NewLevel}. HP fully restored.");
@@ -220,6 +221,33 @@ namespace ToilRelic.Unity.Core
         {
             state = next;
             GameEvents.RaiseStateChanged(state);
+        }
+
+        private static string BuildLootLog(int junk, int relicPart, int healingPotion, int expReward)
+        {
+            var parts = new List<string>();
+
+            if (junk > 0)
+            {
+                parts.Add($"junk +{junk}");
+            }
+
+            if (relicPart > 0)
+            {
+                parts.Add($"relic part +{relicPart}");
+            }
+
+            if (healingPotion > 0)
+            {
+                parts.Add($"healing potion +{healingPotion}");
+            }
+
+            if (expReward > 0)
+            {
+                parts.Add($"EXP +{expReward}");
+            }
+
+            return parts.Count > 0 ? string.Join(", ", parts) : "no loot";
         }
     }
 }

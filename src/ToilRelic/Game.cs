@@ -71,7 +71,7 @@ public sealed class Game
             _player.AddItem(ItemType.RelicPart, loot.RelicPart);
             _player.AddItem(ItemType.HealingPotion, loot.HealingPotion);
 
-            ConsoleUI.Section("전리품", $"잡템 +{loot.Junk}, 보물 재료 +{loot.RelicPart}, HP 물약 +{loot.HealingPotion}, EXP +{enemy.ExpReward}");
+            ConsoleUI.Section("전리품", BuildLootLog(loot.Junk, loot.RelicPart, loot.HealingPotion, enemy.ExpReward));
             if (levelResult.LeveledUp)
             {
                 ConsoleUI.Section("레벨업", $"+{levelResult.LevelsGained} 상승! 현재 레벨: {levelResult.NewLevel}");
@@ -101,5 +101,32 @@ public sealed class Game
         _player.Rest();
         ConsoleUI.Section("휴식", "체력이 회복됐다.");
         ConsoleUI.Pause();
+    }
+
+    private static string BuildLootLog(int junk, int relicPart, int healingPotion, int expReward)
+    {
+        var parts = new List<string>();
+
+        if (junk > 0)
+        {
+            parts.Add($"잡템 +{junk}");
+        }
+
+        if (relicPart > 0)
+        {
+            parts.Add($"보물 재료 +{relicPart}");
+        }
+
+        if (healingPotion > 0)
+        {
+            parts.Add($"HP 물약 +{healingPotion}");
+        }
+
+        if (expReward > 0)
+        {
+            parts.Add($"EXP +{expReward}");
+        }
+
+        return parts.Count > 0 ? string.Join(", ", parts) : "획득한 전리품 없음";
     }
 }
