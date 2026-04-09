@@ -8,7 +8,6 @@ namespace ToilRelic.Unity.UI
     {
         [SerializeField] private TMP_Text hpText;
         [SerializeField] private TMP_Text levelText;
-        [SerializeField] private TMP_Text scoreText;
         [SerializeField] private TMP_Text invText;
 
         private void OnEnable()
@@ -28,19 +27,14 @@ namespace ToilRelic.Unity.UI
                 hpText.text = $"HP {player.Hp}/{player.MaxHp}";
             }
 
-            if (scoreText != null)
-            {
-                scoreText.text = $"Score {player.Score} | Treasure {player.TreasureCount}";
-            }
-
             if (levelText != null)
             {
-                levelText.text = $"Lv.{player.Level} | EXP {player.Experience}/{player.ExperienceToNextLevel}";
+                levelText.text = $"Level {player.LevelProgressValue:0.00} | EXP {player.Experience}/{player.ExperienceToNextLevel}";
             }
 
             if (invText != null)
             {
-                invText.text = $"Junk {player.GetAmount(ItemType.Junk)} | Relic Part {player.GetAmount(ItemType.RelicPart)}";
+                invText.text = $"Junk {player.GetAmount(ItemType.Junk)} | Relic Part {player.GetAmount(ItemType.RelicPart)} | Treasure {player.TreasureCount}";
             }
         }
     }

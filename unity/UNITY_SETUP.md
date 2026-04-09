@@ -27,7 +27,7 @@
 1. Create empty object `GameManager` and attach `GameManager.cs`
    - Assign `EnemyDatabase_Main` and `DropTable_Default`.
 2. Create UI texts and attach:
-   - `HudController` (HP/Level/Score/Inventory TMP texts)
+   - `HudController` (HP/Level/Inventory TMP texts)
    - `BattlePanelController` (Enemy text + Log text)
 3. Create empty object `UIActions` and attach `GameActionBridge`
    - Assign `GameManager` field.

@@ -32,7 +32,7 @@ namespace ToilRelic.Unity.Systems
             player.Consume(ItemType.Junk, JunkCost);
             player.Consume(ItemType.RelicPart, RelicPartCost);
             player.Add(ItemType.Treasure, 1);
-            return new CraftResult(true, "Treasure crafted. Score +100");
+            return new CraftResult(true, "Treasure crafted. Treasure +1");
         }
     }
 }

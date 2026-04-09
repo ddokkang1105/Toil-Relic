@@ -25,7 +25,6 @@ namespace ToilRelic.Unity.Core
         [SerializeField] private int hp = 30;
         [SerializeField] private int level = 1;
         [SerializeField] private int experience;
-        [SerializeField] private int score;
         [SerializeField] private int treasureCount;
         [SerializeField] private List<InventorySlot> inventory = new();
 
@@ -34,7 +33,7 @@ namespace ToilRelic.Unity.Core
         public int Level => level;
         public int Experience => experience;
         public int ExperienceToNextLevel => RequiredExperience(level);
-        public int Score => score;
+        public float LevelProgressValue => level + (experience / (float)ExperienceToNextLevel);
         public int TreasureCount => treasureCount;
         public IReadOnlyList<InventorySlot> Inventory => inventory;
 
@@ -99,7 +98,6 @@ namespace ToilRelic.Unity.Core
             if (type == ItemType.Treasure)
             {
                 treasureCount += amount;
-                score += amount * 100;
             }
         }
 
