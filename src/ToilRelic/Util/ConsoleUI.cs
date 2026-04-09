@@ -83,6 +83,7 @@ public static class ConsoleUI
             ItemType.Junk => "잡템",
             ItemType.RelicPart => "보물 재료",
             ItemType.Treasure => "보물",
+            ItemType.HealingPotion => "HP 물약",
             _ => type.ToString()
         };
     }

@@ -34,7 +34,7 @@ namespace ToilRelic.Unity.UI
 
             if (invText != null)
             {
-                invText.text = $"Junk {player.GetAmount(ItemType.Junk)} | Relic Part {player.GetAmount(ItemType.RelicPart)} | Treasure {player.TreasureCount}";
+                invText.text = $"Junk {player.GetAmount(ItemType.Junk)} | Relic Part {player.GetAmount(ItemType.RelicPart)} | Potion {player.GetAmount(ItemType.HealingPotion)} | Treasure {player.TreasureCount}";
             }
         }
     }

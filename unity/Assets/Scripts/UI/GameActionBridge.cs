@@ -11,6 +11,7 @@ namespace ToilRelic.Unity.UI
         public void Attack() => gameManager.Attack();
         public void Defend() => gameManager.Defend();
         public void Flee() => gameManager.Flee();
+        public void UsePotion() => gameManager.UsePotion();
         public void Rest() => gameManager.Rest();
         public void CraftTreasure() => gameManager.CraftTreasure();
     }

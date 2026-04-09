@@ -17,10 +17,11 @@ public sealed class CombatSystem
             {
                 { 1, "공격" },
                 { 2, "방어" },
-                { 3, "도망" }
+                { 3, "도망" },
+                { 4, "HP 물약 사용" }
             });
 
-            var choice = ConsoleUI.ReadInt("번호 입력", 1, 3);
+            var choice = ConsoleUI.ReadInt("번호 입력", 1, 4);
 
             if (choice == 3)
             {
@@ -32,6 +33,25 @@ public sealed class CombatSystem
                 }
 
                 log.AppendLine("도망 실패!");
+            }
+            else if (choice == 4)
+            {
+                if (player.Hp >= player.MaxHp)
+                {
+                    log.AppendLine("이미 체력이 가득하다.");
+                    continue;
+                }
+
+                if (!player.Consume(ItemType.HealingPotion, 1))
+                {
+                    log.AppendLine("HP 물약이 없다.");
+                    continue;
+                }
+
+                var hpBeforeHeal = player.Hp;
+                player.Heal(12);
+                var healed = player.Hp - hpBeforeHeal;
+                log.AppendLine($"HP 물약을 사용해 체력 {healed} 회복.");
             }
 
             var playerAttack = Random.Shared.Next(4, 9);

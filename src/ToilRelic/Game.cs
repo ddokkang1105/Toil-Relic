@@ -70,8 +70,9 @@ public sealed class Game
             var levelResult = _player.GainExperience(enemy.ExpReward);
             _player.AddItem(ItemType.Junk, loot.Junk);
             _player.AddItem(ItemType.RelicPart, loot.RelicPart);
+            _player.AddItem(ItemType.HealingPotion, loot.HealingPotion);
 
-            ConsoleUI.Section("전리품", $"잡템 +{loot.Junk}, 보물 재료 +{loot.RelicPart}, EXP +{enemy.ExpReward}");
+            ConsoleUI.Section("전리품", $"잡템 +{loot.Junk}, 보물 재료 +{loot.RelicPart}, HP 물약 +{loot.HealingPotion}, EXP +{enemy.ExpReward}");
             if (levelResult.LeveledUp)
             {
                 ConsoleUI.Section("레벨업", $"+{levelResult.LevelsGained} 상승! 현재 레벨: {levelResult.NewLevel}");

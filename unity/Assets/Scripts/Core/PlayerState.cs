@@ -8,7 +8,8 @@ namespace ToilRelic.Unity.Core
     {
         Junk,
         RelicPart,
-        Treasure
+        Treasure,
+        HealingPotion
     }
 
     [Serializable]
@@ -47,6 +48,7 @@ namespace ToilRelic.Unity.Core
             inventory.Add(new InventorySlot { type = ItemType.Junk, amount = 0 });
             inventory.Add(new InventorySlot { type = ItemType.RelicPart, amount = 0 });
             inventory.Add(new InventorySlot { type = ItemType.Treasure, amount = 0 });
+            inventory.Add(new InventorySlot { type = ItemType.HealingPotion, amount = 0 });
             hp = maxHp;
         }
 
@@ -121,6 +123,11 @@ namespace ToilRelic.Unity.Core
         public void TakeDamage(int amount)
         {
             hp = Mathf.Max(0, hp - Mathf.Max(0, amount));
+        }
+
+        public void Heal(int amount)
+        {
+            hp = Mathf.Min(maxHp, hp + Mathf.Max(0, amount));
         }
 
         public void HealAll()

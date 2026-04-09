@@ -6,8 +6,9 @@ public sealed class LootSystem
     {
         var junk = Random.Shared.Next(1, 4);
         var relicPart = Random.Shared.NextDouble() < 0.25 ? 1 : 0;
-        return new Loot(junk, relicPart);
+        var healingPotion = Random.Shared.NextDouble() < 0.35 ? 1 : 0;
+        return new Loot(junk, relicPart, healingPotion);
     }
 }
 
-public sealed record Loot(int Junk, int RelicPart);
+public sealed record Loot(int Junk, int RelicPart, int HealingPotion);

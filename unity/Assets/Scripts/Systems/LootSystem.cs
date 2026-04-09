@@ -7,11 +7,13 @@ namespace ToilRelic.Unity.Systems
     {
         public readonly int Junk;
         public readonly int RelicPart;
+        public readonly int HealingPotion;
 
-        public LootRoll(int junk, int relicPart)
+        public LootRoll(int junk, int relicPart, int healingPotion)
         {
             Junk = junk;
             RelicPart = relicPart;
+            HealingPotion = healingPotion;
         }
     }
 
@@ -21,7 +23,8 @@ namespace ToilRelic.Unity.Systems
         {
             var junk = Random.Range(dropTable.junkMin, dropTable.junkMax + 1);
             var relicPart = Random.value < dropTable.relicPartChance ? 1 : 0;
-            return new LootRoll(junk, relicPart);
+            var healingPotion = Random.value < dropTable.healingPotionChance ? 1 : 0;
+            return new LootRoll(junk, relicPart, healingPotion);
         }
     }
 }

@@ -20,6 +20,7 @@ public sealed class Player
         _inventory[ItemType.Junk] = 0;
         _inventory[ItemType.RelicPart] = 0;
         _inventory[ItemType.Treasure] = 0;
+        _inventory[ItemType.HealingPotion] = 0;
     }
 
     public IReadOnlyDictionary<ItemType, int> Inventory => _inventory;

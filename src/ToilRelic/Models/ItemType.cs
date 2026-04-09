@@ -4,5 +4,6 @@ public enum ItemType
 {
     Junk,
     RelicPart,
-    Treasure
+    Treasure,
+    HealingPotion
 }

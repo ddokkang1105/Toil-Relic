@@ -109,6 +109,33 @@ namespace ToilRelic.Unity.Core
             ResolveEnemyTurn(playerDefending: false);
         }
 
+        public void UsePotion()
+        {
+            if (state != GameState.Battle || currentEnemy == null)
+            {
+                return;
+            }
+
+            if (player.Hp >= player.MaxHp)
+            {
+                GameEvents.RaiseBattleLog("HP is already full.");
+                return;
+            }
+
+            if (!player.Consume(ItemType.HealingPotion, 1))
+            {
+                GameEvents.RaiseBattleLog("No healing potion in inventory.");
+                return;
+            }
+
+            var hpBeforeHeal = player.Hp;
+            player.Heal(12);
+            var healed = player.Hp - hpBeforeHeal;
+            GameEvents.RaiseBattleLog($"You used a healing potion and recovered {healed} HP.");
+            PublishPlayer();
+            ResolveEnemyTurn(playerDefending: false);
+        }
+
         public void Rest()
         {
             if (state != GameState.Camp)
@@ -159,9 +186,10 @@ namespace ToilRelic.Unity.Core
             var rolled = loot.Roll(dropTable);
             player.Add(ItemType.Junk, rolled.Junk);
             player.Add(ItemType.RelicPart, rolled.RelicPart);
+            player.Add(ItemType.HealingPotion, rolled.HealingPotion);
             var levelResult = player.GainExperience(expReward);
 
-            GameEvents.RaiseBattleLog($"Win. Loot: junk +{rolled.Junk}, relic part +{rolled.RelicPart}, EXP +{expReward}.");
+            GameEvents.RaiseBattleLog($"Win. Loot: junk +{rolled.Junk}, relic part +{rolled.RelicPart}, healing potion +{rolled.HealingPotion}, EXP +{expReward}.");
             if (levelResult.LeveledUp)
             {
                 GameEvents.RaiseBattleLog($"Level up! +{levelResult.LevelsGained} -> Lv.{levelResult.NewLevel}. HP fully restored.");
