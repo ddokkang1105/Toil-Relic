@@ -20,6 +20,10 @@ dotnet run
 ```
 Toil-Relic/
   README.md
+  unity/
+    UNITY_SETUP.md
+    Assets/
+      Scripts/
   src/
     ToilRelic/
       ToilRelic.csproj
@@ -29,3 +33,7 @@ Toil-Relic/
       Systems/
       Util/
 ```
+
+## Unity 전환 초안
+- Unity용 스크립트 초안은 `unity/Assets/Scripts` 에 있습니다.
+- 설정 방법은 `unity/UNITY_SETUP.md` 를 참고하세요.
