@@ -53,7 +53,7 @@ public sealed class Game
 
         ConsoleUI.Footer(
             "게임 종료",
-            $"최종 보물 수: {_player.TreasureCount}, 레벨: {_player.LevelProgress:F2} (EXP {_player.Experience}/{_player.ExperienceToNextLevel})");
+            $"최종 보물 수: {_player.TreasureCount}, 레벨: {_player.LevelProgress:F2}");
     }
 
     private void Hunt()

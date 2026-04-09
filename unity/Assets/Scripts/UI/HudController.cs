@@ -29,7 +29,7 @@ namespace ToilRelic.Unity.UI
 
             if (levelText != null)
             {
-                levelText.text = $"Level {player.LevelProgressValue:0.00} | EXP {player.Experience}/{player.ExperienceToNextLevel}";
+                levelText.text = $"Level {player.LevelProgressValue:0.00}";
             }
 
             if (invText != null)
