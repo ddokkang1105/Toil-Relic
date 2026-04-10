@@ -28,6 +28,8 @@ public sealed class CombatSystem
 
             var choice = ConsoleUI.ReadInt("번호 입력", 1, 4);
 
+            var usedHealingPotion = false;
+
             if (choice == 3)
             {
                 var escaped = Random.Shared.NextDouble() < 0.55;
@@ -57,10 +59,11 @@ public sealed class CombatSystem
                 player.Heal(12);
                 var healed = player.Hp - hpBeforeHeal;
                 AppendLog($"HP 물약을 사용해 체력 {healed} 회복.");
+                usedHealingPotion = true;
             }
 
             var playerAttack = Random.Shared.Next(4, 9);
-            if (choice == 1)
+            if (choice == 1 || usedHealingPotion)
             {
                 enemy.TakeDamage(playerAttack);
                 AppendLog($"{enemy.Name}에게 {playerAttack} 피해.");
