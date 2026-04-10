@@ -133,7 +133,8 @@ public sealed class Game
         }
         else
         {
-            ConsoleUI.Section("패배", "기절했다. 휴식으로 회복 필요.");
+            _player.ResetExperience();
+            ConsoleUI.Section("패배", "기절했다. 보유 EXP가 0으로 초기화됐다. 휴식으로 회복 필요.");
         }
 
         ConsoleUI.Pause();

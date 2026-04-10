@@ -82,6 +82,11 @@ public sealed class Player
 
     public bool IsAlive => Hp > 0;
 
+    public void ResetExperience()
+    {
+        Experience = 0;
+    }
+
     public PlayerSaveData ToSaveData()
     {
         return new PlayerSaveData
