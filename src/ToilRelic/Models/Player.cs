@@ -2,8 +2,10 @@ namespace ToilRelic.Models;
 
 public sealed class Player
 {
+    private const int BaseMaxHp = 1000;
+
     public string Name { get; }
-    public int MaxHp { get; private set; } = 30;
+    public int MaxHp { get; private set; } = CalculateMaxHp(1);
     public int Hp { get; private set; }
     public int Level { get; private set; } = 1;
     public int Experience { get; private set; }
@@ -16,6 +18,7 @@ public sealed class Player
     public Player(string name)
     {
         Name = name;
+        MaxHp = CalculateMaxHp(Level);
         Hp = MaxHp;
         _inventory[ItemType.Junk] = 0;
         _inventory[ItemType.RelicPart] = 0;
@@ -47,7 +50,7 @@ public sealed class Player
         {
             Experience -= RequiredExperience(Level);
             Level += 1;
-            MaxHp += 3;
+            MaxHp = CalculateMaxHp(Level);
             Hp = MaxHp;
             gainedLevels += 1;
         }
@@ -106,11 +109,11 @@ public sealed class Player
         var name = string.IsNullOrWhiteSpace(saveData.Name) ? "노역자" : saveData.Name;
         var player = new Player(name)
         {
-            MaxHp = Math.Max(1, saveData.MaxHp),
             Level = Math.Max(1, saveData.Level),
             Experience = Math.Max(0, saveData.Experience)
         };
 
+        player.MaxHp = CalculateMaxHp(player.Level);
         player.Experience = Math.Min(player.Experience, player.ExperienceToNextLevel - 1);
         player.Hp = Math.Clamp(saveData.Hp, 0, player.MaxHp);
         player.TreasureCount = Math.Max(0, saveData.TreasureCount);
@@ -132,6 +135,14 @@ public sealed class Player
     private static int RequiredExperience(int currentLevel)
     {
         return 20 + ((currentLevel - 1) * 10);
+    }
+
+    private static int CalculateMaxHp(int level)
+    {
+        var safeLevel = Math.Max(1, level);
+        var levelIncreaseRatio = 1m + (safeLevel / 100m);
+        var levelHpBonus = safeLevel + (100m * levelIncreaseRatio * safeLevel);
+        return BaseMaxHp + (int)Math.Round(levelHpBonus, MidpointRounding.AwayFromZero);
     }
 }
 
