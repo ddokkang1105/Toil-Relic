@@ -6,15 +6,17 @@ namespace ToilRelic;
 
 public sealed class Game
 {
-    private readonly Player _player = new("노역자");
+    private Player _player = new("노역자");
     private readonly CombatSystem _combat = new();
     private readonly LootSystem _loot = new();
     private readonly CraftingSystem _crafting = new();
+    private readonly SaveSystem _save = new();
     private bool _running = true;
 
     public void Run()
     {
         ConsoleUI.Header("Toil-Relic", "노역으로 보물을 만드는 시간제 사냥 게임");
+        InitializePlayer();
 
         while (_running)
         {
@@ -35,17 +37,21 @@ public sealed class Game
             {
                 case 1:
                     Hunt();
+                    SaveProgress();
                     break;
                 case 2:
                     ConsoleUI.Inventory(_player);
                     break;
                 case 3:
                     Craft();
+                    SaveProgress();
                     break;
                 case 4:
                     Rest();
+                    SaveProgress();
                     break;
                 case 5:
+                    SaveProgress();
                     _running = false;
                     break;
             }
@@ -54,6 +60,46 @@ public sealed class Game
         ConsoleUI.Footer(
             "게임 종료",
             $"최종 보물 수: {_player.TreasureCount}, 레벨: {_player.LevelProgress:F2}");
+    }
+
+    private void InitializePlayer()
+    {
+        if (!_save.HasSaveFile())
+        {
+            return;
+        }
+
+        ConsoleUI.Menu("시작 메뉴", new Dictionary<int, string>
+        {
+            { 1, "이어하기" },
+            { 2, "새 게임" }
+        });
+
+        var choice = ConsoleUI.ReadInt("번호 입력", 1, 2);
+        Console.WriteLine();
+
+        if (choice == 1)
+        {
+            if (_save.TryLoad(out var loadedPlayer, out var loadMessage))
+            {
+                _player = loadedPlayer;
+                ConsoleUI.Section("저장 데이터", loadMessage);
+            }
+            else
+            {
+                ConsoleUI.Section("저장 데이터", $"{loadMessage} 새 게임으로 시작합니다.");
+            }
+
+            ConsoleUI.Pause();
+        }
+    }
+
+    private void SaveProgress()
+    {
+        if (!_save.TrySave(_player, out var message))
+        {
+            ConsoleUI.Section("저장 실패", message);
+        }
     }
 
     private void Hunt()

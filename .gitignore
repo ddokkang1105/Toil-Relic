@@ -6,3 +6,5 @@ obj/
 *.suo
 *.cache
 *.log
+
+src/ToilRelic/savegame.json

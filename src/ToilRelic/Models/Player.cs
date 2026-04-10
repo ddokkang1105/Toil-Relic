@@ -82,6 +82,48 @@ public sealed class Player
 
     public bool IsAlive => Hp > 0;
 
+    public PlayerSaveData ToSaveData()
+    {
+        return new PlayerSaveData
+        {
+            Name = Name,
+            MaxHp = MaxHp,
+            Hp = Hp,
+            Level = Level,
+            Experience = Experience,
+            TreasureCount = TreasureCount,
+            Inventory = new Dictionary<ItemType, int>(_inventory)
+        };
+    }
+
+    public static Player FromSaveData(PlayerSaveData saveData)
+    {
+        var name = string.IsNullOrWhiteSpace(saveData.Name) ? "노역자" : saveData.Name;
+        var player = new Player(name)
+        {
+            MaxHp = Math.Max(1, saveData.MaxHp),
+            Level = Math.Max(1, saveData.Level),
+            Experience = Math.Max(0, saveData.Experience)
+        };
+
+        player.Experience = Math.Min(player.Experience, player.ExperienceToNextLevel - 1);
+        player.Hp = Math.Clamp(saveData.Hp, 0, player.MaxHp);
+        player.TreasureCount = Math.Max(0, saveData.TreasureCount);
+
+        foreach (var type in Enum.GetValues<ItemType>())
+        {
+            player._inventory[type] = 0;
+        }
+
+        foreach (var kv in saveData.Inventory)
+        {
+            player._inventory[kv.Key] = Math.Max(0, kv.Value);
+        }
+
+        player.TreasureCount = player._inventory[ItemType.Treasure];
+        return player;
+    }
+
     private static int RequiredExperience(int currentLevel)
     {
         return 20 + ((currentLevel - 1) * 10);
