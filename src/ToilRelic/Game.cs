@@ -14,7 +14,7 @@ public sealed class Game
 
     public void Run()
     {
-        ConsoleUI.Header("Toil-Relic", "노역으로 보물을 만드는 턴제 사냥 게임");
+        ConsoleUI.Header("Toil-Relic", "노역으로 보물을 만드는 시간제 사냥 게임");
 
         while (_running)
         {
@@ -80,6 +80,10 @@ public sealed class Game
         else if (result.PlayerFled)
         {
             ConsoleUI.Section("도망", "겨우 살아남았다.");
+        }
+        else if (result.TimeExpired)
+        {
+            ConsoleUI.Section("전투 종료", "8초가 지나 전투가 종료됐다.");
         }
         else
         {
