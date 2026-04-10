@@ -8,7 +8,7 @@ This repository contains two game implementations that should stay feature-align
 - `unity/UNITY_SETUP.md`: Unity scene/setup instructions.
 - `README.md`: high-level project overview and run guidance.
 
-When changing gameplay logic (combat, loot, leveling, crafting), update both `src/ToilRelic` and `unity/Assets/Scripts` in the same PR.
+<!-- When changing gameplay logic (combat, loot, leveling, crafting), update both `src/ToilRelic` and `unity/Assets/Scripts` in the same PR. -->
 
 ## Build, Test, and Development Commands
 - `cd src/ToilRelic && dotnet run`: run the console game locally.
