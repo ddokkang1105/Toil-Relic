@@ -34,7 +34,6 @@ namespace ToilRelic.Unity.Editor
         private static readonly Vector2 MenuButtonSize = new Vector2(220f, 44f);
         private static readonly Vector2 BattlePanelPosition = new Vector2(180f, -61f);
         private static readonly Vector2 BattlePanelSize = new Vector2(320f, 316f);
-        private static readonly Vector2 BattleButtonSize = new Vector2(220f, 44f);
 
         public static void ConfigureSampleScene()
         {
@@ -80,10 +79,10 @@ namespace ToilRelic.Unity.Editor
             CreatePanelText("EnemyText", battlePanel.transform, 130f, 280f, 24f);
             CreatePanelText("PhaseText", battlePanel.transform, 102f, 280f, 24f);
             CreatePanelText("BattleLogText", battlePanel.transform, 70f, 280f, 50f);
-            var attackButton = CreateButton("Attack", battlePanel.transform, 12f, bridge.Attack, BattleButtonSize);
-            var defendButton = CreateButton("Defend", battlePanel.transform, -36f, bridge.Defend, BattleButtonSize);
-            var fleeButton = CreateButton("Flee", battlePanel.transform, -84f, bridge.Flee, BattleButtonSize);
-            var potionButton = CreateButton("Potion", battlePanel.transform, -132f, bridge.UsePotion, BattleButtonSize);
+            var attackButton = CreateButton("Attack", battlePanel.transform, 12f, bridge.Attack, MenuButtonSize);
+            var defendButton = CreateButton("Defend", battlePanel.transform, -36f, bridge.Defend, MenuButtonSize);
+            var fleeButton = CreateButton("Flee", battlePanel.transform, -84f, bridge.Flee, MenuButtonSize);
+            var potionButton = CreateButton("Potion", battlePanel.transform, -132f, bridge.UsePotion, MenuButtonSize);
 
             var stateController = canvas.gameObject.AddComponent<StatePanelController>();
             var stateProperties = new SerializedObject(stateController);

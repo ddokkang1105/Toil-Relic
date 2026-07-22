@@ -13,11 +13,6 @@ public sealed class Game
     private readonly SaveSystem _save;
     private bool _running = true;
 
-    public Game()
-        : this(new SaveSystem())
-    {
-    }
-
     public Game(SaveSystem save)
     {
         _save = save ?? throw new ArgumentNullException(nameof(save));

@@ -44,16 +44,19 @@ public sealed class SaveSystem
     {
         try
         {
-            if (!File.Exists(_savePath))
-            {
-                return LoadResult.Missing();
-            }
-
             var json = File.ReadAllText(_savePath);
             var saveData = JsonSerializer.Deserialize<PlayerSaveData>(json);
             return saveData is null
                 ? LoadResult.Unreadable("The save file contained no player data.")
                 : LoadResult.Loaded(Player.FromSaveData(saveData));
+        }
+        catch (FileNotFoundException)
+        {
+            return LoadResult.Missing();
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return LoadResult.Missing();
         }
         catch (Exception ex)
         {
@@ -73,5 +76,4 @@ public sealed class SaveSystem
             return PersistenceResult.Failure(ex.ToString());
         }
     }
-
 }

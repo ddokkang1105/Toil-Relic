@@ -18,17 +18,11 @@ namespace ToilRelic.Unity.Save
         private static string savePathOverride;
         private static string SavePath => savePathOverride ?? Path.Combine(Application.persistentDataPath, "toil_relic_save.json");
 
-        public static bool HasSaveFile() => File.Exists(SavePath);
-
         public static SaveOperationResult Delete()
         {
             try
             {
-                if (File.Exists(SavePath))
-                {
-                    File.Delete(SavePath);
-                }
-
+                File.Delete(SavePath);
                 return SaveOperationResult.Success();
             }
             catch (Exception exception)
@@ -54,11 +48,6 @@ namespace ToilRelic.Unity.Save
 
         public static SaveLoadResult Load()
         {
-            if (!File.Exists(SavePath))
-            {
-                return SaveLoadResult.Missing();
-            }
-
             try
             {
                 var json = File.ReadAllText(SavePath);
@@ -69,6 +58,14 @@ namespace ToilRelic.Unity.Save
                 }
 
                 return SaveLoadResult.Loaded(envelope.player);
+            }
+            catch (FileNotFoundException)
+            {
+                return SaveLoadResult.Missing();
+            }
+            catch (DirectoryNotFoundException)
+            {
+                return SaveLoadResult.Missing();
             }
             catch (Exception exception)
             {

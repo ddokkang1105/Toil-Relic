@@ -27,38 +27,42 @@ namespace ToilRelic.PlayModeTests
         private object previousSavePathOverride;
         private string fixtureSaveDirectory;
         private string fixtureSavePath;
+        private bool fixtureOverrideInstalled;
 
         [UnitySetUp]
         public IEnumerator LoadSampleScene()
         {
-            fixtureSaveServiceType = FindType(SaveServiceTypeName);
-            Assert.That(fixtureSaveServiceType, Is.Not.Null, "SaveService must be loaded before scene setup.");
-            previousSavePathOverride = GetPrivateStaticField(fixtureSaveServiceType, "savePathOverride");
-            fixtureSaveDirectory = Path.Combine(Path.GetTempPath(), $"toil-relic-unity-tests-{Guid.NewGuid():N}");
-            Directory.CreateDirectory(fixtureSaveDirectory);
-            fixtureSavePath = Path.Combine(fixtureSaveDirectory, "toil_relic_save.json");
-            SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", fixtureSavePath);
+            var setupCompleted = false;
+            try
+            {
+                fixtureSaveServiceType = FindType(SaveServiceTypeName);
+                Assert.That(fixtureSaveServiceType, Is.Not.Null, "SaveService must be loaded before scene setup.");
+                previousSavePathOverride = GetPrivateStaticField(fixtureSaveServiceType, "savePathOverride");
+                fixtureSaveDirectory = Path.Combine(Path.GetTempPath(), $"toil-relic-unity-tests-{Guid.NewGuid():N}");
+                Directory.CreateDirectory(fixtureSaveDirectory);
+                fixtureSavePath = Path.Combine(fixtureSaveDirectory, "toil_relic_save.json");
+                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", fixtureSavePath);
+                fixtureOverrideInstalled = true;
 
-            var operation = SceneManager.LoadSceneAsync("SampleScene", LoadSceneMode.Single);
-            Assert.That(operation, Is.Not.Null, "SampleScene must be included in the project.");
-            yield return operation;
-            yield return null;
+                var operation = SceneManager.LoadSceneAsync("SampleScene", LoadSceneMode.Single);
+                Assert.That(operation, Is.Not.Null, "SampleScene must be included in the project.");
+                yield return operation;
+                yield return null;
+                setupCompleted = true;
+            }
+            finally
+            {
+                if (!setupCompleted)
+                {
+                    CleanupSaveFixtureState();
+                }
+            }
         }
 
         [UnityTearDown]
         public IEnumerator CleanupSaveFixture()
         {
-            if (fixtureSaveServiceType != null)
-            {
-                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", previousSavePathOverride);
-                Assert.That(GetPrivateStaticField(fixtureSaveServiceType, "savePathOverride"), Is.EqualTo(previousSavePathOverride));
-            }
-
-            if (!string.IsNullOrEmpty(fixtureSaveDirectory) && Directory.Exists(fixtureSaveDirectory))
-            {
-                Directory.Delete(fixtureSaveDirectory, recursive: true);
-            }
-
+            CleanupSaveFixtureState();
             yield return null;
         }
 
@@ -378,7 +382,7 @@ namespace ToilRelic.PlayModeTests
             var status = RequireComponent(GameStatusControllerTypeName);
             var messageText = GetPrivateField(status, "messageText") as Text;
             var gameEventsType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Core.GameEvents");
-            AttachSaveStatusText(status);
+            RequireSaveStatusText(status);
 
             gameEventsType.GetMethod("RaiseBattleOutcome").Invoke(
                 null,
@@ -405,7 +409,7 @@ namespace ToilRelic.PlayModeTests
             var gameManager = RequireComponent(GameManagerTypeName);
             var status = RequireComponent(GameStatusControllerTypeName);
             var messageText = GetPrivateField(status, "messageText") as Text;
-            var saveStatusText = AttachSaveStatusText(status);
+            var saveStatusText = RequireSaveStatusText(status);
             var stateType = GetPrivateField(gameManager, "state").GetType();
             var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
 
@@ -425,7 +429,7 @@ namespace ToilRelic.PlayModeTests
             var gameManager = RequireComponent(GameManagerTypeName);
             var status = RequireComponent(GameStatusControllerTypeName);
             var messageText = GetPrivateField(status, "messageText") as Text;
-            var saveStatusText = AttachSaveStatusText(status);
+            var saveStatusText = RequireSaveStatusText(status);
             var stateType = GetPrivateField(gameManager, "state").GetType();
             var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
             var gameEventsType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Core.GameEvents");
@@ -471,7 +475,7 @@ namespace ToilRelic.PlayModeTests
             var gameManager = RequireComponent(GameManagerTypeName);
             var status = RequireComponent(GameStatusControllerTypeName);
             var messageText = GetPrivateField(status, "messageText") as Text;
-            var saveStatusText = AttachSaveStatusText(status);
+            var saveStatusText = RequireSaveStatusText(status);
             var stateType = GetPrivateField(gameManager, "state").GetType();
             var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
             var gameEventsType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Core.GameEvents");
@@ -594,7 +598,7 @@ namespace ToilRelic.PlayModeTests
             var status = RequireComponent(GameStatusControllerTypeName);
             var messageText = GetPrivateField(status, "messageText") as Text;
             var attackButton = GetPrivateField(battlePanel, "attackButton") as Button;
-            var saveServiceType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Save.SaveService");
+            var saveServiceType = fixtureSaveServiceType;
             var originalSavePath = GetPrivateStaticField(saveServiceType, "savePathOverride");
 
             yield return EnterBattle();
@@ -624,7 +628,7 @@ namespace ToilRelic.PlayModeTests
             var gameManager = RequireComponent(GameManagerTypeName);
             var status = RequireComponent(GameStatusControllerTypeName);
             var messageText = GetPrivateField(status, "messageText") as Text;
-            var saveServiceType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Save.SaveService");
+            var saveServiceType = fixtureSaveServiceType;
             var originalSavePath = GetPrivateStaticField(saveServiceType, "savePathOverride");
             var stateType = GetPrivateField(gameManager, "state").GetType();
             var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -654,7 +658,7 @@ namespace ToilRelic.PlayModeTests
             var gameManager = RequireComponent(GameManagerTypeName);
             var status = RequireComponent(GameStatusControllerTypeName);
             var messageText = GetPrivateField(status, "messageText") as Text;
-            var saveServiceType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Save.SaveService");
+            var saveServiceType = fixtureSaveServiceType;
             var originalSavePath = GetPrivateStaticField(saveServiceType, "savePathOverride");
             var stateType = GetPrivateField(gameManager, "state").GetType();
             var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -831,20 +835,29 @@ namespace ToilRelic.PlayModeTests
                 .FirstOrDefault(type => type != null);
         }
 
-        private static Text AttachSaveStatusText(Component status)
+        private static Text RequireSaveStatusText(Component status)
         {
             var saveStatusText = GetPrivateField(status, "saveStatusText") as Text;
-            if (saveStatusText != null)
+            Assert.That(saveStatusText, Is.Not.Null, "The generated scene must wire the auxiliary save row.");
+            return saveStatusText;
+        }
+
+        private void CleanupSaveFixtureState()
+        {
+            if (fixtureOverrideInstalled)
             {
-                return saveStatusText;
+                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", previousSavePathOverride);
+                Assert.That(GetPrivateStaticField(fixtureSaveServiceType, "savePathOverride"), Is.EqualTo(previousSavePathOverride));
+                fixtureOverrideInstalled = false;
             }
 
-            var textObject = new GameObject("TestSaveStatusText", typeof(RectTransform), typeof(Text));
-            textObject.transform.SetParent(status.transform, false);
-            textObject.SetActive(false);
-            saveStatusText = textObject.GetComponent<Text>();
-            SetPrivateField(status, "saveStatusText", saveStatusText);
-            return saveStatusText;
+            if (!string.IsNullOrEmpty(fixtureSaveDirectory) && Directory.Exists(fixtureSaveDirectory))
+            {
+                Directory.Delete(fixtureSaveDirectory, recursive: true);
+            }
+
+            fixtureSaveDirectory = null;
+            fixtureSavePath = null;
         }
 
         private static void RaiseSaveStatus(Type gameEventsType, string status)

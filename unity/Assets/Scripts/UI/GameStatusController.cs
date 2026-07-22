@@ -50,7 +50,6 @@ namespace ToilRelic.Unity.UI
             }
 
             UpdateSaveStatusText();
-            RenderMessage();
         }
 
         private void OnBattleLog(string message)

@@ -22,12 +22,11 @@ namespace ToilRelic.Unity.Core
         private EnemyRuntime currentEnemy;
         private GameState state = GameState.Title;
         private BattlePhase battlePhase = BattlePhase.None;
-        private bool hasSavedGame;
         private SaveLoadStatus saveLoadStatus;
 
         public BattlePhase CurrentBattlePhase => battlePhase;
         public GameState CurrentState => state;
-        public bool HasSavedGame => hasSavedGame;
+        public bool HasSavedGame => saveLoadStatus == SaveLoadStatus.Loaded;
         public SaveLoadStatus CurrentSaveLoadStatus => saveLoadStatus;
 
         private void Awake()
@@ -38,7 +37,6 @@ namespace ToilRelic.Unity.Core
             {
                 player = loadResult.Player;
                 player.InitDefaults();
-                hasSavedGame = true;
             }
             else
             {
@@ -60,7 +58,7 @@ namespace ToilRelic.Unity.Core
 
         public void ContinueGame()
         {
-            if (state != GameState.Title || !hasSavedGame)
+            if (state != GameState.Title || !HasSavedGame)
             {
                 return;
             }
@@ -88,7 +86,6 @@ namespace ToilRelic.Unity.Core
 
             player = new PlayerState();
             player.InitDefaults();
-            hasSavedGame = false;
             saveLoadStatus = SaveLoadStatus.Missing;
             EnterCamp("A new expedition begins. Hunt, craft, and survive.");
         }
@@ -328,7 +325,6 @@ namespace ToilRelic.Unity.Core
                 return;
             }
 
-            hasSavedGame = true;
             saveLoadStatus = SaveLoadStatus.Loaded;
             GameEvents.RaiseSaveStatusChanged(SaveFeedbackStatus.Succeeded);
         }
