@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="1" result="Passed" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-07-16 08:15:42Z" end-time="2026-07-16 08:15:43Z" duration="1.7217575">
+  <test-suite type="TestSuite" id="1029" name="_unity-bootstrap" fullname="_unity-bootstrap" runstate="Runnable" testcasecount="21" result="Passed" start-time="2026-07-16 08:15:42Z" end-time="2026-07-16 08:15:43Z" duration="1.721758" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1023" name="ToilRelic.PlayModeTests.dll" fullname="C:/Toil-Relic-main/unity/Library/ScriptAssemblies/ToilRelic.PlayModeTests.dll" runstate="Runnable" testcasecount="21" result="Passed" start-time="2026-07-16 08:15:42Z" end-time="2026-07-16 08:15:43Z" duration="1.710068" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="33760" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1024" name="ToilRelic" fullname="ToilRelic" runstate="Runnable" testcasecount="21" result="Passed" start-time="2026-07-16 08:15:42Z" end-time="2026-07-16 08:15:43Z" duration="1.707872" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1025" name="PlayModeTests" fullname="ToilRelic.PlayModeTests" runstate="Runnable" testcasecount="21" result="Passed" start-time="2026-07-16 08:15:42Z" end-time="2026-07-16 08:15:43Z" duration="1.706661" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1001" name="SampleSceneP0PlayModeTests" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" testcasecount="21" result="Passed" start-time="2026-07-16 08:15:42Z" end-time="2026-07-16 08:15:43Z" duration="1.704403" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1015" name="P0_CaptureLayoutEvidenceWhenRequested" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_CaptureLayoutEvidenceWhenRequested" methodname="P0_CaptureLayoutEvidenceWhenRequested" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="594989960" result="Passed" start-time="2026-07-16 08:15:42Z" end-time="2026-07-16 08:15:43Z" duration="1.683263" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Saving results to: C:/Users/User/AppData/LocalLow/DefaultCompany/_unity-bootstrap\TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

@@ -1,0 +1,17 @@
+stage: task
+profile: standard
+gates:
+  office_hours: false
+  ceo_review: false
+  eng_review: false
+  design_review: false
+  brainstorm: false
+  multi_agent: false
+artifacts:
+  task: task.md
+  decisions: decisions.md
+  plan: plan.md
+  review: review.md
+  qa: qa.md
+  followups: followups.md
+updated: YYYY-MM-DD

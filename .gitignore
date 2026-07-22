@@ -8,3 +8,18 @@ obj/
 *.log
 
 src/ToilRelic/savegame.json
+
+# Unity generated and machine-local files
+_unity-bootstrap/
+unity/Library/
+unity/Temp/
+unity/Obj/
+unity/Logs/
+unity/UserSettings/
+unity/MemoryCaptures/
+unity/Recordings/
+unity/*.csproj
+unity/*.sln*
+unity/.vsconfig
+unity/Assets/InitTestScene*.unity
+unity/Assets/InitTestScene*.unity.meta

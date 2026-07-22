@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="20" result="Failed(Child)" total="20" passed="17" failed="3" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-07-16 07:17:11Z" end-time="2026-07-16 07:17:15Z" duration="4.0665152">
+  <test-suite type="TestSuite" id="1028" name="_unity-bootstrap" fullname="_unity-bootstrap" runstate="Runnable" testcasecount="20" result="Failed" site="Child" start-time="2026-07-16 07:17:11Z" end-time="2026-07-16 07:17:15Z" duration="4.066515" total="20" passed="17" failed="3" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1022" name="ToilRelic.PlayModeTests.dll" fullname="C:/Toil-Relic-main/unity/Library/ScriptAssemblies/ToilRelic.PlayModeTests.dll" runstate="Runnable" testcasecount="20" result="Failed" site="Child" start-time="2026-07-16 07:17:11Z" end-time="2026-07-16 07:17:15Z" duration="4.058873" total="20" passed="17" failed="3" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="24040" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1023" name="ToilRelic" fullname="ToilRelic" runstate="Runnable" testcasecount="20" result="Failed" site="Child" start-time="2026-07-16 07:17:11Z" end-time="2026-07-16 07:17:15Z" duration="4.058124" total="20" passed="17" failed="3" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1024" name="PlayModeTests" fullname="ToilRelic.PlayModeTests" runstate="Runnable" testcasecount="20" result="Failed" site="Child" start-time="2026-07-16 07:17:11Z" end-time="2026-07-16 07:17:15Z" duration="4.057642" total="20" passed="17" failed="3" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestFixture" id="1001" name="SampleSceneP0PlayModeTests" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" testcasecount="20" result="Failed" site="Child" start-time="2026-07-16 07:17:11Z" end-time="2026-07-16 07:17:15Z" duration="4.056260" total="20" passed="17" failed="3" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-case id="1015" name="P0_BattleUiShowsStateAndDisablesActionsOutsidePlayerPhase" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_BattleUiShowsStateAndDisablesActionsOutsidePlayerPhase" methodname="P0_BattleUiShowsStateAndDisablesActionsOutsidePlayerPhase" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1987158380" result="Passed" start-time="2026-07-16 07:17:11Z" end-time="2026-07-16 07:17:11Z" duration="0.437523" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1006" name="P0_ButtonsBindAllCoreGameActions" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_ButtonsBindAllCoreGameActions" methodname="P0_ButtonsBindAllCoreGameActions" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="414298262" result="Passed" start-time="2026-07-16 07:17:11Z" end-time="2026-07-16 07:17:11Z" duration="0.222123" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1020" name="P0_DefeatReturnsToCampWithVisibleOutcome" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_DefeatReturnsToCampWithVisibleOutcome" methodname="P0_DefeatReturnsToCampWithVisibleOutcome" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1963700492" result="Passed" start-time="2026-07-16 07:17:11Z" end-time="2026-07-16 07:17:12Z" duration="0.213273" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1019" name="P0_EquipSaveFailureRemainsVisible" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_EquipSaveFailureRemainsVisible" methodname="P0_EquipSaveFailureRemainsVisible" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="747892686" result="Passed" start-time="2026-07-16 07:17:12Z" end-time="2026-07-16 07:17:12Z" duration="0.183483" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1005" name="P0_GameActionBridgeReferencesGameManager" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_GameActionBridgeReferencesGameManager" methodname="P0_GameActionBridgeReferencesGameManager" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1515338221" result="Passed" start-time="2026-07-16 07:17:12Z" end-time="2026-07-16 07:17:12Z" duration="0.171036" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1003" name="P0_GameManagerHasEnemyAndDropTable" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_GameManagerHasEnemyAndDropTable" methodname="P0_GameManagerHasEnemyAndDropTable" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1375593810" result="Passed" start-time="2026-07-16 07:17:12Z" end-time="2026-07-16 07:17:12Z" duration="0.179807" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1013" name="P0_HudAndStatusMeetCompactTypographyContracts" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_HudAndStatusMeetCompactTypographyContracts" methodname="P0_HudAndStatusMeetCompactTypographyContracts" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1800646737" result="Failed" start-time="2026-07-16 07:17:12Z" end-time="2026-07-16 07:17:12Z" duration="0.180199" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[  Expected: less than or equal to 344.0f
+  But was:  560.0f
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<P0_HudAndStatusMeetCompactTypographyContracts>d__20.MoveNext () [0x00053] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:215
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1009" name="P0_HudIsWiredAndDisplaysPlayerState" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_HudIsWiredAndDisplaysPlayerState" methodname="P0_HudIsWiredAndDisplaysPlayerState" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1751621938" result="Passed" start-time="2026-07-16 07:17:12Z" end-time="2026-07-16 07:17:13Z" duration="0.167100" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1010" name="P0_HudRefreshesWhenPlayerStateChanges" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_HudRefreshesWhenPlayerStateChanges" methodname="P0_HudRefreshesWhenPlayerStateChanges" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1942049642" result="Passed" start-time="2026-07-16 07:17:13Z" end-time="2026-07-16 07:17:13Z" duration="0.166140" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1008" name="P0_InitialEntryShowsTitleAndMatchesContinueAvailability" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_InitialEntryShowsTitleAndMatchesContinueAvailability" methodname="P0_InitialEntryShowsTitleAndMatchesContinueAvailability" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="2044714295" result="Passed" start-time="2026-07-16 07:17:13Z" end-time="2026-07-16 07:17:13Z" duration="0.229054" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1018" name="P0_RestSaveFailureRemainsVisible" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_RestSaveFailureRemainsVisible" methodname="P0_RestSaveFailureRemainsVisible" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="66502939" result="Passed" start-time="2026-07-16 07:17:13Z" end-time="2026-07-16 07:17:13Z" duration="0.208934" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1017" name="P0_SaveFailurePreservesTerminalOutcome" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_SaveFailurePreservesTerminalOutcome" methodname="P0_SaveFailurePreservesTerminalOutcome" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="530219755" result="Passed" start-time="2026-07-16 07:17:13Z" end-time="2026-07-16 07:17:13Z" duration="0.204183" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1002" name="P0_SceneHasGameManager" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_SceneHasGameManager" methodname="P0_SceneHasGameManager" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="140474595" result="Passed" start-time="2026-07-16 07:17:13Z" end-time="2026-07-16 07:17:14Z" duration="0.177493" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1004" name="P0_SceneHasUiActionBridge" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_SceneHasUiActionBridge" methodname="P0_SceneHasUiActionBridge" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="698359505" result="Passed" start-time="2026-07-16 07:17:14Z" end-time="2026-07-16 07:17:14Z" duration="0.193026" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1014" name="P0_StatusFitsThreeLogicalMessagesAtReadableSize" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_StatusFitsThreeLogicalMessagesAtReadableSize" methodname="P0_StatusFitsThreeLogicalMessagesAtReadableSize" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1657884244" result="Failed" start-time="2026-07-16 07:17:14Z" end-time="2026-07-16 07:17:14Z" duration="0.199878" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[  The status message rectangle must fit outcome, level-up, and save-failure lines without clipping.
+  Expected: less than or equal to 48.0099983f
+  But was:  60.0f
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<P0_StatusFitsThreeLogicalMessagesAtReadableSize>d__21.MoveNext () [0x00126] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:239
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1021" name="P0_SuccessfulFleeReturnsToCampWithVisibleOutcome" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_SuccessfulFleeReturnsToCampWithVisibleOutcome" methodname="P0_SuccessfulFleeReturnsToCampWithVisibleOutcome" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1082217603" result="Passed" start-time="2026-07-16 07:17:14Z" end-time="2026-07-16 07:17:14Z" duration="0.192027" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1012" name="P0_TitleAndCampButtonsKeepAccessibleGeometry" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_TitleAndCampButtonsKeepAccessibleGeometry" methodname="P0_TitleAndCampButtonsKeepAccessibleGeometry" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1452556555" result="Passed" start-time="2026-07-16 07:17:14Z" end-time="2026-07-16 07:17:14Z" duration="0.188010" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1011" name="P0_TitleAndCampLayoutsFitBelowTopRegionsAtWidescreenFloor" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_TitleAndCampLayoutsFitBelowTopRegionsAtWidescreenFloor" methodname="P0_TitleAndCampLayoutsFitBelowTopRegionsAtWidescreenFloor" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="17225117" result="Failed" start-time="2026-07-16 07:17:14Z" end-time="2026-07-16 07:17:14Z" duration="0.176207" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[  TitlePanel must remain at least 16 virtual pixels below the HUD and status regions.
+  Expected: greater than or equal to 16.0f
+  But was:  -89.0f
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.AssertPanelFitsBelowTopRegion (UnityEngine.RectTransform panelRect, System.Single topRegionBottom) [0x00014] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:468
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<P0_TitleAndCampLayoutsFitBelowTopRegionsAtWidescreenFloor>d__18.MoveNext () [0x00087] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:192
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1007" name="P0_TitleMenuBindsContinueAndNewGame" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_TitleMenuBindsContinueAndNewGame" methodname="P0_TitleMenuBindsContinueAndNewGame" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="675088280" result="Passed" start-time="2026-07-16 07:17:14Z" end-time="2026-07-16 07:17:15Z" duration="0.174618" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1016" name="P0_VictoryReturnsToCampWithVisibleOutcome" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_VictoryReturnsToCampWithVisibleOutcome" methodname="P0_VictoryReturnsToCampWithVisibleOutcome" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1481018763" result="Passed" start-time="2026-07-16 07:17:15Z" end-time="2026-07-16 07:17:15Z" duration="0.176285" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Saving results to: C:/Users/User/AppData/LocalLow/DefaultCompany/_unity-bootstrap\TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

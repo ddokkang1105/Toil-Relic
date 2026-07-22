@@ -1,0 +1,21 @@
+stage: closed
+profile: standard
+gates:
+  office_hours: false
+  ceo_review: false
+  eng_review: false
+  design_review: false
+  brainstorm: false
+  multi_agent: false
+  ce_plan: fallback_direct
+  ce_work: fallback_direct
+  ce_review: fallback_direct
+  gstack_qa: equivalent_unity_test_framework
+artifacts:
+  task: task.md
+  decisions: decisions.md
+  plan: plan.md
+  review: review.md
+  qa: qa.md
+  followups: followups.md
+updated: 2026-07-16

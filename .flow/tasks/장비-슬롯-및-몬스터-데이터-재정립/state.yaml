@@ -1,0 +1,17 @@
+stage: closed
+profile: large
+gates:
+  office_hours: false
+  ceo_review: false
+  eng_review: true
+  design_review: true
+  brainstorm: true
+  multi_agent: false
+artifacts:
+  task: task.md
+  decisions: decisions.md
+  plan: plan.md
+  review: review.md
+  qa: qa.md
+  followups: followups.md
+updated: 2026-07-15

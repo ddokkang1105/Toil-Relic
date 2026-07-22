@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="1" result="Failed(Child)" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-07-16 07:46:36Z" end-time="2026-07-16 07:46:36Z" duration="0.8516242">
+  <test-suite type="TestSuite" id="1029" name="_unity-bootstrap" fullname="_unity-bootstrap" runstate="Runnable" testcasecount="21" result="Failed" site="Child" start-time="2026-07-16 07:46:36Z" end-time="2026-07-16 07:46:36Z" duration="0.851624" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1023" name="ToilRelic.PlayModeTests.dll" fullname="C:/Toil-Relic-main/unity/Library/ScriptAssemblies/ToilRelic.PlayModeTests.dll" runstate="Runnable" testcasecount="21" result="Failed" site="Child" start-time="2026-07-16 07:46:36Z" end-time="2026-07-16 07:46:36Z" duration="0.842643" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="18060" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1024" name="ToilRelic" fullname="ToilRelic" runstate="Runnable" testcasecount="21" result="Failed" site="Child" start-time="2026-07-16 07:46:36Z" end-time="2026-07-16 07:46:36Z" duration="0.841309" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1025" name="PlayModeTests" fullname="ToilRelic.PlayModeTests" runstate="Runnable" testcasecount="21" result="Failed" site="Child" start-time="2026-07-16 07:46:36Z" end-time="2026-07-16 07:46:36Z" duration="0.840148" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestFixture" id="1001" name="SampleSceneP0PlayModeTests" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" testcasecount="21" result="Failed" site="Child" start-time="2026-07-16 07:46:36Z" end-time="2026-07-16 07:46:36Z" duration="0.837989" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-case id="1014" name="P0_StatusFitsThreeLogicalMessagesAtReadableSize" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_StatusFitsThreeLogicalMessagesAtReadableSize" methodname="P0_StatusFitsThreeLogicalMessagesAtReadableSize" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1574752352" result="Failed" start-time="2026-07-16 07:46:36Z" end-time="2026-07-16 07:46:36Z" duration="0.817080" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[  The status message rectangle must fit outcome, level-up, and save-failure lines without clipping.
+  Expected: less than or equal to 60.0099983f
+  But was:  70.0f
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<P0_StatusFitsThreeLogicalMessagesAtReadableSize>d__21.MoveNext () [0x00126] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:258
+at UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0003a] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\TestEnumerator.cs:44
+]]></stack-trace>
+              </failure>
+              <output><![CDATA[Saving results to: C:/Users/User/AppData/LocalLow/DefaultCompany/_unity-bootstrap\TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
