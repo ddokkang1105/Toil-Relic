@@ -39,10 +39,50 @@ public sealed class SaveSystemTests
     }
 
     [Fact]
+    public void Load_LegacyFormatWithoutEquipmentFields_ReturnsLoaded()
+    {
+        using var fixture = new SaveFixture();
+        var legacy = """
+            {
+              "Name": "Legacy Wanderer",
+              "MaxHp": 30,
+              "Hp": 18,
+              "Level": 2,
+              "Experience": 3,
+              "TreasureCount": 0,
+              "Inventory": {}
+            }
+            """;
+        File.WriteAllText(fixture.SavePath, legacy);
+
+        var result = fixture.System.Load();
+
+        Assert.Equal(LoadStatus.Loaded, result.Status);
+        Assert.NotNull(result.Player);
+        Assert.Equal("Legacy Wanderer", result.Player.Name);
+        Assert.Equal(2, result.Player.Level);
+    }
+
+    [Fact]
     public void Load_MalformedJson_ReturnsUnreadableWithoutChangingBytes()
     {
         using var fixture = new SaveFixture();
         var original = "{ not valid json";
+        File.WriteAllText(fixture.SavePath, original);
+
+        var result = fixture.System.Load();
+
+        Assert.Equal(LoadStatus.Unreadable, result.Status);
+        Assert.Null(result.Player);
+        Assert.False(string.IsNullOrWhiteSpace(result.Diagnostic));
+        Assert.Equal(original, File.ReadAllText(fixture.SavePath));
+    }
+
+    [Fact]
+    public void Load_EmptyJsonObject_ReturnsUnreadableWithoutChangingBytes()
+    {
+        using var fixture = new SaveFixture();
+        var original = "{}";
         File.WriteAllText(fixture.SavePath, original);
 
         var result = fixture.System.Load();

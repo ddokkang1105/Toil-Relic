@@ -45,7 +45,13 @@ public sealed class SaveSystem
         try
         {
             var json = File.ReadAllText(_savePath);
-            var saveData = JsonSerializer.Deserialize<PlayerSaveData>(json);
+            using var document = JsonDocument.Parse(json);
+            if (!HasCoreSaveShape(document.RootElement))
+            {
+                return LoadResult.Unreadable("The save file does not match the supported player save format.");
+            }
+
+            var saveData = document.RootElement.Deserialize<PlayerSaveData>(_jsonOptions);
             return saveData is null
                 ? LoadResult.Unreadable("The save file contained no player data.")
                 : LoadResult.Loaded(Player.FromSaveData(saveData));
@@ -63,6 +69,19 @@ public sealed class SaveSystem
             return LoadResult.Unreadable(ex.ToString());
         }
     }
+
+    private static bool HasCoreSaveShape(JsonElement root) =>
+        root.ValueKind == JsonValueKind.Object &&
+        HasProperty(root, "Name", JsonValueKind.String) &&
+        HasProperty(root, "MaxHp", JsonValueKind.Number) &&
+        HasProperty(root, "Hp", JsonValueKind.Number) &&
+        HasProperty(root, "Level", JsonValueKind.Number) &&
+        HasProperty(root, "Experience", JsonValueKind.Number) &&
+        HasProperty(root, "TreasureCount", JsonValueKind.Number) &&
+        HasProperty(root, "Inventory", JsonValueKind.Object);
+
+    private static bool HasProperty(JsonElement root, string name, JsonValueKind expectedKind) =>
+        root.TryGetProperty(name, out var property) && property.ValueKind == expectedKind;
 
     public PersistenceResult Delete()
     {
