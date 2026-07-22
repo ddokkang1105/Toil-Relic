@@ -1,4 +1,4 @@
-stage: review
+stage: work
 profile: standard
 gates:
   office_hours: false
@@ -15,4 +15,4 @@ artifacts:
   review: review.md
   qa: qa.md
   followups: followups.md
-updated: 2026-07-22
+updated: 2026-07-23
