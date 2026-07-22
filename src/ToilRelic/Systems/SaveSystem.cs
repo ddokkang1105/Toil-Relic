@@ -17,11 +17,6 @@ public sealed class SaveSystem
         _savePath = savePath ?? Path.Combine(Directory.GetCurrentDirectory(), SaveFileName);
     }
 
-    public bool HasSaveFile()
-    {
-        return File.Exists(_savePath);
-    }
-
     public PersistenceResult Save(Player player)
     {
         try
@@ -79,18 +74,4 @@ public sealed class SaveSystem
         }
     }
 
-    public bool TrySave(Player player, out string message)
-    {
-        var result = Save(player);
-        message = result.Diagnostic ?? string.Empty;
-        return result.Succeeded;
-    }
-
-    public bool TryLoad(out Player player, out string message)
-    {
-        var result = Load();
-        player = result.Player ?? new Player("Wanderer");
-        message = result.Diagnostic ?? string.Empty;
-        return result.Status == LoadStatus.Loaded;
-    }
 }

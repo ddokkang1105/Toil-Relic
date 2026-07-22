@@ -10,8 +10,18 @@ public sealed class Game
     private readonly CombatSystem _combat = new();
     private readonly LootSystem _loot = new();
     private readonly CraftingSystem _crafting = new();
-    private readonly SaveSystem _save = new();
+    private readonly SaveSystem _save;
     private bool _running = true;
+
+    public Game()
+        : this(new SaveSystem())
+    {
+    }
+
+    public Game(SaveSystem save)
+    {
+        _save = save ?? throw new ArgumentNullException(nameof(save));
+    }
 
     public void Run()
     {
@@ -23,10 +33,10 @@ public sealed class Game
             ConsoleUI.Menu("Actions", new Dictionary<int, string> { { 1, "Hunt" }, { 2, "Inventory" }, { 3, "Craft treasure" }, { 4, "Rest" }, { 5, "Equipment" }, { 6, "Quit" } });
             switch (ConsoleUI.ReadInt("Select", 1, 6))
             {
-                case 1: Hunt(); SaveProgress(); break;
+                case 1: Hunt(); SaveProgress(); ConsoleUI.Pause(); break;
                 case 2: ConsoleUI.Inventory(_player); break;
-                case 3: Craft(); SaveProgress(); break;
-                case 4: Rest(); SaveProgress(); break;
+                case 3: Craft(); SaveProgress(); ConsoleUI.Pause(); break;
+                case 4: Rest(); SaveProgress(); ConsoleUI.Pause(); break;
                 case 5: ShowEquipment(); break;
                 case 6: SaveProgress(); _running = false; break;
             }
@@ -36,11 +46,85 @@ public sealed class Game
 
     private void InitializePlayer()
     {
-        if (!_save.HasSaveFile()) return;
-        ConsoleUI.Menu("Start", new Dictionary<int, string> { { 1, "Continue" }, { 2, "New game" } });
-        if (ConsoleUI.ReadInt("Select", 1, 2) == 1 && _save.TryLoad(out var loaded, out var message)) { _player = loaded; ConsoleUI.Section("Save", message); ConsoleUI.Pause(); }
+        while (true)
+        {
+            var loadResult = _save.Load();
+            WriteDiagnostic(loadResult.Diagnostic);
+
+            if (loadResult.Status == LoadStatus.Loaded)
+            {
+                ConsoleUI.Section("Save", "Save found. Continue or start a new game.");
+                ConsoleUI.Menu("Start", new Dictionary<int, string> { { 1, "Continue" }, { 2, "New Game" } });
+                if (ConsoleUI.ReadInt("Select", 1, 2) == 1)
+                {
+                    _player = loadResult.Player!;
+                    return;
+                }
+
+                if (TryStartNewGame())
+                {
+                    return;
+                }
+
+                continue;
+            }
+
+            if (loadResult.Status == LoadStatus.Missing)
+            {
+                ConsoleUI.Section("Save", "Start a new game to begin.");
+                ConsoleUI.Menu("Start", new Dictionary<int, string> { { 1, "New Game" } });
+                ConsoleUI.ReadInt("Select", 1, 1);
+                _player = new Player("Wanderer");
+                return;
+            }
+
+            ConsoleUI.Section("Save", "Save could not be read. Start New Game to replace it.");
+            ConsoleUI.Menu("Start", new Dictionary<int, string> { { 1, "New Game" } });
+            ConsoleUI.ReadInt("Select", 1, 1);
+            if (TryStartNewGame())
+            {
+                return;
+            }
+        }
     }
-    private void SaveProgress() { if (!_save.TrySave(_player, out var message)) ConsoleUI.Section("Save failed", message); }
+
+    private bool TryStartNewGame()
+    {
+        var deleteResult = _save.Delete();
+        if (!deleteResult.Succeeded)
+        {
+            WriteDiagnostic(deleteResult.Diagnostic);
+            return false;
+        }
+
+        _player = new Player("Wanderer");
+        return true;
+    }
+
+    private void SaveProgress()
+    {
+        var result = _save.Save(_player);
+        if (result.Succeeded)
+        {
+            Console.WriteLine("Save: Saved just now");
+            Console.WriteLine();
+            return;
+        }
+
+        WriteDiagnostic(result.Diagnostic);
+        Console.WriteLine("Save: Failed");
+        Console.WriteLine("Save failed. Progress may not be saved.");
+        Console.WriteLine();
+    }
+
+    private static void WriteDiagnostic(string? diagnostic)
+    {
+        if (!string.IsNullOrWhiteSpace(diagnostic))
+        {
+            Console.Error.WriteLine(diagnostic);
+        }
+    }
+
     private void Hunt()
     {
         var enemy = Enemy.RandomEnemy();
@@ -54,10 +138,20 @@ public sealed class Game
             ConsoleUI.Section("Loot", BuildLootLog(loot.Junk, loot.RelicPart, loot.HealingPotion, enemy.ExpReward, rewardGranted));
             if (levelResult.LeveledUp) ConsoleUI.Section("Level up", $"Level {levelResult.NewLevel}");
         }
-        ConsoleUI.Pause();
     }
-    private void Craft() { var result = _crafting.TryCraftTreasure(_player); ConsoleUI.Section("Craft", result.Message); ConsoleUI.Pause(); }
-    private void Rest() { _player.Rest(); ConsoleUI.Section("Rest", "HP restored."); ConsoleUI.Pause(); }
+
+    private void Craft()
+    {
+        var result = _crafting.TryCraftTreasure(_player);
+        ConsoleUI.Section("Craft", result.Message);
+    }
+
+    private void Rest()
+    {
+        _player.Rest();
+        ConsoleUI.Section("Rest", "HP restored.");
+    }
+
     private void ShowEquipment()
     {
         ConsoleUI.Equipment(_player);
@@ -77,6 +171,7 @@ public sealed class Game
         ConsoleUI.Section("Equipment", result);
         SaveProgress(); ConsoleUI.Pause();
     }
+
     private static string BuildLootLog(int junk, int relicPart, int healingPotion, int expReward, bool rewardWeaponGranted)
     {
         var parts = new List<string>();
