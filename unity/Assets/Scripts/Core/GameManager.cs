@@ -324,12 +324,13 @@ namespace ToilRelic.Unity.Core
             if (!saveResult.Succeeded)
             {
                 Debug.LogError($"Save write failed. {saveResult.Diagnostic}");
-                GameEvents.RaiseSaveFailed("Save failed. Progress may not be saved.");
+                GameEvents.RaiseSaveStatusChanged(SaveFeedbackStatus.Failed);
                 return;
             }
 
             hasSavedGame = true;
             saveLoadStatus = SaveLoadStatus.Loaded;
+            GameEvents.RaiseSaveStatusChanged(SaveFeedbackStatus.Succeeded);
         }
 
         private string GetTitleSaveMessage()

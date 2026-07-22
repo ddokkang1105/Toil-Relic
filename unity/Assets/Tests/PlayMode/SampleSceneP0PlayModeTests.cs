@@ -351,6 +351,7 @@ namespace ToilRelic.PlayModeTests
             var status = RequireComponent(GameStatusControllerTypeName);
             var messageText = GetPrivateField(status, "messageText") as Text;
             var gameEventsType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Core.GameEvents");
+            AttachSaveStatusText(status);
 
             gameEventsType.GetMethod("RaiseBattleOutcome").Invoke(
                 null,
@@ -358,9 +359,7 @@ namespace ToilRelic.PlayModeTests
             gameEventsType.GetMethod("RaiseLevelUp").Invoke(
                 null,
                 new object[] { "Level up! +1 -> Lv.2. HP fully restored." });
-            gameEventsType.GetMethod("RaiseSaveFailed").Invoke(
-                null,
-                new object[] { "Save failed: access denied." });
+            RaiseSaveStatus(gameEventsType, "Failed");
             Canvas.ForceUpdateCanvases();
 
             Assert.That(messageText, Is.Not.Null);
@@ -370,6 +369,94 @@ namespace ToilRelic.PlayModeTests
             Assert.That(messageText.preferredHeight,
                 Is.LessThanOrEqualTo(messageText.rectTransform.rect.height + 0.01f),
                 "The status message rectangle must fit outcome, level-up, and save-failure lines without clipping.");
+        }
+
+        [UnityTest]
+        public IEnumerator P0_CampSaveSuccessPreservesActionMessage()
+        {
+            yield return null;
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+            var saveStatusText = AttachSaveStatusText(status);
+            var stateType = GetPrivateField(gameManager, "state").GetType();
+            var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
+            gameManager.GetType().GetMethod("Rest").Invoke(gameManager, null);
+            yield return null;
+
+            Assert.That(messageText.text, Is.EqualTo("You rest and recover to full HP."));
+            Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.True);
+            Assert.That(saveStatusText.text, Is.EqualTo("Save: Saved just now"));
+        }
+
+        [UnityTest]
+        public IEnumerator P0_SaveFeedbackPersistsFailureAndClearsContextualSuccess()
+        {
+            yield return null;
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+            var saveStatusText = AttachSaveStatusText(status);
+            var stateType = GetPrivateField(gameManager, "state").GetType();
+            var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
+            var gameEventsType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Core.GameEvents");
+
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "Crafting complete." });
+            RaiseSaveStatus(gameEventsType, "Succeeded");
+            Assert.That(messageText.text, Is.EqualTo("Crafting complete."));
+            Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.True);
+            Assert.That(saveStatusText.text, Is.EqualTo("Save: Saved just now"));
+
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Battle") });
+            Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.False);
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
+            Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.False,
+                "A contextual success must not reappear after leaving Camp.");
+
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "You rest and recover to full HP." });
+            RaiseSaveStatus(gameEventsType, "Failed");
+            Assert.That(messageText.text, Is.EqualTo("You rest and recover to full HP.\nSave failed. Progress may not be saved."));
+            Assert.That(saveStatusText.text, Is.EqualTo("Save: Failed"));
+            Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.True);
+
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "Choose an action." });
+            Assert.That(messageText.text, Is.EqualTo("Choose an action.\nSave failed. Progress may not be saved."));
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Battle") });
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "A wild Mine Vermin appears." });
+            Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.False);
+            Assert.That(messageText.text, Is.EqualTo("A wild Mine Vermin appears.\nSave failed. Progress may not be saved."));
+
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
+            Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.True);
+            Assert.That(saveStatusText.text, Is.EqualTo("Save: Failed"));
+            RaiseSaveStatus(gameEventsType, "Succeeded");
+            Assert.That(messageText.text, Is.EqualTo("A wild Mine Vermin appears."));
+            Assert.That(saveStatusText.text, Is.EqualTo("Save: Saved just now"));
+        }
+
+        [UnityTest]
+        public IEnumerator P0_TerminalFailurePreservesOutcomeAndLevelUp()
+        {
+            yield return null;
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+            var saveStatusText = AttachSaveStatusText(status);
+            var stateType = GetPrivateField(gameManager, "state").GetType();
+            var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
+            var gameEventsType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Core.GameEvents");
+
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
+            gameEventsType.GetMethod("RaiseBattleOutcome").Invoke(null, new object[] { "Win. Loot preserved." });
+            gameEventsType.GetMethod("RaiseLevelUp").Invoke(null, new object[] { "Level up preserved." });
+            RaiseSaveStatus(gameEventsType, "Failed");
+
+            Assert.That(messageText.text, Is.EqualTo(
+                "Win. Loot preserved.\nLevel up preserved.\nSave failed. Progress may not be saved."));
+            Assert.That(saveStatusText.text, Is.EqualTo("Save: Failed"));
         }
 
         [UnityTest]
@@ -405,9 +492,7 @@ namespace ToilRelic.PlayModeTests
             gameEventsType.GetMethod("RaiseLevelUp").Invoke(
                 null,
                 new object[] { "Level up! +1 -> Lv.2. HP fully restored." });
-            gameEventsType.GetMethod("RaiseSaveFailed").Invoke(
-                null,
-                new object[] { "Save failed: access denied." });
+            RaiseSaveStatus(gameEventsType, "Failed");
             const string statusWarmupFile = "status-warmup.png";
             yield return CaptureStableScreenshot(evidenceDirectory, statusWarmupFile, 800, 600);
             File.Delete(Path.Combine(evidenceDirectory, statusWarmupFile));
@@ -546,7 +631,8 @@ namespace ToilRelic.PlayModeTests
             }
             yield return null;
 
-            Assert.That(messageText.text, Is.EqualTo("Save failed. Progress may not be saved."));
+            Assert.That(messageText.text, Is.EqualTo(
+                "You rest and recover to full HP.\nSave failed. Progress may not be saved."));
         }
 
         [UnityTest]
@@ -575,7 +661,8 @@ namespace ToilRelic.PlayModeTests
             }
             yield return null;
 
-            Assert.That(messageText.text, Is.EqualTo("Save failed. Progress may not be saved."));
+            Assert.That(messageText.text, Is.EqualTo(
+                "Equipped Starter Weapon.\nSave failed. Progress may not be saved."));
         }
 
         [UnityTest]
@@ -730,6 +817,31 @@ namespace ToilRelic.PlayModeTests
             return AppDomain.CurrentDomain.GetAssemblies()
                 .Select(assembly => assembly.GetType(typeName, throwOnError: false))
                 .FirstOrDefault(type => type != null);
+        }
+
+        private static Text AttachSaveStatusText(Component status)
+        {
+            var saveStatusText = GetPrivateField(status, "saveStatusText") as Text;
+            if (saveStatusText != null)
+            {
+                return saveStatusText;
+            }
+
+            var textObject = new GameObject("TestSaveStatusText", typeof(RectTransform), typeof(Text));
+            textObject.transform.SetParent(status.transform, false);
+            textObject.SetActive(false);
+            saveStatusText = textObject.GetComponent<Text>();
+            SetPrivateField(status, "saveStatusText", saveStatusText);
+            return saveStatusText;
+        }
+
+        private static void RaiseSaveStatus(Type gameEventsType, string status)
+        {
+            var saveFeedbackType = gameEventsType.Assembly.GetType("ToilRelic.Unity.Core.SaveFeedbackStatus");
+            Assert.That(saveFeedbackType, Is.Not.Null, "Semantic save feedback status must exist.");
+            var raiseMethod = gameEventsType.GetMethod("RaiseSaveStatusChanged");
+            Assert.That(raiseMethod, Is.Not.Null, "GameEvents must publish semantic save feedback.");
+            raiseMethod.Invoke(null, new[] { Enum.Parse(saveFeedbackType, status) });
         }
 
         private static IEnumerator CaptureStableScreenshot(string evidenceDirectory, string fileName, int width, int height)
