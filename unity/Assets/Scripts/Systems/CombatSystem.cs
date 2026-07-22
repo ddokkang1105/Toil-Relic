@@ -32,7 +32,7 @@ namespace ToilRelic.Unity.Systems
 
     public sealed class CombatSystem
     {
-        public int RollPlayerAttack() => Random.Range(4, 9);
+        public int RollPlayerAttack(int attackBonus) => Random.Range(4, 9) + attackBonus;
 
         public int RollEnemyAttack(EnemyRuntime enemy, bool playerDefending)
         {

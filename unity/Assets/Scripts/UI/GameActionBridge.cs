@@ -8,11 +8,16 @@ namespace ToilRelic.Unity.UI
         [SerializeField] private GameManager gameManager;
 
         public void StartHunt() => gameManager.StartHunt();
+        public void ContinueGame() => gameManager.ContinueGame();
+        public void StartNewGame() => gameManager.StartNewGame();
+        public void Quit() => Application.Quit();
         public void Attack() => gameManager.Attack();
         public void Defend() => gameManager.Defend();
         public void Flee() => gameManager.Flee();
         public void UsePotion() => gameManager.UsePotion();
         public void Rest() => gameManager.Rest();
         public void CraftTreasure() => gameManager.CraftTreasure();
+        public void EquipStarterWeapon() => gameManager.EquipStarterWeapon();
+        public void EquipRewardWeapon() => gameManager.EquipRewardWeapon();
     }
 }

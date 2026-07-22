@@ -1,14 +1,15 @@
-using TMPro;
 using ToilRelic.Unity.Core;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace ToilRelic.Unity.UI
 {
     public sealed class HudController : MonoBehaviour
     {
-        [SerializeField] private TMP_Text hpText;
-        [SerializeField] private TMP_Text levelText;
-        [SerializeField] private TMP_Text invText;
+        [SerializeField] private Text hpText;
+        [SerializeField] private Text levelText;
+        [SerializeField] private Text invText;
+        [SerializeField] private Text equipmentText;
 
         private void OnEnable()
         {
@@ -29,12 +30,19 @@ namespace ToilRelic.Unity.UI
 
             if (levelText != null)
             {
-                levelText.text = $"Level {player.LevelProgressValue:0.00}";
+                levelText.text = $"Lv {player.LevelProgressValue:0.00}";
             }
 
             if (invText != null)
             {
-                invText.text = $"Junk {player.GetAmount(ItemType.Junk)} | Relic Part {player.GetAmount(ItemType.RelicPart)} | Potion {player.GetAmount(ItemType.HealingPotion)} | Treasure {player.TreasureCount}";
+                invText.text = $"Junk {player.GetAmount(ItemType.Junk)} | Part {player.GetAmount(ItemType.RelicPart)} | Potion {player.GetAmount(ItemType.HealingPotion)} | Treasure {player.TreasureCount}";
+            }
+
+            if (equipmentText != null)
+            {
+                equipmentText.text = player.TryGetPrimaryWeapon(out var weapon)
+                    ? $"Wpn {weapon.DisplayName} | ATK +{player.AttackBonus} | DEF +{player.DefenseBonus}"
+                    : "Wpn unavailable";
             }
         }
     }

@@ -21,22 +21,61 @@ namespace ToilRelic.Unity.Core
 
         private EnemyRuntime currentEnemy;
         private GameState state = GameState.Title;
+        private BattlePhase battlePhase = BattlePhase.None;
+        private bool hasSavedGame;
 
-        private void Start()
+        public BattlePhase CurrentBattlePhase => battlePhase;
+        public GameState CurrentState => state;
+        public bool HasSavedGame => hasSavedGame;
+
+        private void Awake()
         {
-            if (!SaveService.TryLoad(out var loaded))
-            {
-                player.InitDefaults();
-            }
-            else
+            if (SaveService.TryLoad(out var loaded))
             {
                 player = loaded;
                 player.InitDefaults();
+                hasSavedGame = true;
+            }
+            else
+            {
+                player.InitDefaults();
+            }
+        }
+
+        private void Start()
+        {
+            ChangeState(GameState.Title);
+            PublishPlayer();
+            GameEvents.RaiseBattleLog(hasSavedGame ? "Save found. Continue or start a new game." : "Start a new game to begin.");
+        }
+
+        public void ContinueGame()
+        {
+            if (state != GameState.Title || !hasSavedGame)
+            {
+                return;
             }
 
-            ChangeState(GameState.Camp);
-            PublishPlayer();
-            GameEvents.RaiseBattleLog("Ready. Hunt, craft, and survive.");
+            EnterCamp("Save loaded. Hunt, craft, and survive.");
+        }
+
+        public void StartNewGame()
+        {
+            if (state != GameState.Title)
+            {
+                return;
+            }
+
+            if (!SaveService.TryDelete(out var error))
+            {
+                GameEvents.RaiseBattleLog($"Could not clear save: {error}");
+                return;
+            }
+
+            player = new PlayerState();
+            player.InitDefaults();
+            hasSavedGame = false;
+            EnterCamp("A new expedition begins. Hunt, craft, and survive.");
         }
 
         public void StartHunt()
@@ -47,26 +86,27 @@ namespace ToilRelic.Unity.Core
             }
 
             var enemyData = enemyDatabase != null ? enemyDatabase.GetRandom() : null;
-            if (enemyData == null)
+            if (enemyData == null || dropTable == null)
             {
-                GameEvents.RaiseBattleLog("No enemy data found. Create EnemyDatabase and assign entries.");
+                GameEvents.RaiseBattleLog("Assign an enemy database with entries and a drop table before hunting.");
                 return;
             }
 
             currentEnemy = new EnemyRuntime(enemyData);
             ChangeState(GameState.Battle);
+            ChangeBattlePhase(BattlePhase.PlayerAction);
             PublishEnemy();
             GameEvents.RaiseBattleLog($"A wild {currentEnemy.Name} appears.");
         }
 
         public void Attack()
         {
-            if (state != GameState.Battle || currentEnemy == null)
+            if (!CanTakePlayerAction())
             {
                 return;
             }
 
-            var playerDamage = combat.RollPlayerAttack();
+            var playerDamage = combat.RollPlayerAttack(player.AttackBonus);
             currentEnemy.TakeDamage(playerDamage);
             GameEvents.RaiseBattleLog($"You hit {currentEnemy.Name} for {playerDamage}.");
             PublishEnemy();
@@ -82,7 +122,7 @@ namespace ToilRelic.Unity.Core
 
         public void Defend()
         {
-            if (state != GameState.Battle || currentEnemy == null)
+            if (!CanTakePlayerAction())
             {
                 return;
             }
@@ -93,16 +133,20 @@ namespace ToilRelic.Unity.Core
 
         public void Flee()
         {
-            if (state != GameState.Battle)
+            if (!CanTakePlayerAction())
             {
                 return;
             }
 
             if (combat.TryFlee())
             {
-                GameEvents.RaiseBattleLog("Escape successful.");
+                const string outcome = "Escape successful.";
+                GameEvents.RaiseBattleLog(outcome);
+                GameEvents.RaiseBattleOutcome(outcome);
                 currentEnemy = null;
+                PublishEnemy();
                 ChangeState(GameState.Camp);
+                ChangeBattlePhase(BattlePhase.None);
                 return;
             }
 
@@ -112,7 +156,7 @@ namespace ToilRelic.Unity.Core
 
         public void UsePotion()
         {
-            if (state != GameState.Battle || currentEnemy == null)
+            if (!CanTakePlayerAction())
             {
                 return;
             }
@@ -146,8 +190,8 @@ namespace ToilRelic.Unity.Core
 
             player.HealAll();
             PublishPlayer();
-            SaveService.Save(player);
             GameEvents.RaiseBattleLog("You rest and recover to full HP.");
+            SaveProgress();
         }
 
         public void CraftTreasure()
@@ -160,11 +204,22 @@ namespace ToilRelic.Unity.Core
             var result = crafting.TryCraftTreasure(player);
             GameEvents.RaiseBattleLog(result.Message);
             PublishPlayer();
-            SaveService.Save(player);
+            SaveProgress();
+        }
+
+        public void EquipStarterWeapon() => Equip(EquipmentSlot.PrimaryWeapon, EquipmentCatalog.StarterWeaponId);
+        public void EquipRewardWeapon() => Equip(EquipmentSlot.PrimaryWeapon, EquipmentCatalog.RewardWeaponId);
+        public void EquipEquipment(EquipmentSlot slot, string equipmentId) => Equip(slot, equipmentId);
+        public void UnequipEquipment(EquipmentSlot slot)
+        {
+            if (state != GameState.Camp || !player.Unequip(slot)) return;
+            PublishPlayer();
+            SaveProgress();
         }
 
         private void ResolveEnemyTurn(bool playerDefending)
         {
+            ChangeBattlePhase(BattlePhase.EnemyAction);
             var enemyDamage = combat.RollEnemyAttack(currentEnemy, playerDefending);
             player.TakeDamage(enemyDamage);
             GameEvents.RaiseBattleLog($"{currentEnemy.Name} hits you for {enemyDamage}.");
@@ -172,33 +227,47 @@ namespace ToilRelic.Unity.Core
 
             if (!player.IsAlive)
             {
-                GameEvents.RaiseBattleLog("You collapsed. Auto-rest and return to camp.");
+                const string outcome = "You collapsed. Auto-rest and return to camp.";
+                GameEvents.RaiseBattleLog(outcome);
+                GameEvents.RaiseBattleOutcome(outcome);
                 player.HealAll();
                 currentEnemy = null;
+                PublishEnemy();
                 ChangeState(GameState.Camp);
+                ChangeBattlePhase(BattlePhase.None);
                 PublishPlayer();
-                SaveService.Save(player);
+                SaveProgress();
+                return;
             }
+
+            ChangeBattlePhase(BattlePhase.PlayerAction);
         }
 
         private void ResolveVictory()
         {
+            ChangeBattlePhase(BattlePhase.Resolving);
             var expReward = currentEnemy.ExpReward;
             var rolled = loot.Roll(dropTable);
             player.Add(ItemType.Junk, rolled.Junk);
             player.Add(ItemType.RelicPart, rolled.RelicPart);
             player.Add(ItemType.HealingPotion, rolled.HealingPotion);
+            var rewardWeaponGranted = player.GrantEquipment(EquipmentCatalog.RewardWeaponId);
             var levelResult = player.GainExperience(expReward);
 
-            GameEvents.RaiseBattleLog($"Win. Loot: {BuildLootLog(rolled.Junk, rolled.RelicPart, rolled.HealingPotion, expReward)}.");
+            var outcome = $"Win. Loot: {BuildLootLog(rolled.Junk, rolled.RelicPart, rolled.HealingPotion, expReward, rewardWeaponGranted)}.";
+            GameEvents.RaiseBattleLog(outcome);
+            GameEvents.RaiseBattleOutcome(outcome);
             if (levelResult.LeveledUp)
             {
-                GameEvents.RaiseBattleLog($"Level up! +{levelResult.LevelsGained} -> Lv.{levelResult.NewLevel}. HP fully restored.");
+                var levelUpMessage = $"Level up! +{levelResult.LevelsGained} -> Lv.{levelResult.NewLevel}. HP fully restored.";
+                GameEvents.RaiseLevelUp(levelUpMessage);
             }
             currentEnemy = null;
+            PublishEnemy();
             ChangeState(GameState.Camp);
+            ChangeBattlePhase(BattlePhase.None);
             PublishPlayer();
-            SaveService.Save(player);
+            SaveProgress();
         }
 
         private void PublishPlayer()
@@ -223,7 +292,55 @@ namespace ToilRelic.Unity.Core
             GameEvents.RaiseStateChanged(state);
         }
 
-        private static string BuildLootLog(int junk, int relicPart, int healingPotion, int expReward)
+        private void ChangeBattlePhase(BattlePhase next)
+        {
+            battlePhase = next;
+            GameEvents.RaiseBattlePhaseChanged(battlePhase);
+        }
+
+        private bool CanTakePlayerAction()
+        {
+            return state == GameState.Battle && currentEnemy != null && battlePhase == BattlePhase.PlayerAction;
+        }
+
+        private void SaveProgress()
+        {
+            if (!SaveService.TrySave(player, out var error))
+            {
+                GameEvents.RaiseSaveFailed($"Save failed: {error}");
+                return;
+            }
+
+            hasSavedGame = true;
+        }
+
+        private void EnterCamp(string message)
+        {
+            ChangeState(GameState.Camp);
+            ChangeBattlePhase(BattlePhase.None);
+            PublishPlayer();
+            GameEvents.RaiseBattleLog(message);
+        }
+
+        private void Equip(EquipmentSlot slot, string equipmentId)
+        {
+            if (state != GameState.Camp)
+            {
+                return;
+            }
+
+            if (!player.Equip(slot, equipmentId) || !EquipmentCatalog.TryGet(equipmentId, out var equipment))
+            {
+                GameEvents.RaiseBattleLog("That weapon is not owned.");
+                return;
+            }
+
+            PublishPlayer();
+            GameEvents.RaiseBattleLog($"Equipped {equipment.DisplayName}.");
+            SaveProgress();
+        }
+
+        private static string BuildLootLog(int junk, int relicPart, int healingPotion, int expReward, bool rewardWeaponGranted)
         {
             var parts = new List<string>();
 
@@ -245,6 +362,11 @@ namespace ToilRelic.Unity.Core
             if (expReward > 0)
             {
                 parts.Add($"EXP +{expReward}");
+            }
+
+            if (rewardWeaponGranted && EquipmentCatalog.TryGet(EquipmentCatalog.RewardWeaponId, out var weapon))
+            {
+                parts.Add(weapon.DisplayName);
             }
 
             return parts.Count > 0 ? string.Join(", ", parts) : "no loot";

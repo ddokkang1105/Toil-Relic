@@ -6,7 +6,7 @@ namespace ToilRelic;
 
 public sealed class Game
 {
-    private Player _player = new("노역자");
+    private Player _player = new("Wanderer");
     private readonly CombatSystem _combat = new();
     private readonly LootSystem _loot = new();
     private readonly CraftingSystem _crafting = new();
@@ -15,169 +15,73 @@ public sealed class Game
 
     public void Run()
     {
-        ConsoleUI.Header("Toil-Relic", "노역으로 보물을 만드는 시간제 사냥 게임");
+        ConsoleUI.Header("Toil-Relic", "A survival crafting game.");
         InitializePlayer();
-
         while (_running)
         {
             ConsoleUI.Status(_player);
-            ConsoleUI.Menu("행동 선택", new Dictionary<int, string>
+            ConsoleUI.Menu("Actions", new Dictionary<int, string> { { 1, "Hunt" }, { 2, "Inventory" }, { 3, "Craft treasure" }, { 4, "Rest" }, { 5, "Equipment" }, { 6, "Quit" } });
+            switch (ConsoleUI.ReadInt("Select", 1, 6))
             {
-                { 1, "사냥하기" },
-                { 2, "인벤토리 보기" },
-                { 3, "보물 제작" },
-                { 4, "휴식" },
-                { 5, "종료" },
-            });
-
-            var choice = ConsoleUI.ReadInt("번호 입력", 1, 5);
-            Console.WriteLine();
-
-            switch (choice)
-            {
-                case 1:
-                    Hunt();
-                    SaveProgress();
-                    break;
-                case 2:
-                    ConsoleUI.Inventory(_player);
-                    break;
-                case 3:
-                    Craft();
-                    SaveProgress();
-                    break;
-                case 4:
-                    Rest();
-                    SaveProgress();
-                    break;
-                case 5:
-                    SaveProgress();
-                    _running = false;
-                    break;
+                case 1: Hunt(); SaveProgress(); break;
+                case 2: ConsoleUI.Inventory(_player); break;
+                case 3: Craft(); SaveProgress(); break;
+                case 4: Rest(); SaveProgress(); break;
+                case 5: ShowEquipment(); break;
+                case 6: SaveProgress(); _running = false; break;
             }
         }
-
-        ConsoleUI.Footer(
-            "게임 종료",
-            $"최종 보물 수: {_player.TreasureCount}, 레벨: {_player.LevelProgress:F2}");
+        ConsoleUI.Footer("Game over", $"Treasures: {_player.TreasureCount}, level: {_player.LevelProgress:F2}");
     }
 
     private void InitializePlayer()
     {
-        if (!_save.HasSaveFile())
-        {
-            return;
-        }
-
-        ConsoleUI.Menu("시작 메뉴", new Dictionary<int, string>
-        {
-            { 1, "이어하기" },
-            { 2, "새 게임" }
-        });
-
-        var choice = ConsoleUI.ReadInt("번호 입력", 1, 2);
-        Console.WriteLine();
-
-        if (choice == 1)
-        {
-            if (_save.TryLoad(out var loadedPlayer, out var loadMessage))
-            {
-                _player = loadedPlayer;
-                ConsoleUI.Section("저장 데이터", loadMessage);
-            }
-            else
-            {
-                ConsoleUI.Section("저장 데이터", $"{loadMessage} 새 게임으로 시작합니다.");
-            }
-
-            ConsoleUI.Pause();
-        }
+        if (!_save.HasSaveFile()) return;
+        ConsoleUI.Menu("Start", new Dictionary<int, string> { { 1, "Continue" }, { 2, "New game" } });
+        if (ConsoleUI.ReadInt("Select", 1, 2) == 1 && _save.TryLoad(out var loaded, out var message)) { _player = loaded; ConsoleUI.Section("Save", message); ConsoleUI.Pause(); }
     }
-
-    private void SaveProgress()
-    {
-        if (!_save.TrySave(_player, out var message))
-        {
-            ConsoleUI.Section("저장 실패", message);
-        }
-    }
-
+    private void SaveProgress() { if (!_save.TrySave(_player, out var message)) ConsoleUI.Section("Save failed", message); }
     private void Hunt()
     {
         var enemy = Enemy.RandomEnemy();
-        ConsoleUI.Section($"사냥 시작: {enemy.Name}", $"HP {enemy.Hp}");
-
+        ConsoleUI.Section($"Hunt: {enemy.Name}", $"HP {enemy.Hp}");
         var result = _combat.Fight(_player, enemy);
-
         if (result.PlayerWon)
         {
-            var loot = _loot.RollLoot();
-            var levelResult = _player.GainExperience(enemy.ExpReward);
-            _player.AddItem(ItemType.Junk, loot.Junk);
-            _player.AddItem(ItemType.RelicPart, loot.RelicPart);
-            _player.AddItem(ItemType.HealingPotion, loot.HealingPotion);
-
-            ConsoleUI.Section("전리품", BuildLootLog(loot.Junk, loot.RelicPart, loot.HealingPotion, enemy.ExpReward));
-            if (levelResult.LeveledUp)
-            {
-                ConsoleUI.Section("레벨업", $"+{levelResult.LevelsGained} 상승! 현재 레벨: {levelResult.NewLevel}");
-            }
+            var loot = _loot.RollLoot(); var levelResult = _player.GainExperience(enemy.ExpReward);
+            _player.AddItem(ItemType.Junk, loot.Junk); _player.AddItem(ItemType.RelicPart, loot.RelicPart); _player.AddItem(ItemType.HealingPotion, loot.HealingPotion);
+            var rewardGranted = _player.GrantEquipment(EquipmentCatalog.RewardWeaponId);
+            ConsoleUI.Section("Loot", BuildLootLog(loot.Junk, loot.RelicPart, loot.HealingPotion, enemy.ExpReward, rewardGranted));
+            if (levelResult.LeveledUp) ConsoleUI.Section("Level up", $"Level {levelResult.NewLevel}");
         }
-        else if (result.PlayerFled)
-        {
-            ConsoleUI.Section("도망", "겨우 살아남았다.");
-        }
-        else if (result.TimeExpired)
-        {
-            ConsoleUI.Section("전투 종료", "8초가 지나 전투가 종료됐다.");
-        }
-        else
-        {
-            _player.ResetExperience();
-            ConsoleUI.Section("패배", "기절했다. 보유 EXP가 0으로 초기화됐다. 휴식으로 회복 필요.");
-        }
-
         ConsoleUI.Pause();
     }
-
-    private void Craft()
+    private void Craft() { var result = _crafting.TryCraftTreasure(_player); ConsoleUI.Section("Craft", result.Message); ConsoleUI.Pause(); }
+    private void Rest() { _player.Rest(); ConsoleUI.Section("Rest", "HP restored."); ConsoleUI.Pause(); }
+    private void ShowEquipment()
     {
-        var craftResult = _crafting.TryCraftTreasure(_player);
-        ConsoleUI.Section("보물 제작", craftResult.Message);
-        ConsoleUI.Pause();
+        ConsoleUI.Equipment(_player);
+        var slots = Enum.GetValues<EquipmentSlot>();
+        var slotOptions = new Dictionary<int, string> { { 0, "Back" } };
+        for (var index = 0; index < slots.Length; index++) slotOptions[index + 1] = slots[index].ToString();
+        ConsoleUI.Menu("Equipment slot", slotOptions);
+        var slotChoice = ConsoleUI.ReadInt("Select", 0, slots.Length);
+        if (slotChoice == 0) return;
+        var slot = slots[slotChoice - 1];
+        var candidates = _player.OwnedEquipmentIds.Where(id => EquipmentCatalog.TryGet(id, out var item) && item.CanEquipTo(slot)).ToList();
+        var itemOptions = new Dictionary<int, string> { { 0, slot == EquipmentSlot.PrimaryWeapon ? "Back" : "Unequip" } };
+        for (var index = 0; index < candidates.Count; index++) { EquipmentCatalog.TryGet(candidates[index], out var item); itemOptions[index + 1] = item.DisplayName; }
+        ConsoleUI.Menu($"{slot} equipment", itemOptions);
+        var itemChoice = ConsoleUI.ReadInt("Select", 0, candidates.Count);
+        var result = itemChoice == 0 ? slot == EquipmentSlot.PrimaryWeapon ? "Primary weapon cannot be unequipped." : _player.Unequip(slot) ? "Equipment removed." : "No equipment to remove." : _player.Equip(slot, candidates[itemChoice - 1]) ? "Equipment equipped." : "Equipment could not be equipped.";
+        ConsoleUI.Section("Equipment", result);
+        SaveProgress(); ConsoleUI.Pause();
     }
-
-    private void Rest()
-    {
-        _player.Rest();
-        ConsoleUI.Section("휴식", "체력이 회복됐다.");
-        ConsoleUI.Pause();
-    }
-
-    private static string BuildLootLog(int junk, int relicPart, int healingPotion, int expReward)
+    private static string BuildLootLog(int junk, int relicPart, int healingPotion, int expReward, bool rewardWeaponGranted)
     {
         var parts = new List<string>();
-
-        if (junk > 0)
-        {
-            parts.Add($"잡템 +{junk}");
-        }
-
-        if (relicPart > 0)
-        {
-            parts.Add($"보물 재료 +{relicPart}");
-        }
-
-        if (healingPotion > 0)
-        {
-            parts.Add($"HP 물약 +{healingPotion}");
-        }
-
-        if (expReward > 0)
-        {
-            parts.Add($"EXP +{expReward}");
-        }
-
-        return parts.Count > 0 ? string.Join(", ", parts) : "획득한 전리품 없음";
+        if (junk > 0) parts.Add($"Junk +{junk}"); if (relicPart > 0) parts.Add($"Relic parts +{relicPart}"); if (healingPotion > 0) parts.Add($"Potions +{healingPotion}"); if (expReward > 0) parts.Add($"EXP +{expReward}");
+        if (rewardWeaponGranted && EquipmentCatalog.TryGet(EquipmentCatalog.RewardWeaponId, out var weapon)) parts.Add($"{weapon.DisplayName} acquired");
+        return parts.Count > 0 ? string.Join(", ", parts) : "No loot";
     }
 }

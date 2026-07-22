@@ -6,13 +6,15 @@ public sealed class Enemy
     public int Hp { get; private set; }
     public int Attack { get; }
     public int ExpReward { get; }
+    public string? EquipmentDropProfileId { get; }
 
-    public Enemy(string name, int hp, int attack, int expReward)
+    public Enemy(string name, int hp, int attack, int expReward, string? equipmentDropProfileId = null)
     {
         Name = name;
         Hp = hp;
         Attack = attack;
         ExpReward = expReward;
+        EquipmentDropProfileId = equipmentDropProfileId;
     }
 
     public void TakeDamage(int amount)
@@ -35,6 +37,6 @@ public sealed class Enemy
     {
         var idx = Random.Shared.Next(Pool.Length);
         var e = Pool[idx];
-        return new Enemy(e.Name, e.Hp, e.Attack, e.ExpReward);
+        return new Enemy(e.Name, e.Hp, e.Attack, e.ExpReward, e.EquipmentDropProfileId);
     }
 }

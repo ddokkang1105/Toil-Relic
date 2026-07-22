@@ -7,6 +7,7 @@ namespace ToilRelic.Unity.UI
     {
         [SerializeField] private GameObject campPanel;
         [SerializeField] private GameObject battlePanel;
+        [SerializeField] private GameObject titlePanel;
 
         private void OnEnable()
         {
@@ -22,6 +23,12 @@ namespace ToilRelic.Unity.UI
         {
             var inCamp = state == GameState.Camp;
             var inBattle = state == GameState.Battle;
+            var atTitle = state == GameState.Title;
+
+            if (titlePanel != null)
+            {
+                titlePanel.SetActive(atTitle);
+            }
 
             if (campPanel != null)
             {

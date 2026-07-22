@@ -1,7 +1,7 @@
 # Unity Setup Guide
 
 ## 1) Project and folders
-1. Create a Unity 2D project in Unity Hub.
+1. Create a Unity 2D or 3D project in Unity Hub.
 2. Copy this folder into your project:
    - `Toil-Relic/unity/Assets/Scripts`
 3. In Unity, create folders:
@@ -18,6 +18,7 @@
      - Rust Golem: HP 14, ATK 3-5, EXP 14
      - Ruin Wraith: HP 18, ATK 4-6, EXP 20
    - Add them into `EnemyDatabase_Main` list.
+   - Optional: assign `Battle Visual Prefab` (2D or 3D) and a 2D HUD portrait.
 3. Drop table
    - `Create -> ToilRelic -> Drop Table`
    - Name it `DropTable_Default`
@@ -29,11 +30,14 @@
 2. Create UI texts and attach:
    - `HudController` (HP/Level/Inventory TMP texts)
    - `BattlePanelController` (Enemy text + Log text)
+   - Optional: assign an additional TMP text to `HudController`'s `Equipment Text` field to show the equipped weapon.
 3. Create empty object `UIActions` and attach `GameActionBridge`
    - Assign `GameManager` field.
 4. Create buttons and bind OnClick to `UIActions`:
    - Camp: `StartHunt`, `Rest`, `CraftTreasure`
    - Battle: `Attack`, `Defend`, `Flee`
+  - Optional camp equipment buttons: `EquipStarterWeapon`, `EquipRewardWeapon`.
+  - The primary weapon is always occupied. A future equipment screen can call `EquipEquipment(slot, equipmentId)` and `UnequipEquipment(slot)` for every non-primary physical slot.
 5. Optional panel toggle
    - Attach `StatePanelController`
    - Assign camp panel and battle panel.
@@ -46,4 +50,6 @@
 
 ## Notes
 - The gameplay logic is in plain C# classes under `Systems` and `Core`.
-- You can later swap UI without rewriting battle/crafting math.
+- `BattlePhaseChanged` separates player input, enemy response, and resolution. Use it to sequence animations, VFX, or camera movement; do not put those waits into the gameplay systems.
+- You can later swap UI or 2D/3D presentation without rewriting battle/crafting math.
+- Enemy `Equipment Drop Profile Id` is a future-content reference only; do not assign equipment rewards until a drop-table task defines rates and rarity.

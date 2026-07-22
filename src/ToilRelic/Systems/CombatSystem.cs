@@ -32,7 +32,7 @@ public sealed class CombatSystem
                 AppendLog($"HP 물약을 사용해 체력 {healed} 회복.");
             }
 
-            var playerAttack = Random.Shared.Next(4, 9);
+            var playerAttack = Random.Shared.Next(4, 9) + player.AttackBonus;
             enemy.TakeDamage(playerAttack);
             AppendLog($"{enemy.Name}에게 {playerAttack} 피해.");
 

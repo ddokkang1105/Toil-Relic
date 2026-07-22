@@ -9,4 +9,9 @@ public sealed class PlayerSaveData
     public int Experience { get; init; }
     public int TreasureCount { get; init; }
     public Dictionary<ItemType, int> Inventory { get; init; } = new();
+    public List<string> OwnedEquipmentIds { get; init; } = new();
+    // Kept only to read the pre-slot save format; new saves use EquippedEquipment.
+    public string? EquippedWeaponId { get; init; }
+    public List<EquippedEquipmentEntry> EquippedEquipment { get; init; } = new();
+    public bool EquipmentInitialized { get; init; }
 }

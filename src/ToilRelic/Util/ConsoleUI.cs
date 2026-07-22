@@ -31,8 +31,9 @@ public static class ConsoleUI
 
     public static void Status(Player player)
     {
+        var weaponName = player.TryGetPrimaryWeapon(out var weapon) ? $"{weapon.DisplayName} +{weapon.AttackBonus}" : "없음";
         Console.WriteLine(
-            $"{player.Name} | HP {player.Hp}/{player.MaxHp} | 보물 {player.TreasureCount} | 레벨 {player.LevelProgress:F2}");
+            $"{player.Name} | HP {player.Hp}/{player.MaxHp} | 보물 {player.TreasureCount} | 레벨 {player.LevelProgress:F2} | 무기 {weaponName}");
     }
 
     public static void Menu(string title, Dictionary<int, string> options)
@@ -68,6 +69,18 @@ public static class ConsoleUI
         }
         Console.WriteLine();
         Pause();
+    }
+
+    public static void Equipment(Player player)
+    {
+        Console.WriteLine("[장비]");
+        foreach (var slot in Enum.GetValues<EquipmentSlot>())
+        {
+            var item = player.TryGetEquippedEquipment(slot, out var equipment) ? equipment.DisplayName : "비어 있음";
+            Console.WriteLine($"- {slot}: {item}");
+        }
+        Console.WriteLine($"합계: 공격 +{player.AttackBonus}, 방어 +{player.DefenseBonus}, 피해 감소 +{player.DamageReductionBonus}, 최대 HP +{player.EquipmentMaxHpBonus}");
+        Console.WriteLine();
     }
 
     public static void Pause()
