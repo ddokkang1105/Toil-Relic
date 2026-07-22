@@ -45,10 +45,9 @@ public sealed class GameSaveUxTests
         File.WriteAllText(fixture.SavePath, original);
         var input = new ScriptedTextReader();
 
-        var exception = Assert.Throws<EndOfInputException>(() =>
+        Assert.Throws<EndOfInputException>(() =>
             CaptureConsole(input, () => new Game(fixture.System).Run()));
 
-        Assert.NotNull(exception);
         Assert.Contains("Save could not be read. Start New Game to replace it.", input.CapturedOutput);
         Assert.DoesNotContain("Continue", input.CapturedOutput);
         Assert.Equal(original, File.ReadAllText(fixture.SavePath));
@@ -62,10 +61,9 @@ public sealed class GameSaveUxTests
         File.WriteAllText(fixture.SavePath, original);
         var input = new ScriptedTextReader();
 
-        var exception = Assert.Throws<EndOfInputException>(() =>
+        Assert.Throws<EndOfInputException>(() =>
             CaptureConsole(input, () => new Game(fixture.System).Run()));
 
-        Assert.NotNull(exception);
         Assert.Contains("Save could not be read. Start New Game to replace it.", input.CapturedOutput);
         Assert.DoesNotContain("Continue", input.CapturedOutput);
         Assert.Equal(original, File.ReadAllText(fixture.SavePath));

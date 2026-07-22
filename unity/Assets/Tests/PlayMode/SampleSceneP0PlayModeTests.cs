@@ -235,17 +235,7 @@ namespace ToilRelic.PlayModeTests
 
             yield return ReloadSampleScene();
 
-            var gameManager = RequireComponent(GameManagerTypeName);
-            var titleMenu = RequireComponent(TitleMenuControllerTypeName);
-            var continueButton = GetPrivateField(titleMenu, "continueButton") as Button;
-            var status = RequireComponent(GameStatusControllerTypeName);
-            var messageText = GetPrivateField(status, "messageText") as Text;
-
-            Assert.That((bool)gameManager.GetType().GetProperty("HasSavedGame").GetValue(gameManager), Is.False);
-            Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(), Is.EqualTo("Unreadable"));
-            Assert.That(continueButton.interactable, Is.False);
-            Assert.That(messageText.text, Is.EqualTo("Save could not be read. Start New Game to replace it."));
-            Assert.That(File.ReadAllText(fixtureSavePath), Is.EqualTo(original));
+            AssertUnreadableTitleState(original);
         }
 
         [UnityTest]

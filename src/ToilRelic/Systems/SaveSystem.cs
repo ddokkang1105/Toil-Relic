@@ -51,10 +51,8 @@ public sealed class SaveSystem
                 return LoadResult.Unreadable("The save file does not match the supported player save format.");
             }
 
-            var saveData = document.RootElement.Deserialize<PlayerSaveData>(_jsonOptions);
-            return saveData is null
-                ? LoadResult.Unreadable("The save file contained no player data.")
-                : LoadResult.Loaded(Player.FromSaveData(saveData));
+            var saveData = document.RootElement.Deserialize<PlayerSaveData>(_jsonOptions)!;
+            return LoadResult.Loaded(Player.FromSaveData(saveData));
         }
         catch (FileNotFoundException)
         {
