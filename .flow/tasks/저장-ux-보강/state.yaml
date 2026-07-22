@@ -1,4 +1,4 @@
-stage: discover
+stage: review
 profile: standard
 gates:
   office_hours: false
@@ -11,7 +11,8 @@ artifacts:
   task: task.md
   decisions: decisions.md
   plan: plan.md
+  work: work.md
   review: review.md
   qa: qa.md
   followups: followups.md
-updated: 2026-07-16
+updated: 2026-07-22
