@@ -29,6 +29,15 @@ namespace ToilRelic.Unity.Core
         public int AttackBonus => EquippedDefinitions.Sum(item => item.AttackBonus); public int DefenseBonus => EquippedDefinitions.Sum(item => item.DefenseBonus); public int DamageReductionBonus => EquippedDefinitions.Sum(item => item.DamageReductionBonus); public int EquipmentMaxHpBonus => EquippedDefinitions.Sum(item => item.MaxHpBonus);
         public int ReduceIncomingDamage(int amount) => Mathf.Max(0, amount - DefenseBonus - DamageReductionBonus);
 
+        internal bool HasValidSaveData() =>
+            maxHp > 0 &&
+            hp >= 0 && hp <= maxHp &&
+            level > 0 &&
+            experience >= 0 &&
+            treasureCount >= 0 &&
+            inventory != null && inventory.Count > 0 &&
+            inventory.All(slot => slot != null && slot.amount >= 0 && Enum.IsDefined(typeof(ItemType), slot.type));
+
         public void InitDefaults()
         {
             inventory ??= new List<InventorySlot>(); ownedEquipmentIds ??= new List<string>(); equippedEquipment ??= new List<EquippedEquipmentEntry>();

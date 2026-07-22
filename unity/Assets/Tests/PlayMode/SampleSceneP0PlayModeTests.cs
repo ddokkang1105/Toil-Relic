@@ -206,6 +206,27 @@ namespace ToilRelic.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator P0_LegacySaveWithoutEquipmentFieldsLoadsAndNormalizes()
+        {
+            const string legacy = "{\"version\":2,\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":0,\"inventory\":[{\"type\":0,\"amount\":2},{\"type\":1,\"amount\":1},{\"type\":2,\"amount\":0},{\"type\":3,\"amount\":0}]}}";
+            File.WriteAllText(fixtureSavePath, legacy);
+
+            yield return ReloadSampleScene();
+
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var loadedPlayer = GetPrivateField(gameManager, "player");
+            var tryGetPrimaryWeapon = loadedPlayer.GetType().GetMethod("TryGetPrimaryWeapon");
+            var primaryWeaponArguments = new object[] { null };
+
+            Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(), Is.EqualTo("Loaded"));
+            Assert.That((int)loadedPlayer.GetType().GetProperty("Level").GetValue(loadedPlayer), Is.EqualTo(2));
+            Assert.That((int)loadedPlayer.GetType().GetProperty("Hp").GetValue(loadedPlayer), Is.EqualTo(18));
+            Assert.That((bool)tryGetPrimaryWeapon.Invoke(loadedPlayer, primaryWeaponArguments), Is.True);
+            Assert.That(primaryWeaponArguments[0], Is.Not.Null);
+            Assert.That(File.ReadAllText(fixtureSavePath), Is.EqualTo(legacy));
+        }
+
+        [UnityTest]
         public IEnumerator P0_UnreadableSaveDisablesContinueWithoutChangingBytes()
         {
             const string original = "{ unreadable save";
@@ -225,6 +246,36 @@ namespace ToilRelic.PlayModeTests
             Assert.That(continueButton.interactable, Is.False);
             Assert.That(messageText.text, Is.EqualTo("Save could not be read. Start New Game to replace it."));
             Assert.That(File.ReadAllText(fixtureSavePath), Is.EqualTo(original));
+        }
+
+        [UnityTest]
+        public IEnumerator P0_StructurallyInvalidSaveDisablesContinueWithoutChangingBytes()
+        {
+            const string original = "{\"version\":2,\"player\":{}}";
+            File.WriteAllText(fixtureSavePath, original);
+            LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save load failed"));
+
+            yield return ReloadSampleScene();
+
+            AssertUnreadableTitleState(original);
+        }
+
+        [UnityTest]
+        public IEnumerator P0_UnsupportedSaveVersionDisablesContinueWithoutChangingBytes()
+        {
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var player = GetPrivateField(gameManager, "player");
+            var saveResult = fixtureSaveServiceType.GetMethod("Save").Invoke(null, new[] { player });
+            Assert.That((bool)saveResult.GetType().GetProperty("Succeeded").GetValue(saveResult), Is.True);
+
+            var original = File.ReadAllText(fixtureSavePath).Replace("\"version\":2", "\"version\":999");
+            Assert.That(original, Does.Contain("\"version\":999"));
+            File.WriteAllText(fixtureSavePath, original);
+            LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save load failed"));
+
+            yield return ReloadSampleScene();
+
+            AssertUnreadableTitleState(original);
         }
 
         [UnityTest]
@@ -840,6 +891,21 @@ namespace ToilRelic.PlayModeTests
             var saveStatusText = GetPrivateField(status, "saveStatusText") as Text;
             Assert.That(saveStatusText, Is.Not.Null, "The generated scene must wire the auxiliary save row.");
             return saveStatusText;
+        }
+
+        private void AssertUnreadableTitleState(string expectedSaveBytes)
+        {
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var titleMenu = RequireComponent(TitleMenuControllerTypeName);
+            var continueButton = GetPrivateField(titleMenu, "continueButton") as Button;
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+
+            Assert.That((bool)gameManager.GetType().GetProperty("HasSavedGame").GetValue(gameManager), Is.False);
+            Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(), Is.EqualTo("Unreadable"));
+            Assert.That(continueButton.interactable, Is.False);
+            Assert.That(messageText.text, Is.EqualTo("Save could not be read. Start New Game to replace it."));
+            Assert.That(File.ReadAllText(fixtureSavePath), Is.EqualTo(expectedSaveBytes));
         }
 
         private void CleanupSaveFixtureState()
