@@ -22,7 +22,7 @@ public sealed class SaveSystem
         return File.Exists(_savePath);
     }
 
-    public bool TrySave(Player player, out string message)
+    public PersistenceResult Save(Player player)
     {
         try
         {
@@ -37,44 +37,60 @@ public sealed class SaveSystem
             File.WriteAllText(tempPath, json);
             File.Move(tempPath, _savePath, true);
 
-            message = $"저장 완료: {_savePath}";
-            return true;
+            return PersistenceResult.Success();
         }
         catch (Exception ex)
         {
-            message = $"저장 중 오류: {ex.Message}";
-            return false;
+            return PersistenceResult.Failure(ex.ToString());
         }
     }
 
-    public bool TryLoad(out Player player, out string message)
+    public LoadResult Load()
     {
-        player = new Player("노역자");
-
         try
         {
             if (!File.Exists(_savePath))
             {
-                message = "저장 파일이 없습니다.";
-                return false;
+                return LoadResult.Missing();
             }
 
             var json = File.ReadAllText(_savePath);
             var saveData = JsonSerializer.Deserialize<PlayerSaveData>(json);
-            if (saveData is null)
-            {
-                message = "저장 파일 파싱에 실패했습니다.";
-                return false;
-            }
-
-            player = Player.FromSaveData(saveData);
-            message = $"불러오기 완료: {_savePath}";
-            return true;
+            return saveData is null
+                ? LoadResult.Unreadable("The save file contained no player data.")
+                : LoadResult.Loaded(Player.FromSaveData(saveData));
         }
         catch (Exception ex)
         {
-            message = $"불러오기 중 오류: {ex.Message}";
-            return false;
+            return LoadResult.Unreadable(ex.ToString());
         }
+    }
+
+    public PersistenceResult Delete()
+    {
+        try
+        {
+            File.Delete(_savePath);
+            return PersistenceResult.Success();
+        }
+        catch (Exception ex)
+        {
+            return PersistenceResult.Failure(ex.ToString());
+        }
+    }
+
+    public bool TrySave(Player player, out string message)
+    {
+        var result = Save(player);
+        message = result.Diagnostic ?? string.Empty;
+        return result.Succeeded;
+    }
+
+    public bool TryLoad(out Player player, out string message)
+    {
+        var result = Load();
+        player = result.Player ?? new Player("Wanderer");
+        message = result.Diagnostic ?? string.Empty;
+        return result.Status == LoadStatus.Loaded;
     }
 }
