@@ -313,6 +313,21 @@ namespace ToilRelic.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator P0_BattlePanelFitsBelowVisibleStatusAtWidescreenFloor()
+        {
+            yield return null;
+            var statusRect = RequireRectTransform("GameStatus");
+            var messageRect = RequireRectTransform("MessageText");
+            var battleRect = RequireRectTransform("BattlePanel");
+            var statusBounds = CalculateVirtualRect(statusRect, WidescreenVirtualSize);
+            var visibleStatusBottom = statusBounds.yMax + messageRect.anchoredPosition.y - messageRect.sizeDelta.y;
+            var battleTop = CalculateVirtualRect(battleRect, WidescreenVirtualSize).yMax;
+
+            Assert.That(visibleStatusBottom - battleTop, Is.GreaterThanOrEqualTo(MinimumTopRegionGap),
+                "BattlePanel must remain below the visible state and message rows when the save row is hidden.");
+        }
+
+        [UnityTest]
         public IEnumerator P0_TitleAndCampButtonsKeepAccessibleGeometry()
         {
             yield return null;
@@ -334,11 +349,23 @@ namespace ToilRelic.PlayModeTests
             yield return null;
             var hudRect = RequireRectTransform("Hud");
             var statusRect = RequireRectTransform("GameStatus");
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var saveStatusText = GetPrivateField(status, "saveStatusText") as Text;
             var hudTexts = hudRect.GetComponentsInChildren<Text>(true);
             var statusTexts = statusRect.GetComponentsInChildren<Text>(true);
 
             Assert.That(hudRect.sizeDelta.x, Is.LessThanOrEqualTo(344f));
             Assert.That(statusRect.sizeDelta.x, Is.LessThanOrEqualTo(400f));
+            Assert.That(statusRect.sizeDelta.y, Is.EqualTo(120f));
+            Assert.That(saveStatusText, Is.Not.Null, "The generated scene must wire the auxiliary save row.");
+            Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.False,
+                "The save row must be hidden before the first save result.");
+            Assert.That(saveStatusText.fontSize, Is.EqualTo(16));
+            Assert.That(saveStatusText.color, Is.EqualTo(Color.white));
+            Assert.That(saveStatusText.alignment, Is.EqualTo(TextAnchor.MiddleRight));
+            Assert.That(saveStatusText.resizeTextForBestFit, Is.False);
+            Assert.That(saveStatusText.rectTransform.sizeDelta.y, Is.EqualTo(22f));
+            Assert.That(saveStatusText.rectTransform.anchoredPosition.y, Is.EqualTo(-98f));
             AssertTextTypography(hudTexts);
             AssertTextTypography(statusTexts);
         }
@@ -477,35 +504,20 @@ namespace ToilRelic.PlayModeTests
             var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
             var gameEventsType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Core.GameEvents");
             changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
-            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "Choose an action." });
-            yield return null;
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "You rest and recover to full HP." });
+            RaiseSaveStatus(gameEventsType, "Succeeded");
+            yield return CaptureStableScreenshot(evidenceDirectory, "camp-success-1280x720.png", 1280, 720);
+            yield return CaptureStableScreenshot(evidenceDirectory, "camp-success-800x600.png", 800, 600);
 
-            const string campWarmupFile = "camp-warmup.png";
-            yield return CaptureStableScreenshot(evidenceDirectory, campWarmupFile, 800, 600);
-            File.Delete(Path.Combine(evidenceDirectory, campWarmupFile));
-            yield return CaptureStableScreenshot(evidenceDirectory, "camp-1280x720.png", 1280, 720);
-            yield return CaptureStableScreenshot(evidenceDirectory, "camp-800x600.png", 800, 600);
-
-            gameEventsType.GetMethod("RaiseBattleOutcome").Invoke(
-                null,
-                new object[] { "Win. Loot: junk +3, relic part +2, healing potion +1, EXP +20, Reward Weapon." });
-            gameEventsType.GetMethod("RaiseLevelUp").Invoke(
-                null,
-                new object[] { "Level up! +1 -> Lv.2. HP fully restored." });
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "Crafting complete." });
             RaiseSaveStatus(gameEventsType, "Failed");
-            const string statusWarmupFile = "status-warmup.png";
-            yield return CaptureStableScreenshot(evidenceDirectory, statusWarmupFile, 800, 600);
-            File.Delete(Path.Combine(evidenceDirectory, statusWarmupFile));
-            yield return CaptureStableScreenshot(evidenceDirectory, "status-stress-1280x720.png", 1280, 720);
+            yield return CaptureStableScreenshot(evidenceDirectory, "camp-failure-1280x720.png", 1280, 720);
+            yield return CaptureStableScreenshot(evidenceDirectory, "camp-failure-800x600.png", 800, 600);
 
-            gameManager.GetType().GetMethod("StartHunt").Invoke(gameManager, null);
-            var player = GetPrivateField(gameManager, "player");
-            gameEventsType.GetMethod("RaisePlayerChanged").Invoke(null, new[] { player });
-            yield return null;
-            const string battleWarmupFile = "battle-warmup.png";
-            yield return CaptureStableScreenshot(evidenceDirectory, battleWarmupFile, 800, 600);
-            File.Delete(Path.Combine(evidenceDirectory, battleWarmupFile));
-            yield return CaptureStableScreenshot(evidenceDirectory, "battle-regression-1280x720.png", 1280, 720);
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Battle") });
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "A wild Mine Vermin appears." });
+            yield return CaptureStableScreenshot(evidenceDirectory, "battle-failure-1280x720.png", 1280, 720);
+            yield return CaptureStableScreenshot(evidenceDirectory, "battle-failure-800x600.png", 800, 600);
         }
 
         [UnityTest]

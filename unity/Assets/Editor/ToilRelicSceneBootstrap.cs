@@ -23,14 +23,18 @@ namespace ToilRelic.Unity.Editor
         private const float HudWidth = 344f;
         private const float HudHeight = 94f;
         private const float StatusWidth = 400f;
-        private const float StatusHeight = 96f;
+        private const float StatusHeight = 120f;
         private const float TopTextHeight = 22f;
         private const float StatusMessageHeight = 72f;
         private const float TopTextStep = 24f;
+        private const float SaveStatusPositionY = -98f;
         private const int TopTextFontSize = 16;
-        private static readonly Vector2 MenuPanelPosition = new Vector2(0f, -4f);
+        private static readonly Vector2 MenuPanelPosition = new Vector2(0f, -25f);
         private static readonly Vector2 MenuPanelSize = new Vector2(280f, 196f);
         private static readonly Vector2 MenuButtonSize = new Vector2(220f, 44f);
+        private static readonly Vector2 BattlePanelPosition = new Vector2(180f, -61f);
+        private static readonly Vector2 BattlePanelSize = new Vector2(320f, 316f);
+        private static readonly Vector2 BattleButtonSize = new Vector2(220f, 44f);
 
         public static void ConfigureSampleScene()
         {
@@ -58,7 +62,7 @@ namespace ToilRelic.Unity.Editor
             var canvas = CreateCanvas();
             var titlePanel = CreatePanel("TitlePanel", canvas.transform, MenuPanelPosition, MenuPanelSize);
             var campPanel = CreatePanel("CampPanel", canvas.transform, MenuPanelPosition, MenuPanelSize);
-            var battlePanel = CreatePanel("BattlePanel", canvas.transform, new Vector2(180f, 0f), new Vector2(320f, 360f));
+            var battlePanel = CreatePanel("BattlePanel", canvas.transform, BattlePanelPosition, BattlePanelSize);
             var hud = CreateHud(canvas.transform);
             var status = CreateStatus(canvas.transform);
             var actions = new GameObject("UIActions");
@@ -73,13 +77,13 @@ namespace ToilRelic.Unity.Editor
             CreateButton("Hunt", campPanel.transform, 52f, bridge.StartHunt, MenuButtonSize);
             CreateButton("Rest", campPanel.transform, 0f, bridge.Rest, MenuButtonSize);
             CreateButton("Craft Treasure", campPanel.transform, -52f, bridge.CraftTreasure, MenuButtonSize);
-            CreatePanelText("EnemyText", battlePanel.transform, 140f, 280f, 28f);
-            CreatePanelText("PhaseText", battlePanel.transform, 108f, 280f, 28f);
-            CreatePanelText("BattleLogText", battlePanel.transform, 70f, 280f, 54f);
-            var attackButton = CreateButton("Attack", battlePanel.transform, 25f, bridge.Attack);
-            var defendButton = CreateButton("Defend", battlePanel.transform, -30f, bridge.Defend);
-            var fleeButton = CreateButton("Flee", battlePanel.transform, -85f, bridge.Flee);
-            var potionButton = CreateButton("Potion", battlePanel.transform, -140f, bridge.UsePotion);
+            CreatePanelText("EnemyText", battlePanel.transform, 130f, 280f, 24f);
+            CreatePanelText("PhaseText", battlePanel.transform, 102f, 280f, 24f);
+            CreatePanelText("BattleLogText", battlePanel.transform, 70f, 280f, 50f);
+            var attackButton = CreateButton("Attack", battlePanel.transform, 12f, bridge.Attack, BattleButtonSize);
+            var defendButton = CreateButton("Defend", battlePanel.transform, -36f, bridge.Defend, BattleButtonSize);
+            var fleeButton = CreateButton("Flee", battlePanel.transform, -84f, bridge.Flee, BattleButtonSize);
+            var potionButton = CreateButton("Potion", battlePanel.transform, -132f, bridge.UsePotion, BattleButtonSize);
 
             var stateController = canvas.gameObject.AddComponent<StatePanelController>();
             var stateProperties = new SerializedObject(stateController);
@@ -106,6 +110,7 @@ namespace ToilRelic.Unity.Editor
             var statusProperties = new SerializedObject(statusController);
             statusProperties.FindProperty("stateText").objectReferenceValue = status.transform.Find("StateText").GetComponent<Text>();
             statusProperties.FindProperty("messageText").objectReferenceValue = status.transform.Find("MessageText").GetComponent<Text>();
+            statusProperties.FindProperty("saveStatusText").objectReferenceValue = status.transform.Find("SaveStatusText").GetComponent<Text>();
             statusProperties.ApplyModifiedPropertiesWithoutUndo();
 
             var battleController = battlePanel.AddComponent<BattlePanelController>();
@@ -237,6 +242,7 @@ namespace ToilRelic.Unity.Editor
 
             CreateStatusText("StateText", status.transform, 0f, TopTextHeight);
             CreateStatusText("MessageText", status.transform, -TopTextStep, StatusMessageHeight);
+            CreateStatusText("SaveStatusText", status.transform, SaveStatusPositionY, TopTextHeight);
             return status;
         }
 
