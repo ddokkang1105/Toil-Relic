@@ -45,3 +45,41 @@ Implemented the approved save UX reliability plan across the console and Unity r
 
 - No implementation blocker remains for review.
 - Atomic last-known-good replacement for Unity and explicit manual save controls remain documented follow-ups rather than implicit scope expansion.
+
+## Review rework: structural save validation
+
+### Result
+
+Resolved the review P1 without changing either serialized save shape. Parseable data must now satisfy the stable console core shape or Unity version-2/core-state contract before it can become `Loaded`; rejected bytes remain untouched and the existing Title path keeps Continue unavailable.
+
+### Implementation
+
+- U1: Console validates the seven fields present since the first `PlayerSaveData` format while leaving later equipment fields optional. `{}` is now `Unreadable`, and the real Title flow shows only the approved New Game diagnosis.
+- U3: Unity writes the envelope version explicitly, rejects unsupported versions, and validates core `PlayerState` invariants before `InitDefaults` can normalize corrupt data. Version-2 saves without optional equipment fields still load and normalize starter equipment.
+- Simplification: reused the Unity unreadable-Title assertion contract, removed redundant xUnit result checks, and removed an unreachable post-shape-validation null branch. Reuse: 1; quality: 2; efficiency: 0; skipped findings: 0.
+
+### Proof-first evidence
+
+- Console red: `Load_EmptyJsonObject_ReturnsUnreadableWithoutChangingBytes` failed with expected `Unreadable`, actual `Loaded` before implementation.
+- Unity red: `{"version":2,"player":{}}` did not emit the expected `Save load failed` diagnostic before implementation, proving it was incorrectly accepted.
+
+### Verification evidence
+
+| Layer | Result | Evidence |
+|---|---|---|
+| Console build | Passed with 0 warnings and 0 errors | `dotnet build src/ToilRelic/ToilRelic.csproj --no-restore` |
+| Console tests | 16 passed, 0 failed | `dotnet test tests/ToilRelic.Tests/ToilRelic.Tests.csproj --no-restore` |
+| Unity focused validation | 5 passed, 0 failed | `work-rework-u3-results.xml`; valid v2, legacy optional fields, malformed, structural invalidity, unsupported version |
+| Unity full PlayMode | 30 passed, 0 failed, 1 optional capture skipped | `work-rework-full-results.xml`; capture test requires `TOIL_RELIC_LAYOUT_EVIDENCE_DIR` |
+| Diff hygiene | Passed | `git diff --check` |
+
+### Rework commits
+
+- `0986e81` - Reject structurally invalid console saves
+- `614d175` - Reject structurally invalid Unity saves
+- `0c871c5` - Simplify save validation coverage
+
+### Remaining review scope
+
+- The P1 implementation blocker is resolved and ready for re-review.
+- Previously recorded advisory risks and broader E2E gaps remain review inputs; this rework did not expand into atomic Unity writes, manual save controls, or unrelated documentation refresh.

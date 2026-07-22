@@ -1,4 +1,4 @@
-stage: work
+stage: review
 profile: standard
 gates:
   office_hours: false
