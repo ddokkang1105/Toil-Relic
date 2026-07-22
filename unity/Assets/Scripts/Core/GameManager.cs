@@ -23,16 +23,20 @@ namespace ToilRelic.Unity.Core
         private GameState state = GameState.Title;
         private BattlePhase battlePhase = BattlePhase.None;
         private bool hasSavedGame;
+        private SaveLoadStatus saveLoadStatus;
 
         public BattlePhase CurrentBattlePhase => battlePhase;
         public GameState CurrentState => state;
         public bool HasSavedGame => hasSavedGame;
+        public SaveLoadStatus CurrentSaveLoadStatus => saveLoadStatus;
 
         private void Awake()
         {
-            if (SaveService.TryLoad(out var loaded))
+            var loadResult = SaveService.Load();
+            saveLoadStatus = loadResult.Status;
+            if (loadResult.Status == SaveLoadStatus.Loaded)
             {
-                player = loaded;
+                player = loadResult.Player;
                 player.InitDefaults();
                 hasSavedGame = true;
             }
@@ -40,13 +44,18 @@ namespace ToilRelic.Unity.Core
             {
                 player.InitDefaults();
             }
+
+            if (!string.IsNullOrEmpty(loadResult.Diagnostic))
+            {
+                Debug.LogError($"Save load failed. {loadResult.Diagnostic}");
+            }
         }
 
         private void Start()
         {
             ChangeState(GameState.Title);
             PublishPlayer();
-            GameEvents.RaiseBattleLog(hasSavedGame ? "Save found. Continue or start a new game." : "Start a new game to begin.");
+            GameEvents.RaiseBattleLog(GetTitleSaveMessage());
         }
 
         public void ContinueGame()
@@ -66,15 +75,21 @@ namespace ToilRelic.Unity.Core
                 return;
             }
 
-            if (!SaveService.TryDelete(out var error))
+            if (saveLoadStatus != SaveLoadStatus.Missing)
             {
-                GameEvents.RaiseBattleLog($"Could not clear save: {error}");
-                return;
+                var deleteResult = SaveService.Delete();
+                if (!deleteResult.Succeeded)
+                {
+                    Debug.LogError($"Save delete failed. {deleteResult.Diagnostic}");
+                    GameEvents.RaiseBattleLog(GetTitleSaveMessage());
+                    return;
+                }
             }
 
             player = new PlayerState();
             player.InitDefaults();
             hasSavedGame = false;
+            saveLoadStatus = SaveLoadStatus.Missing;
             EnterCamp("A new expedition begins. Hunt, craft, and survive.");
         }
 
@@ -305,13 +320,26 @@ namespace ToilRelic.Unity.Core
 
         private void SaveProgress()
         {
-            if (!SaveService.TrySave(player, out var error))
+            var saveResult = SaveService.Save(player);
+            if (!saveResult.Succeeded)
             {
-                GameEvents.RaiseSaveFailed($"Save failed: {error}");
+                Debug.LogError($"Save write failed. {saveResult.Diagnostic}");
+                GameEvents.RaiseSaveFailed("Save failed. Progress may not be saved.");
                 return;
             }
 
             hasSavedGame = true;
+            saveLoadStatus = SaveLoadStatus.Loaded;
+        }
+
+        private string GetTitleSaveMessage()
+        {
+            return saveLoadStatus switch
+            {
+                SaveLoadStatus.Loaded => "Save found. Continue or start a new game.",
+                SaveLoadStatus.Unreadable => "Save could not be read. Start New Game to replace it.",
+                _ => "Start a new game to begin."
+            };
         }
 
         private void EnterCamp(string message)

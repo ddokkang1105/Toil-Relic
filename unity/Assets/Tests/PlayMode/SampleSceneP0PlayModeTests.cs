@@ -22,13 +22,43 @@ namespace ToilRelic.PlayModeTests
         private const string GameStatusControllerTypeName = "ToilRelic.Unity.UI.GameStatusController";
         private static readonly Vector2 WidescreenVirtualSize = new Vector2(800f, 450f);
         private const float MinimumTopRegionGap = 16f;
+        private const string SaveServiceTypeName = "ToilRelic.Unity.Save.SaveService";
+        private Type fixtureSaveServiceType;
+        private object previousSavePathOverride;
+        private string fixtureSaveDirectory;
+        private string fixtureSavePath;
 
         [UnitySetUp]
         public IEnumerator LoadSampleScene()
         {
+            fixtureSaveServiceType = FindType(SaveServiceTypeName);
+            Assert.That(fixtureSaveServiceType, Is.Not.Null, "SaveService must be loaded before scene setup.");
+            previousSavePathOverride = GetPrivateStaticField(fixtureSaveServiceType, "savePathOverride");
+            fixtureSaveDirectory = Path.Combine(Path.GetTempPath(), $"toil-relic-unity-tests-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(fixtureSaveDirectory);
+            fixtureSavePath = Path.Combine(fixtureSaveDirectory, "toil_relic_save.json");
+            SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", fixtureSavePath);
+
             var operation = SceneManager.LoadSceneAsync("SampleScene", LoadSceneMode.Single);
             Assert.That(operation, Is.Not.Null, "SampleScene must be included in the project.");
             yield return operation;
+            yield return null;
+        }
+
+        [UnityTearDown]
+        public IEnumerator CleanupSaveFixture()
+        {
+            if (fixtureSaveServiceType != null)
+            {
+                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", previousSavePathOverride);
+                Assert.That(GetPrivateStaticField(fixtureSaveServiceType, "savePathOverride"), Is.EqualTo(previousSavePathOverride));
+            }
+
+            if (!string.IsNullOrEmpty(fixtureSaveDirectory) && Directory.Exists(fixtureSaveDirectory))
+            {
+                Directory.Delete(fixtureSaveDirectory, recursive: true);
+            }
+
             yield return null;
         }
 
@@ -131,13 +161,95 @@ namespace ToilRelic.PlayModeTests
             var titlePanel = titleMenu.gameObject;
             var state = GetPrivateField(gameManager, "state");
             var continueButton = GetPrivateField(titleMenu, "continueButton") as Button;
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
 
             Assert.That(state.ToString(), Is.EqualTo("Title"));
             Assert.That(titlePanel.activeInHierarchy, Is.True);
             Assert.That(continueButton, Is.Not.Null);
 
             var hasSavedGame = (bool)gameManager.GetType().GetProperty("HasSavedGame").GetValue(gameManager);
-            Assert.That(continueButton.interactable, Is.EqualTo(hasSavedGame));
+            Assert.That(hasSavedGame, Is.False);
+            Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(), Is.EqualTo("Missing"));
+            Assert.That(continueButton.interactable, Is.False);
+            Assert.That(messageText.text, Is.EqualTo("Start a new game to begin."));
+        }
+
+        [UnityTest]
+        public IEnumerator P0_ValidSaveEnablesContinueAndLoadsCurrentFormat()
+        {
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var player = GetPrivateField(gameManager, "player");
+            SetPrivateField(player, "level", 3);
+            var saveResult = fixtureSaveServiceType.GetMethod("Save").Invoke(null, new[] { player });
+            Assert.That((bool)saveResult.GetType().GetProperty("Succeeded").GetValue(saveResult), Is.True);
+            Assert.That(File.ReadAllText(fixtureSavePath), Does.Contain("\"version\":2"));
+
+            yield return ReloadSampleScene();
+
+            gameManager = RequireComponent(GameManagerTypeName);
+            var titleMenu = RequireComponent(TitleMenuControllerTypeName);
+            var continueButton = GetPrivateField(titleMenu, "continueButton") as Button;
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+            var loadedPlayer = GetPrivateField(gameManager, "player");
+
+            Assert.That((bool)gameManager.GetType().GetProperty("HasSavedGame").GetValue(gameManager), Is.True);
+            Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(), Is.EqualTo("Loaded"));
+            Assert.That(continueButton.interactable, Is.True);
+            Assert.That(messageText.text, Is.EqualTo("Save found. Continue or start a new game."));
+            Assert.That((int)loadedPlayer.GetType().GetProperty("Level").GetValue(loadedPlayer), Is.EqualTo(3));
+        }
+
+        [UnityTest]
+        public IEnumerator P0_UnreadableSaveDisablesContinueWithoutChangingBytes()
+        {
+            const string original = "{ unreadable save";
+            File.WriteAllText(fixtureSavePath, original);
+            LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save load failed"));
+
+            yield return ReloadSampleScene();
+
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var titleMenu = RequireComponent(TitleMenuControllerTypeName);
+            var continueButton = GetPrivateField(titleMenu, "continueButton") as Button;
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+
+            Assert.That((bool)gameManager.GetType().GetProperty("HasSavedGame").GetValue(gameManager), Is.False);
+            Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(), Is.EqualTo("Unreadable"));
+            Assert.That(continueButton.interactable, Is.False);
+            Assert.That(messageText.text, Is.EqualTo("Save could not be read. Start New Game to replace it."));
+            Assert.That(File.ReadAllText(fixtureSavePath), Is.EqualTo(original));
+        }
+
+        [UnityTest]
+        public IEnumerator P0_ReplacementFailureKeepsUnreadableTitleState()
+        {
+            const string original = "locked unreadable save";
+            File.WriteAllText(fixtureSavePath, original);
+            using (var lockStream = new FileStream(fixtureSavePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save load failed"));
+                yield return ReloadSampleScene();
+
+                var gameManager = RequireComponent(GameManagerTypeName);
+                var originalPlayer = GetPrivateField(gameManager, "player");
+                var status = RequireComponent(GameStatusControllerTypeName);
+                var messageText = GetPrivateField(status, "messageText") as Text;
+                LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save delete failed"));
+                gameManager.GetType().GetMethod("StartNewGame").Invoke(gameManager, null);
+                yield return null;
+
+                Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Title"));
+                Assert.That((bool)gameManager.GetType().GetProperty("HasSavedGame").GetValue(gameManager), Is.False);
+                Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(), Is.EqualTo("Unreadable"));
+                Assert.That(GetPrivateField(gameManager, "player"), Is.SameAs(originalPlayer));
+                Assert.That(messageText.text, Is.EqualTo("Save could not be read. Start New Game to replace it."));
+                lockStream.Position = 0;
+                using var reader = new StreamReader(lockStream, System.Text.Encoding.UTF8, true, 1024, true);
+                Assert.That(reader.ReadToEnd(), Is.EqualTo(original));
+            }
         }
 
         [UnityTest]
@@ -386,25 +498,26 @@ namespace ToilRelic.PlayModeTests
             var messageText = GetPrivateField(status, "messageText") as Text;
             var attackButton = GetPrivateField(battlePanel, "attackButton") as Button;
             var saveServiceType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Save.SaveService");
-            var originalSavePath = GetPrivateStaticField(saveServiceType, "saveWritePathOverride");
+            var originalSavePath = GetPrivateStaticField(saveServiceType, "savePathOverride");
 
             yield return EnterBattle();
             var enemy = GetPrivateField(gameManager, "currentEnemy");
             try
             {
                 var invalidSavePath = Path.Combine(Application.temporaryCachePath, Guid.NewGuid().ToString(), "toil_relic_save.json");
-                SetPrivateStaticField(saveServiceType, "saveWritePathOverride", invalidSavePath);
+                SetPrivateStaticField(saveServiceType, "savePathOverride", invalidSavePath);
+                LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
                 enemy.GetType().GetMethod("TakeDamage").Invoke(enemy, new object[] { 999 });
                 gameManager.GetType().GetMethod("Attack").Invoke(gameManager, null);
             }
             finally
             {
-                SetPrivateStaticField(saveServiceType, "saveWritePathOverride", originalSavePath);
+                SetPrivateStaticField(saveServiceType, "savePathOverride", originalSavePath);
             }
             yield return null;
 
             AssertTerminalCampState(gameManager, messageText, attackButton, "Win.");
-            Assert.That(messageText.text, Does.Contain("\nSave failed:"));
+            Assert.That(messageText.text, Does.Contain("\nSave failed. Progress may not be saved."));
         }
 
         [UnityTest]
@@ -415,7 +528,7 @@ namespace ToilRelic.PlayModeTests
             var status = RequireComponent(GameStatusControllerTypeName);
             var messageText = GetPrivateField(status, "messageText") as Text;
             var saveServiceType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Save.SaveService");
-            var originalSavePath = GetPrivateStaticField(saveServiceType, "saveWritePathOverride");
+            var originalSavePath = GetPrivateStaticField(saveServiceType, "savePathOverride");
             var stateType = GetPrivateField(gameManager, "state").GetType();
             var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
 
@@ -423,16 +536,17 @@ namespace ToilRelic.PlayModeTests
             try
             {
                 var invalidSavePath = Path.Combine(Application.temporaryCachePath, Guid.NewGuid().ToString(), "toil_relic_save.json");
-                SetPrivateStaticField(saveServiceType, "saveWritePathOverride", invalidSavePath);
+                SetPrivateStaticField(saveServiceType, "savePathOverride", invalidSavePath);
+                LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
                 gameManager.GetType().GetMethod("Rest").Invoke(gameManager, null);
             }
             finally
             {
-                SetPrivateStaticField(saveServiceType, "saveWritePathOverride", originalSavePath);
+                SetPrivateStaticField(saveServiceType, "savePathOverride", originalSavePath);
             }
             yield return null;
 
-            Assert.That(messageText.text, Does.StartWith("Save failed:"));
+            Assert.That(messageText.text, Is.EqualTo("Save failed. Progress may not be saved."));
         }
 
         [UnityTest]
@@ -443,7 +557,7 @@ namespace ToilRelic.PlayModeTests
             var status = RequireComponent(GameStatusControllerTypeName);
             var messageText = GetPrivateField(status, "messageText") as Text;
             var saveServiceType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Save.SaveService");
-            var originalSavePath = GetPrivateStaticField(saveServiceType, "saveWritePathOverride");
+            var originalSavePath = GetPrivateStaticField(saveServiceType, "savePathOverride");
             var stateType = GetPrivateField(gameManager, "state").GetType();
             var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
 
@@ -451,16 +565,17 @@ namespace ToilRelic.PlayModeTests
             try
             {
                 var invalidSavePath = Path.Combine(Application.temporaryCachePath, Guid.NewGuid().ToString(), "toil_relic_save.json");
-                SetPrivateStaticField(saveServiceType, "saveWritePathOverride", invalidSavePath);
+                SetPrivateStaticField(saveServiceType, "savePathOverride", invalidSavePath);
+                LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
                 gameManager.GetType().GetMethod("EquipStarterWeapon").Invoke(gameManager, null);
             }
             finally
             {
-                SetPrivateStaticField(saveServiceType, "saveWritePathOverride", originalSavePath);
+                SetPrivateStaticField(saveServiceType, "savePathOverride", originalSavePath);
             }
             yield return null;
 
-            Assert.That(messageText.text, Does.StartWith("Save failed:"));
+            Assert.That(messageText.text, Is.EqualTo("Save failed. Progress may not be saved."));
         }
 
         [UnityTest]
@@ -600,6 +715,21 @@ namespace ToilRelic.PlayModeTests
                 .FirstOrDefault(candidate => candidate != null && candidate.name == objectName);
             Assert.That(rect, Is.Not.Null, $"Required RectTransform is missing: {objectName}.");
             return rect;
+        }
+
+        private static IEnumerator ReloadSampleScene()
+        {
+            var operation = SceneManager.LoadSceneAsync("SampleScene", LoadSceneMode.Single);
+            Assert.That(operation, Is.Not.Null);
+            yield return operation;
+            yield return null;
+        }
+
+        private static Type FindType(string typeName)
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .Select(assembly => assembly.GetType(typeName, throwOnError: false))
+                .FirstOrDefault(type => type != null);
         }
 
         private static IEnumerator CaptureStableScreenshot(string evidenceDirectory, string fileName, int width, int height)

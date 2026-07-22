@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="24" result="Skipped:Ignored" total="24" passed="23" failed="0" inconclusive="0" skipped="1" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-07-22 06:31:39Z" end-time="2026-07-22 06:31:48Z" duration="9.3334129">
+  <test-suite type="TestSuite" id="1032" name="_unity-bootstrap" fullname="_unity-bootstrap" runstate="Runnable" testcasecount="24" result="Skipped" label="Ignored" start-time="2026-07-22 06:31:39Z" end-time="2026-07-22 06:31:48Z" duration="9.333413" total="24" passed="23" failed="0" inconclusive="0" skipped="1" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <reason>
+      <message><![CDATA[One or more child tests were ignored]]></message>
+    </reason>
+    <test-suite type="Assembly" id="1026" name="ToilRelic.PlayModeTests.dll" fullname="C:/Toil-Relic-main/unity/Library/ScriptAssemblies/ToilRelic.PlayModeTests.dll" runstate="Runnable" testcasecount="24" result="Skipped" label="Ignored" start-time="2026-07-22 06:31:39Z" end-time="2026-07-22 06:31:48Z" duration="9.324989" total="24" passed="23" failed="0" inconclusive="0" skipped="1" asserts="0">
+      <properties>
+        <property name="_PID" value="31588" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <reason>
+        <message><![CDATA[One or more child tests were ignored]]></message>
+      </reason>
+      <test-suite type="TestSuite" id="1027" name="ToilRelic" fullname="ToilRelic" runstate="Runnable" testcasecount="24" result="Skipped" label="Ignored" start-time="2026-07-22 06:31:39Z" end-time="2026-07-22 06:31:48Z" duration="9.324033" total="24" passed="23" failed="0" inconclusive="0" skipped="1" asserts="0">
+        <properties />
+        <reason>
+          <message><![CDATA[One or more child tests were ignored]]></message>
+        </reason>
+        <test-suite type="TestSuite" id="1028" name="PlayModeTests" fullname="ToilRelic.PlayModeTests" runstate="Runnable" testcasecount="24" result="Skipped" label="Ignored" start-time="2026-07-22 06:31:39Z" end-time="2026-07-22 06:31:48Z" duration="9.323476" total="24" passed="23" failed="0" inconclusive="0" skipped="1" asserts="0">
+          <properties />
+          <reason>
+            <message><![CDATA[One or more child tests were ignored]]></message>
+          </reason>
+          <test-suite type="TestFixture" id="1001" name="SampleSceneP0PlayModeTests" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" testcasecount="24" result="Skipped" label="Ignored" start-time="2026-07-22 06:31:39Z" end-time="2026-07-22 06:31:48Z" duration="9.321890" total="24" passed="23" failed="0" inconclusive="0" skipped="1" asserts="0">
+            <properties />
+            <reason>
+              <message><![CDATA[One or more child tests were ignored]]></message>
+            </reason>
+            <test-case id="1019" name="P0_BattleUiShowsStateAndDisablesActionsOutsidePlayerPhase" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_BattleUiShowsStateAndDisablesActionsOutsidePlayerPhase" methodname="P0_BattleUiShowsStateAndDisablesActionsOutsidePlayerPhase" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1384202280" result="Passed" start-time="2026-07-22 06:31:39Z" end-time="2026-07-22 06:31:42Z" duration="3.588965" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1006" name="P0_ButtonsBindAllCoreGameActions" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_ButtonsBindAllCoreGameActions" methodname="P0_ButtonsBindAllCoreGameActions" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="886153329" result="Passed" start-time="2026-07-22 06:31:42Z" end-time="2026-07-22 06:31:42Z" duration="0.218750" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1018" name="P0_CaptureLayoutEvidenceWhenRequested" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_CaptureLayoutEvidenceWhenRequested" methodname="P0_CaptureLayoutEvidenceWhenRequested" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="838720709" result="Skipped" label="Ignored" start-time="2026-07-22 06:31:42Z" end-time="2026-07-22 06:31:43Z" duration="0.194772" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <reason>
+                <message><![CDATA[Set TOIL_RELIC_LAYOUT_EVIDENCE_DIR to capture viewport-specific layout evidence.]]></message>
+              </reason>
+            </test-case>
+            <test-case id="1024" name="P0_DefeatReturnsToCampWithVisibleOutcome" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_DefeatReturnsToCampWithVisibleOutcome" methodname="P0_DefeatReturnsToCampWithVisibleOutcome" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1928746196" result="Passed" start-time="2026-07-22 06:31:43Z" end-time="2026-07-22 06:31:43Z" duration="0.227249" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1023" name="P0_EquipSaveFailureRemainsVisible" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_EquipSaveFailureRemainsVisible" methodname="P0_EquipSaveFailureRemainsVisible" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1491260443" result="Passed" start-time="2026-07-22 06:31:43Z" end-time="2026-07-22 06:31:43Z" duration="0.241153" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Save write failed. System.IO.DirectoryNotFoundException: Could not find a part of the path "C:\Users\User\AppData\Local\Temp\DefaultCompany\_unity-bootstrap\d0714179-138f-4e93-ab2d-f33d55b12bc4\toil_relic_save.json".
+  at System.IO.FileStream..ctor (System.String path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, System.Int32 bufferSize, System.Boolean anonymous, System.IO.FileOptions options) [0x00164] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at System.IO.FileStream..ctor (System.String path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, System.Int32 bufferSize, System.IO.FileOptions options) [0x00000] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at (wrapper remoting-invoke-with-check) System.IO.FileStream..ctor(string,System.IO.FileMode,System.IO.FileAccess,System.IO.FileShare,int,System.IO.FileOptions)
+  at System.IO.StreamWriter..ctor (System.String path, System.Boolean append, System.Text.Encoding encoding, System.Int32 bufferSize) [0x00055] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at System.IO.StreamWriter..ctor (System.String path) [0x00008] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at (wrapper remoting-invoke-with-check) System.IO.StreamWriter..ctor(string)
+  at System.IO.File.WriteAllText (System.String path, System.String contents) [0x00026] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at ToilRelic.Unity.Save.SaveService.Save (ToilRelic.Unity.Core.PlayerState player) [0x00013] in C:\Toil-Relic-main\unity\Assets\Scripts\Save\SaveService.cs:46 
+]]></output>
+            </test-case>
+            <test-case id="1005" name="P0_GameActionBridgeReferencesGameManager" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_GameActionBridgeReferencesGameManager" methodname="P0_GameActionBridgeReferencesGameManager" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="334145272" result="Passed" start-time="2026-07-22 06:31:43Z" end-time="2026-07-22 06:31:43Z" duration="0.216878" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1003" name="P0_GameManagerHasEnemyAndDropTable" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_GameManagerHasEnemyAndDropTable" methodname="P0_GameManagerHasEnemyAndDropTable" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1427698475" result="Passed" start-time="2026-07-22 06:31:43Z" end-time="2026-07-22 06:31:44Z" duration="0.204676" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1016" name="P0_HudAndStatusMeetCompactTypographyContracts" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_HudAndStatusMeetCompactTypographyContracts" methodname="P0_HudAndStatusMeetCompactTypographyContracts" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="547272174" result="Passed" start-time="2026-07-22 06:31:44Z" end-time="2026-07-22 06:31:44Z" duration="0.219455" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1012" name="P0_HudIsWiredAndDisplaysPlayerState" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_HudIsWiredAndDisplaysPlayerState" methodname="P0_HudIsWiredAndDisplaysPlayerState" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1555317725" result="Passed" start-time="2026-07-22 06:31:44Z" end-time="2026-07-22 06:31:44Z" duration="0.233743" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1013" name="P0_HudRefreshesWhenPlayerStateChanges" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_HudRefreshesWhenPlayerStateChanges" methodname="P0_HudRefreshesWhenPlayerStateChanges" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="279945917" result="Passed" start-time="2026-07-22 06:31:44Z" end-time="2026-07-22 06:31:44Z" duration="0.230473" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1008" name="P0_InitialEntryShowsTitleAndMatchesContinueAvailability" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_InitialEntryShowsTitleAndMatchesContinueAvailability" methodname="P0_InitialEntryShowsTitleAndMatchesContinueAvailability" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="582448623" result="Passed" start-time="2026-07-22 06:31:44Z" end-time="2026-07-22 06:31:44Z" duration="0.221349" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1011" name="P0_ReplacementFailureKeepsUnreadableTitleState" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_ReplacementFailureKeepsUnreadableTitleState" methodname="P0_ReplacementFailureKeepsUnreadableTitleState" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="820136231" result="Passed" start-time="2026-07-22 06:31:44Z" end-time="2026-07-22 06:31:45Z" duration="0.450296" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Save load failed. System.IO.IOException: Sharing violation on path C:\Users\User\AppData\Local\Temp\toil-relic-unity-tests-5c55c95a82514d168b7901a3fdcf88b6\toil_relic_save.json
+  at System.IO.FileStream..ctor (System.String path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, System.Int32 bufferSize, System.Boolean anonymous, System.IO.FileOptions options) [0x0019e] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at System.IO.FileStream..ctor (System.String path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, System.Int32 bufferSize, System.IO.FileOptions options) [0x00000] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at (wrapper remoting-invoke-with-check) System.IO.FileStream..ctor(string,System.IO.FileMode,System.IO.FileAccess,System.IO.FileShare,int,System.IO.FileOptions)
+  at System.IO.StreamReader..ctor (System.String path, System.Text.Encoding encoding, System.Boolean detectEncodingFromByteOrderMarks, System.Int32 bufferSize) [0x00055] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at System.IO.StreamReader..ctor (System.String path, System.Text.Encoding encoding, System.Boolean detectEncodingFromByteOrderMarks) [0x00000] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at (wrapper remoting-invoke-with-check) System.IO.StreamReader..ctor(string,System.Text.Encoding,bool)
+  at System.IO.File.InternalReadAllText (System.String path, System.Text.Encoding encoding) [0x00000] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at System.IO.File.ReadAllText (System.String path) [0x0002c] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at ToilRelic.Unity.Save.SaveService.Load () [0x00013] in C:\Toil-Relic-main\unity\Assets\Scripts\Save\SaveService.cs:64 
+Save delete failed. System.IO.IOException: The process cannot access the file 'C:\Users\User\AppData\Local\Temp\toil-relic-unity-tests-5c55c95a82514d168b7901a3fdcf88b6\toil_relic_save.json' because it is being used by another process.
+  at System.IO.FileSystem.DeleteFile (System.String fullPath) [0x0001a] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at System.IO.File.Delete (System.String path) [0x00014] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at ToilRelic.Unity.Save.SaveService.Delete () [0x0000c] in C:\Toil-Relic-main\unity\Assets\Scripts\Save\SaveService.cs:29 
+]]></output>
+            </test-case>
+            <test-case id="1022" name="P0_RestSaveFailureRemainsVisible" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_RestSaveFailureRemainsVisible" methodname="P0_RestSaveFailureRemainsVisible" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="527920211" result="Passed" start-time="2026-07-22 06:31:45Z" end-time="2026-07-22 06:31:45Z" duration="0.243363" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Save write failed. System.IO.DirectoryNotFoundException: Could not find a part of the path "C:\Users\User\AppData\Local\Temp\DefaultCompany\_unity-bootstrap\47ed0e76-ece7-4bbd-8fa6-8f7ddd392bea\toil_relic_save.json".
+  at System.IO.FileStream..ctor (System.String path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, System.Int32 bufferSize, System.Boolean anonymous, System.IO.FileOptions options) [0x00164] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at System.IO.FileStream..ctor (System.String path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, System.Int32 bufferSize, System.IO.FileOptions options) [0x00000] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at (wrapper remoting-invoke-with-check) System.IO.FileStream..ctor(string,System.IO.FileMode,System.IO.FileAccess,System.IO.FileShare,int,System.IO.FileOptions)
+  at System.IO.StreamWriter..ctor (System.String path, System.Boolean append, System.Text.Encoding encoding, System.Int32 bufferSize) [0x00055] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at System.IO.StreamWriter..ctor (System.String path) [0x00008] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at (wrapper remoting-invoke-with-check) System.IO.StreamWriter..ctor(string)
+  at System.IO.File.WriteAllText (System.String path, System.String contents) [0x00026] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at ToilRelic.Unity.Save.SaveService.Save (ToilRelic.Unity.Core.PlayerState player) [0x00013] in C:\Toil-Relic-main\unity\Assets\Scripts\Save\SaveService.cs:46 
+]]></output>
+            </test-case>
+            <test-case id="1021" name="P0_SaveFailurePreservesTerminalOutcome" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_SaveFailurePreservesTerminalOutcome" methodname="P0_SaveFailurePreservesTerminalOutcome" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="342602771" result="Passed" start-time="2026-07-22 06:31:45Z" end-time="2026-07-22 06:31:45Z" duration="0.240431" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Save write failed. System.IO.DirectoryNotFoundException: Could not find a part of the path "C:\Users\User\AppData\Local\Temp\DefaultCompany\_unity-bootstrap\904d5562-e18f-453c-9055-5bfd2b3fa935\toil_relic_save.json".
+  at System.IO.FileStream..ctor (System.String path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, System.Int32 bufferSize, System.Boolean anonymous, System.IO.FileOptions options) [0x00164] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at System.IO.FileStream..ctor (System.String path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, System.Int32 bufferSize, System.IO.FileOptions options) [0x00000] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at (wrapper remoting-invoke-with-check) System.IO.FileStream..ctor(string,System.IO.FileMode,System.IO.FileAccess,System.IO.FileShare,int,System.IO.FileOptions)
+  at System.IO.StreamWriter..ctor (System.String path, System.Boolean append, System.Text.Encoding encoding, System.Int32 bufferSize) [0x00055] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at System.IO.StreamWriter..ctor (System.String path) [0x00008] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at (wrapper remoting-invoke-with-check) System.IO.StreamWriter..ctor(string)
+  at System.IO.File.WriteAllText (System.String path, System.String contents) [0x00026] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at ToilRelic.Unity.Save.SaveService.Save (ToilRelic.Unity.Core.PlayerState player) [0x00013] in C:\Toil-Relic-main\unity\Assets\Scripts\Save\SaveService.cs:46 
+]]></output>
+            </test-case>
+            <test-case id="1002" name="P0_SceneHasGameManager" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_SceneHasGameManager" methodname="P0_SceneHasGameManager" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="980019506" result="Passed" start-time="2026-07-22 06:31:45Z" end-time="2026-07-22 06:31:46Z" duration="0.215919" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1004" name="P0_SceneHasUiActionBridge" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_SceneHasUiActionBridge" methodname="P0_SceneHasUiActionBridge" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1203532294" result="Passed" start-time="2026-07-22 06:31:46Z" end-time="2026-07-22 06:31:46Z" duration="0.194142" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1017" name="P0_StatusFitsThreeLogicalMessagesAtReadableSize" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_StatusFitsThreeLogicalMessagesAtReadableSize" methodname="P0_StatusFitsThreeLogicalMessagesAtReadableSize" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1897805484" result="Passed" start-time="2026-07-22 06:31:46Z" end-time="2026-07-22 06:31:46Z" duration="0.191329" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1025" name="P0_SuccessfulFleeReturnsToCampWithVisibleOutcome" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_SuccessfulFleeReturnsToCampWithVisibleOutcome" methodname="P0_SuccessfulFleeReturnsToCampWithVisibleOutcome" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="976222591" result="Passed" start-time="2026-07-22 06:31:46Z" end-time="2026-07-22 06:31:46Z" duration="0.199455" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1015" name="P0_TitleAndCampButtonsKeepAccessibleGeometry" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_TitleAndCampButtonsKeepAccessibleGeometry" methodname="P0_TitleAndCampButtonsKeepAccessibleGeometry" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1666914954" result="Passed" start-time="2026-07-22 06:31:46Z" end-time="2026-07-22 06:31:46Z" duration="0.225501" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1014" name="P0_TitleAndCampLayoutsFitBelowTopRegionsAtWidescreenFloor" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_TitleAndCampLayoutsFitBelowTopRegionsAtWidescreenFloor" methodname="P0_TitleAndCampLayoutsFitBelowTopRegionsAtWidescreenFloor" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="2015610781" result="Passed" start-time="2026-07-22 06:31:46Z" end-time="2026-07-22 06:31:47Z" duration="0.247642" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1007" name="P0_TitleMenuBindsContinueAndNewGame" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_TitleMenuBindsContinueAndNewGame" methodname="P0_TitleMenuBindsContinueAndNewGame" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="96039357" result="Passed" start-time="2026-07-22 06:31:47Z" end-time="2026-07-22 06:31:47Z" duration="0.223941" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1010" name="P0_UnreadableSaveDisablesContinueWithoutChangingBytes" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_UnreadableSaveDisablesContinueWithoutChangingBytes" methodname="P0_UnreadableSaveDisablesContinueWithoutChangingBytes" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1694032609" result="Passed" start-time="2026-07-22 06:31:47Z" end-time="2026-07-22 06:31:47Z" duration="0.432642" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Save load failed. System.ArgumentException: JSON parse error: Missing a name for object member.
+  at (wrapper managed-to-native) UnityEngine.JsonUtility.FromJsonInternal_Injected(UnityEngine.Bindings.ManagedSpanWrapper&,object,System.Type)
+  at UnityEngine.JsonUtility.FromJsonInternal (System.String json, System.Object objectToOverwrite, System.Type type) [0x0002a] in <81b35c8cb1074810b3bf600c5ff1977e>:0 
+  at UnityEngine.JsonUtility.FromJson (System.String json, System.Type type) [0x0005f] in <81b35c8cb1074810b3bf600c5ff1977e>:0 
+  at UnityEngine.JsonUtility.FromJson[T] (System.String json) [0x00001] in <81b35c8cb1074810b3bf600c5ff1977e>:0 
+  at ToilRelic.Unity.Save.SaveService.Load () [0x0001d] in C:\Toil-Relic-main\unity\Assets\Scripts\Save\SaveService.cs:65 
+]]></output>
+            </test-case>
+            <test-case id="1009" name="P0_ValidSaveEnablesContinueAndLoadsCurrentFormat" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_ValidSaveEnablesContinueAndLoadsCurrentFormat" methodname="P0_ValidSaveEnablesContinueAndLoadsCurrentFormat" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1175712599" result="Passed" start-time="2026-07-22 06:31:47Z" end-time="2026-07-22 06:31:48Z" duration="0.420598" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1020" name="P0_VictoryReturnsToCampWithVisibleOutcome" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_VictoryReturnsToCampWithVisibleOutcome" methodname="P0_VictoryReturnsToCampWithVisibleOutcome" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="993604255" result="Passed" start-time="2026-07-22 06:31:48Z" end-time="2026-07-22 06:31:48Z" duration="0.218694" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Saving results to: C:/Users/User/AppData/LocalLow/DefaultCompany/_unity-bootstrap\TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

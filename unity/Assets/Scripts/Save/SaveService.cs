@@ -15,13 +15,12 @@ namespace ToilRelic.Unity.Save
     public static class SaveService
     {
         public const int CurrentSaveVersion = 2;
-        private static string SavePath => Path.Combine(Application.persistentDataPath, "toil_relic_save.json");
-        // Play Mode tests can redirect only a save write to a guaranteed-invalid path.
-        private static string saveWritePathOverride;
+        private static string savePathOverride;
+        private static string SavePath => savePathOverride ?? Path.Combine(Application.persistentDataPath, "toil_relic_save.json");
 
         public static bool HasSaveFile() => File.Exists(SavePath);
 
-        public static bool TryDelete(out string error)
+        public static SaveOperationResult Delete()
         {
             try
             {
@@ -30,39 +29,34 @@ namespace ToilRelic.Unity.Save
                     File.Delete(SavePath);
                 }
 
-                error = null;
-                return true;
+                return SaveOperationResult.Success();
             }
             catch (Exception exception)
             {
-                error = exception.Message;
-                return false;
+                return SaveOperationResult.Failure(exception.ToString());
             }
         }
 
-        public static bool TrySave(PlayerState player, out string error)
+        public static SaveOperationResult Save(PlayerState player)
         {
             try
             {
                 var envelope = new SaveEnvelope { player = player };
                 var json = JsonUtility.ToJson(envelope, prettyPrint: false);
-                File.WriteAllText(saveWritePathOverride ?? SavePath, json);
-                error = null;
-                return true;
+                File.WriteAllText(SavePath, json);
+                return SaveOperationResult.Success();
             }
             catch (Exception exception)
             {
-                error = exception.Message;
-                return false;
+                return SaveOperationResult.Failure(exception.ToString());
             }
         }
 
-        public static bool TryLoad(out PlayerState player)
+        public static SaveLoadResult Load()
         {
-            player = null;
             if (!File.Exists(SavePath))
             {
-                return false;
+                return SaveLoadResult.Missing();
             }
 
             try
@@ -71,15 +65,14 @@ namespace ToilRelic.Unity.Save
                 var envelope = JsonUtility.FromJson<SaveEnvelope>(json);
                 if (envelope == null || envelope.player == null)
                 {
-                    return false;
+                    return SaveLoadResult.Unreadable("The save did not contain player data.");
                 }
 
-                player = envelope.player;
-                return true;
+                return SaveLoadResult.Loaded(envelope.player);
             }
-            catch
+            catch (Exception exception)
             {
-                return false;
+                return SaveLoadResult.Unreadable(exception.ToString());
             }
         }
     }

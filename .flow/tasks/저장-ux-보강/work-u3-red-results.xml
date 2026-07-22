@@ -1,0 +1,570 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="24" result="Failed(Child)" total="24" passed="0" failed="24" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.0954713">
+  <test-suite type="TestSuite" id="1032" name="_unity-bootstrap" fullname="_unity-bootstrap" runstate="Runnable" testcasecount="24" result="Failed" site="Child" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.095471" total="24" passed="0" failed="24" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1026" name="ToilRelic.PlayModeTests.dll" fullname="C:/Toil-Relic-main/unity/Library/ScriptAssemblies/ToilRelic.PlayModeTests.dll" runstate="Runnable" testcasecount="24" result="Failed" site="Child" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.083840" total="24" passed="0" failed="24" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="38788" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1027" name="ToilRelic" fullname="ToilRelic" runstate="Runnable" testcasecount="24" result="Failed" site="Child" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.082786" total="24" passed="0" failed="24" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1028" name="PlayModeTests" fullname="ToilRelic.PlayModeTests" runstate="Runnable" testcasecount="24" result="Failed" site="Child" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.082136" total="24" passed="0" failed="24" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestFixture" id="1001" name="SampleSceneP0PlayModeTests" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" testcasecount="24" result="Failed" site="Child" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.080303" total="24" passed="0" failed="24" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-case id="1019" name="P0_BattleUiShowsStateAndDisablesActionsOutsidePlayerPhase" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_BattleUiShowsStateAndDisablesActionsOutsidePlayerPhase" methodname="P0_BattleUiShowsStateAndDisablesActionsOutsidePlayerPhase" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1558721017" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.026126" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1006" name="P0_ButtonsBindAllCoreGameActions" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_ButtonsBindAllCoreGameActions" methodname="P0_ButtonsBindAllCoreGameActions" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="519887795" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.001261" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1018" name="P0_CaptureLayoutEvidenceWhenRequested" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_CaptureLayoutEvidenceWhenRequested" methodname="P0_CaptureLayoutEvidenceWhenRequested" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1184718289" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.001018" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1024" name="P0_DefeatReturnsToCampWithVisibleOutcome" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_DefeatReturnsToCampWithVisibleOutcome" methodname="P0_DefeatReturnsToCampWithVisibleOutcome" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1842365422" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.000852" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1023" name="P0_EquipSaveFailureRemainsVisible" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_EquipSaveFailureRemainsVisible" methodname="P0_EquipSaveFailureRemainsVisible" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1235820205" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.000851" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1005" name="P0_GameActionBridgeReferencesGameManager" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_GameActionBridgeReferencesGameManager" methodname="P0_GameActionBridgeReferencesGameManager" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1934517028" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.000911" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1003" name="P0_GameManagerHasEnemyAndDropTable" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_GameManagerHasEnemyAndDropTable" methodname="P0_GameManagerHasEnemyAndDropTable" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="26093328" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.000832" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1016" name="P0_HudAndStatusMeetCompactTypographyContracts" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_HudAndStatusMeetCompactTypographyContracts" methodname="P0_HudAndStatusMeetCompactTypographyContracts" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1436816651" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.000840" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1012" name="P0_HudIsWiredAndDisplaysPlayerState" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_HudIsWiredAndDisplaysPlayerState" methodname="P0_HudIsWiredAndDisplaysPlayerState" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1998308159" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.002180" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1013" name="P0_HudRefreshesWhenPlayerStateChanges" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_HudRefreshesWhenPlayerStateChanges" methodname="P0_HudRefreshesWhenPlayerStateChanges" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="912907034" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.002051" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1008" name="P0_InitialEntryShowsTitleAndMatchesContinueAvailability" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_InitialEntryShowsTitleAndMatchesContinueAvailability" methodname="P0_InitialEntryShowsTitleAndMatchesContinueAvailability" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1320201570" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.001966" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1011" name="P0_ReplacementFailureKeepsUnreadableTitleState" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_ReplacementFailureKeepsUnreadableTitleState" methodname="P0_ReplacementFailureKeepsUnreadableTitleState" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="47543136" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.000997" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1022" name="P0_RestSaveFailureRemainsVisible" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_RestSaveFailureRemainsVisible" methodname="P0_RestSaveFailureRemainsVisible" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="2127796966" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.000825" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1021" name="P0_SaveFailurePreservesTerminalOutcome" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_SaveFailurePreservesTerminalOutcome" methodname="P0_SaveFailurePreservesTerminalOutcome" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1473723940" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.000743" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1002" name="P0_SceneHasGameManager" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_SceneHasGameManager" methodname="P0_SceneHasGameManager" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1780345265" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.000795" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1004" name="P0_SceneHasUiActionBridge" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_SceneHasUiActionBridge" methodname="P0_SceneHasUiActionBridge" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1125343457" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.000719" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1017" name="P0_StatusFitsThreeLogicalMessagesAtReadableSize" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_StatusFitsThreeLogicalMessagesAtReadableSize" methodname="P0_StatusFitsThreeLogicalMessagesAtReadableSize" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="832762418" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.000852" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1025" name="P0_SuccessfulFleeReturnsToCampWithVisibleOutcome" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_SuccessfulFleeReturnsToCampWithVisibleOutcome" methodname="P0_SuccessfulFleeReturnsToCampWithVisibleOutcome" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="643772493" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.001498" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1015" name="P0_TitleAndCampButtonsKeepAccessibleGeometry" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_TitleAndCampButtonsKeepAccessibleGeometry" methodname="P0_TitleAndCampButtonsKeepAccessibleGeometry" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="37601938" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.000761" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1014" name="P0_TitleAndCampLayoutsFitBelowTopRegionsAtWidescreenFloor" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_TitleAndCampLayoutsFitBelowTopRegionsAtWidescreenFloor" methodname="P0_TitleAndCampLayoutsFitBelowTopRegionsAtWidescreenFloor" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="608036052" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.000714" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1007" name="P0_TitleMenuBindsContinueAndNewGame" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_TitleMenuBindsContinueAndNewGame" methodname="P0_TitleMenuBindsContinueAndNewGame" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="651785391" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.000865" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1010" name="P0_UnreadableSaveDisablesContinueWithoutChangingBytes" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_UnreadableSaveDisablesContinueWithoutChangingBytes" methodname="P0_UnreadableSaveDisablesContinueWithoutChangingBytes" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="980588241" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.001710" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1009" name="P0_ValidSaveEnablesContinueAndLoadsCurrentFormat" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_ValidSaveEnablesContinueAndLoadsCurrentFormat" methodname="P0_ValidSaveEnablesContinueAndLoadsCurrentFormat" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1481345534" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.002139" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+            </test-case>
+            <test-case id="1020" name="P0_VictoryReturnsToCampWithVisibleOutcome" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_VictoryReturnsToCampWithVisibleOutcome" methodname="P0_VictoryReturnsToCampWithVisibleOutcome" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="683049826" result="Failed" start-time="2026-07-22 06:29:20Z" end-time="2026-07-22 06:29:20Z" duration="0.001291" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <failure>
+                <message><![CDATA[SetUp :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+
+TearDown :   Expected private static field 'savePathOverride' was not found on ToilRelic.Unity.Save.SaveService.
+  Expected: not null
+  But was:  null
+]]></message>
+                <stack-trace><![CDATA[at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.SetPrivateStaticField (System.Type type, System.String name, System.Object value) [0x0000a] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:839
+at ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests+<CleanupSaveFixture>d__14.MoveNext () [0x0002f] in C:\Toil-Relic-main\unity\Assets\Tests\PlayMode\SampleSceneP0PlayModeTests.cs:53
+at UnityEngine.TestTools.EnumeratorHelper+<ProgressOnEnumerator>d__5.MoveNext () [0x00017] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Attributes\EnumeratorHelper.cs:35
+at UnityEngine.TestTools.BeforeAfterTestCommandBase`1+<ExecuteEnumerable>d__16[T].MoveNext () [0x0043e] in .\Library\PackageCache\com.unity.test-framework@bd7f943e9647\UnityEngine.TestRunner\NUnitExtensions\Commands\BeforeAfterTestCommandBase.cs:248
+]]></stack-trace>
+              </failure>
+              <output><![CDATA[Saving results to: C:/Users/User/AppData/LocalLow/DefaultCompany/_unity-bootstrap\TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
