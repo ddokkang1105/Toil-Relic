@@ -83,3 +83,57 @@ Resolved the review P1 without changing either serialized save shape. Parseable 
 
 - The P1 implementation blocker is resolved and ready for re-review.
 - Previously recorded advisory risks and broader E2E gaps remain review inputs; this rework did not expand into atomic Unity writes, manual save controls, or unrelated documentation refresh.
+
+## Review rework: complete save contract validation
+
+### Result
+
+Resolved all three P1 findings from the second review without changing the production save shape. Console saves now satisfy stable value invariants before normalization; Unity checks stable field presence before hydrated defaults can hide omissions; Unity continues to load version-1 and historical versionless envelopes while current saves remain explicit version 2.
+
+### Framework and execution route
+
+- Personal Flow routed implementation to active `compound-engineering:ce-work` in return-to-caller mode; Personal Flow retains the review and QA tail.
+- Framework probe: CE and gstack available, OpenSpec CLI available without project artifacts, OMX unavailable.
+- No live or checkout cross-model engine preference was configured. Execution used native Codex serial subagents in the shared workspace, with the host owning authoritative tests and commits.
+- Existing feature branch `codex/save-ux-reliability` was continued as the directly related task branch.
+
+### Implementation
+
+- U1: Added post-deserialization validation for HP bounds, positive max HP/level, nonnegative experience/treasure/inventory values, and defined `ItemType` keys. Empty inventory and optional equipment fields remain compatible.
+- U1 coverage: Added per-field presence/kind matrices, eight isolated invalid-value cases, and a real Title-flow fixture proving the approved diagnosis, disabled Continue, and byte preservation.
+- U3: Added a private sentinel-based `JsonUtility.FromJsonOverwrite` probe so missing `maxHp`, `hp`, `level`, `experience`, `treasureCount`, or `inventory` cannot be mistaken for hydrated defaults.
+- U3 compatibility: Accept versionless `0`, legacy version `1`, and current version `2`; continue rejecting unknown versions such as `999`; keep writes explicit version 2.
+- U3 coverage: Added version-1/versionless normalization and Continue flows, per-field omission checks, isolated value-invariant checks, and partial-current-save Title diagnosis.
+- Simplification: Applied three quality fixes (private nested probes, typed console invalid-case data, shared Unity unreadable assertion helper); reuse 0, quality 3, efficiency 0. Skipped one single-deserialization DTO rewrite because it widened the conversion boundary and could not guarantee exact behavior preservation.
+
+### Proof-first evidence
+
+- Console red: all eight `Load_ImpossibleCoreValue_ReturnsUnreadableWithoutChangingBytes` cases returned `Loaded`; the real Title-flow fixture lacked the approved unreadable diagnosis before production changes.
+- Unity red: `work-rework-u3-contract-red2-results.xml` ran 6 scenarios with 2 passing and 4 failing. Stable scalar omissions returned `Loaded`, the partial save emitted no load-failure diagnosis, and version 1/versionless fixtures were rejected as unsupported.
+
+### Verification evidence
+
+| Layer | Result | Evidence |
+|---|---|---|
+| Console build | Passed with 0 warnings and 0 errors | `dotnet build src/ToilRelic/ToilRelic.csproj --no-restore` |
+| Console tests | 39 passed, 0 failed | `dotnet test tests/ToilRelic.Tests/ToilRelic.Tests.csproj --no-restore` |
+| Unity full PlayMode | 35 passed, 0 failed, 1 optional capture skipped | `work-rework-u3-contract-full-results.xml` |
+| Unity post-simplification focus | 9 passed, 0 failed | `work-rework-u3-contract-simplify-results.xml` |
+| Diff hygiene | Passed | `git diff --check 3cd3b96` after normalizing generated XML trailing whitespace |
+
+### Commits
+
+- `75c0e62` - Reject impossible console save values
+- `c386fa6` - Validate Unity save contracts before loading
+
+### CE work return envelope
+
+- Status: `complete`; plan: `docs/plans/2026-07-22-001-feat-save-ux-reliability-plan.md`; SHA-256: `68A4F261571E139127A7D6CB9719C03104B82604CE33E97DF33B098CFBB0001C`.
+- Attempted/completed units: U1, U3. Behavior-bearing work has proof-first and final verification evidence above.
+- Implementation engine binding: `null`; requested/actual route: native Codex serial subagents; requested/actual model: default / unverified; external run ID and recovery path: `null`.
+- Fallback reason: `null`; blockers: none; settled-decision conflicts: none; standalone shipping skipped: `true`.
+
+### Remaining review scope
+
+- The three P1 implementation blockers are resolved and ready for focused re-review.
+- Runtime QA has not been advanced; Personal Flow review must clear before QA.
