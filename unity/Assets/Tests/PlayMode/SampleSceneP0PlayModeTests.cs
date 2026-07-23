@@ -227,6 +227,84 @@ namespace ToilRelic.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator P0_VersionOneSaveWithoutEquipmentFieldsLoadsAndNormalizes()
+        {
+            const string original = "{\"version\":1,\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":4,\"inventory\":[{\"type\":0,\"amount\":2},{\"type\":1,\"amount\":1},{\"type\":2,\"amount\":4},{\"type\":3,\"amount\":0}]}}";
+            yield return AssertHistoricalSaveLoadsAndNormalizes(original);
+        }
+
+        [UnityTest]
+        public IEnumerator P0_VersionlessSaveWithoutEquipmentFieldsLoadsAndNormalizes()
+        {
+            const string original = "{\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":4,\"inventory\":[{\"type\":0,\"amount\":2},{\"type\":1,\"amount\":1},{\"type\":2,\"amount\":4},{\"type\":3,\"amount\":0}]}}";
+            yield return AssertHistoricalSaveLoadsAndNormalizes(original);
+        }
+
+        [UnityTest]
+        public IEnumerator P0_CurrentSaveRequiresEveryStableCorePlayerField()
+        {
+            yield return null;
+            const string complete = "{\"version\":2,\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":0,\"inventory\":[{\"type\":0,\"amount\":2}]}}";
+            var requiredFields = new[]
+            {
+                (Name: "maxHp", JsonFragment: "\"maxHp\":30,"),
+                (Name: "hp", JsonFragment: "\"hp\":18,"),
+                (Name: "level", JsonFragment: "\"level\":2,"),
+                (Name: "experience", JsonFragment: "\"experience\":3,"),
+                (Name: "treasureCount", JsonFragment: "\"treasureCount\":0,"),
+                (Name: "inventory", JsonFragment: ",\"inventory\":[{\"type\":0,\"amount\":2}]")
+            };
+
+            var failures = new List<string>();
+            foreach (var requiredField in requiredFields)
+            {
+                var original = complete.Replace(requiredField.JsonFragment, string.Empty);
+                CollectUnreadableWithoutMutationFailures($"missing {requiredField.Name}", original, failures);
+            }
+
+            Assert.That(failures, Is.Empty, string.Join("; ", failures));
+        }
+
+        [UnityTest]
+        public IEnumerator P0_CurrentSaveRejectsInvalidCorePlayerValues()
+        {
+            yield return null;
+            const string inventory = "[{\"type\":0,\"amount\":2}]";
+            var invalidPlayers = new[]
+            {
+                (Name: "non-positive maxHp", Json: $"{{\"version\":2,\"player\":{{\"maxHp\":0,\"hp\":0,\"level\":2,\"experience\":3,\"treasureCount\":0,\"inventory\":{inventory}}}}}"),
+                (Name: "negative hp", Json: $"{{\"version\":2,\"player\":{{\"maxHp\":30,\"hp\":-1,\"level\":2,\"experience\":3,\"treasureCount\":0,\"inventory\":{inventory}}}}}"),
+                (Name: "hp above maxHp", Json: $"{{\"version\":2,\"player\":{{\"maxHp\":30,\"hp\":31,\"level\":2,\"experience\":3,\"treasureCount\":0,\"inventory\":{inventory}}}}}"),
+                (Name: "non-positive level", Json: $"{{\"version\":2,\"player\":{{\"maxHp\":30,\"hp\":18,\"level\":0,\"experience\":3,\"treasureCount\":0,\"inventory\":{inventory}}}}}"),
+                (Name: "negative experience", Json: $"{{\"version\":2,\"player\":{{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":-1,\"treasureCount\":0,\"inventory\":{inventory}}}}}"),
+                (Name: "negative treasureCount", Json: $"{{\"version\":2,\"player\":{{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":-1,\"inventory\":{inventory}}}}}"),
+                (Name: "empty inventory", Json: "{\"version\":2,\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":0,\"inventory\":[]}}"),
+                (Name: "negative inventory amount", Json: "{\"version\":2,\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":0,\"inventory\":[{\"type\":0,\"amount\":-1}]}}"),
+                (Name: "unknown inventory type", Json: "{\"version\":2,\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":0,\"inventory\":[{\"type\":999,\"amount\":1}]}}")
+            };
+
+            var failures = new List<string>();
+            foreach (var invalidPlayer in invalidPlayers)
+            {
+                CollectUnreadableWithoutMutationFailures(invalidPlayer.Name, invalidPlayer.Json, failures);
+            }
+
+            Assert.That(failures, Is.Empty, string.Join("; ", failures));
+        }
+
+        [UnityTest]
+        public IEnumerator P0_PartialCurrentSaveDisablesContinueWithoutChangingBytes()
+        {
+            const string original = "{\"version\":2,\"player\":{\"maxHp\":30,\"level\":2,\"inventory\":[{\"type\":0,\"amount\":2}]}}";
+            File.WriteAllText(fixtureSavePath, original);
+            LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save load failed"));
+
+            yield return ReloadSampleScene();
+
+            AssertUnreadableTitleState(original);
+        }
+
+        [UnityTest]
         public IEnumerator P0_UnreadableSaveDisablesContinueWithoutChangingBytes()
         {
             const string original = "{ unreadable save";
@@ -867,6 +945,56 @@ namespace ToilRelic.PlayModeTests
             Assert.That(operation, Is.Not.Null);
             yield return operation;
             yield return null;
+        }
+
+        private IEnumerator AssertHistoricalSaveLoadsAndNormalizes(string original)
+        {
+            File.WriteAllText(fixtureSavePath, original);
+
+            yield return ReloadSampleScene();
+
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var titleMenu = RequireComponent(TitleMenuControllerTypeName);
+            var continueButton = GetPrivateField(titleMenu, "continueButton") as Button;
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+            var loadedPlayer = GetPrivateField(gameManager, "player");
+            var tryGetPrimaryWeapon = loadedPlayer.GetType().GetMethod("TryGetPrimaryWeapon");
+            var primaryWeaponArguments = new object[] { null };
+            var itemType = loadedPlayer.GetType().Assembly.GetType("ToilRelic.Unity.Core.ItemType");
+            var getAmount = loadedPlayer.GetType().GetMethod("GetAmount");
+
+            Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(), Is.EqualTo("Loaded"));
+            Assert.That((bool)gameManager.GetType().GetProperty("HasSavedGame").GetValue(gameManager), Is.True);
+            Assert.That(continueButton.interactable, Is.True);
+            Assert.That(messageText.text, Is.EqualTo("Save found. Continue or start a new game."));
+            Assert.That((int)loadedPlayer.GetType().GetProperty("Hp").GetValue(loadedPlayer), Is.EqualTo(18));
+            Assert.That((int)loadedPlayer.GetType().GetProperty("Level").GetValue(loadedPlayer), Is.EqualTo(2));
+            Assert.That((int)loadedPlayer.GetType().GetProperty("Experience").GetValue(loadedPlayer), Is.EqualTo(3));
+            Assert.That((int)loadedPlayer.GetType().GetProperty("TreasureCount").GetValue(loadedPlayer), Is.EqualTo(4));
+            Assert.That((int)getAmount.Invoke(loadedPlayer, new[] { Enum.Parse(itemType, "Junk") }), Is.EqualTo(2));
+            Assert.That((int)getAmount.Invoke(loadedPlayer, new[] { Enum.Parse(itemType, "Treasure") }), Is.EqualTo(4));
+            Assert.That((bool)tryGetPrimaryWeapon.Invoke(loadedPlayer, primaryWeaponArguments), Is.True);
+            Assert.That(primaryWeaponArguments[0], Is.Not.Null);
+            Assert.That(File.ReadAllText(fixtureSavePath), Is.EqualTo(original));
+
+            gameManager.GetType().GetMethod("ContinueGame").Invoke(gameManager, null);
+            yield return null;
+            Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Camp"));
+            Assert.That(File.ReadAllText(fixtureSavePath), Is.EqualTo(original));
+        }
+
+        private void CollectUnreadableWithoutMutationFailures(string caseName, string original, ICollection<string> failures)
+        {
+            File.WriteAllText(fixtureSavePath, original);
+
+            var loadResult = fixtureSaveServiceType.GetMethod("Load").Invoke(null, null);
+            var status = loadResult.GetType().GetProperty("Status").GetValue(loadResult).ToString();
+            var player = loadResult.GetType().GetProperty("Player").GetValue(loadResult);
+
+            if (status != "Unreadable") failures.Add($"{caseName} returned {status}");
+            if (player != null) failures.Add($"{caseName} exposed player data");
+            if (File.ReadAllText(fixtureSavePath) != original) failures.Add($"{caseName} mutated source bytes");
         }
 
         private static Type FindType(string typeName)

@@ -7,6 +7,18 @@ namespace ToilRelic.Tests;
 
 public sealed class SaveSystemTests
 {
+    public enum InvalidCoreValueCase
+    {
+        NonPositiveMaxHp,
+        NegativeHp,
+        HpAboveMaxHp,
+        NonPositiveLevel,
+        NegativeExperience,
+        NegativeTreasureCount,
+        UndefinedItemType,
+        NegativeInventoryAmount
+    }
+
     [Fact]
     public void Load_MissingPath_ReturnsMissingWithoutPlayerOrDiagnostic()
     {
@@ -143,15 +155,15 @@ public sealed class SaveSystemTests
     }
 
     [Theory]
-    [InlineData("non-positive MaxHp")]
-    [InlineData("negative Hp")]
-    [InlineData("Hp above MaxHp")]
-    [InlineData("non-positive Level")]
-    [InlineData("negative Experience")]
-    [InlineData("negative TreasureCount")]
-    [InlineData("undefined ItemType")]
-    [InlineData("negative inventory amount")]
-    public void Load_ImpossibleCoreValue_ReturnsUnreadableWithoutChangingBytes(string invalidCase)
+    [InlineData(InvalidCoreValueCase.NonPositiveMaxHp)]
+    [InlineData(InvalidCoreValueCase.NegativeHp)]
+    [InlineData(InvalidCoreValueCase.HpAboveMaxHp)]
+    [InlineData(InvalidCoreValueCase.NonPositiveLevel)]
+    [InlineData(InvalidCoreValueCase.NegativeExperience)]
+    [InlineData(InvalidCoreValueCase.NegativeTreasureCount)]
+    [InlineData(InvalidCoreValueCase.UndefinedItemType)]
+    [InlineData(InvalidCoreValueCase.NegativeInventoryAmount)]
+    public void Load_ImpossibleCoreValue_ReturnsUnreadableWithoutChangingBytes(InvalidCoreValueCase invalidCase)
     {
         using var fixture = new SaveFixture();
         var save = CreateValidSaveJson();
@@ -263,33 +275,33 @@ public sealed class SaveSystemTests
         ["Inventory"] = new JsonObject()
     };
 
-    private static void ApplyInvalidValue(JsonObject save, string invalidCase)
+    private static void ApplyInvalidValue(JsonObject save, InvalidCoreValueCase invalidCase)
     {
         switch (invalidCase)
         {
-            case "non-positive MaxHp":
+            case InvalidCoreValueCase.NonPositiveMaxHp:
                 save["MaxHp"] = 0;
                 save["Hp"] = 0;
                 break;
-            case "negative Hp":
+            case InvalidCoreValueCase.NegativeHp:
                 save["Hp"] = -1;
                 break;
-            case "Hp above MaxHp":
+            case InvalidCoreValueCase.HpAboveMaxHp:
                 save["Hp"] = 101;
                 break;
-            case "non-positive Level":
+            case InvalidCoreValueCase.NonPositiveLevel:
                 save["Level"] = 0;
                 break;
-            case "negative Experience":
+            case InvalidCoreValueCase.NegativeExperience:
                 save["Experience"] = -1;
                 break;
-            case "negative TreasureCount":
+            case InvalidCoreValueCase.NegativeTreasureCount:
                 save["TreasureCount"] = -1;
                 break;
-            case "undefined ItemType":
+            case InvalidCoreValueCase.UndefinedItemType:
                 save["Inventory"] = new JsonObject { ["999"] = 1 };
                 break;
-            case "negative inventory amount":
+            case InvalidCoreValueCase.NegativeInventoryAmount:
                 save["Inventory"] = new JsonObject { [nameof(ItemType.Junk)] = -1 };
                 break;
             default:

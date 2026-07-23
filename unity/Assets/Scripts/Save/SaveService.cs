@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using ToilRelic.Unity.Core;
 using UnityEngine;
@@ -14,9 +15,38 @@ namespace ToilRelic.Unity.Save
 
     public static class SaveService
     {
+        private const int VersionlessSaveVersion = 0;
+        private const int LegacySaveVersion = 1;
         public const int CurrentSaveVersion = 2;
         private static string savePathOverride;
         private static string SavePath => savePathOverride ?? Path.Combine(Application.persistentDataPath, "toil_relic_save.json");
+
+        [Serializable]
+        private sealed class SaveEnvelopePresenceProbe
+        {
+            public PlayerStatePresenceProbe player = new();
+        }
+
+        [Serializable]
+        private sealed class PlayerStatePresenceProbe
+        {
+            private const int MissingValue = int.MinValue;
+
+            public int maxHp = MissingValue;
+            public int hp = MissingValue;
+            public int level = MissingValue;
+            public int experience = MissingValue;
+            public int treasureCount = MissingValue;
+            public List<InventorySlot> inventory;
+
+            internal bool HasRequiredFields() =>
+                maxHp != MissingValue &&
+                hp != MissingValue &&
+                level != MissingValue &&
+                experience != MissingValue &&
+                treasureCount != MissingValue &&
+                inventory != null;
+        }
 
         public static SaveOperationResult Delete()
         {
@@ -51,15 +81,22 @@ namespace ToilRelic.Unity.Save
             try
             {
                 var json = File.ReadAllText(SavePath);
+                var presenceProbe = new SaveEnvelopePresenceProbe();
+                JsonUtility.FromJsonOverwrite(json, presenceProbe);
                 var envelope = JsonUtility.FromJson<SaveEnvelope>(json);
                 if (envelope == null || envelope.player == null)
                 {
                     return SaveLoadResult.Unreadable("The save did not contain player data.");
                 }
 
-                if (envelope.version != CurrentSaveVersion)
+                if (!IsSupportedVersion(envelope.version))
                 {
                     return SaveLoadResult.Unreadable($"Unsupported save version: {envelope.version}.");
+                }
+
+                if (presenceProbe.player == null || !presenceProbe.player.HasRequiredFields())
+                {
+                    return SaveLoadResult.Unreadable("The save did not contain all required player fields.");
                 }
 
                 if (!envelope.player.HasValidSaveData())
@@ -82,5 +119,10 @@ namespace ToilRelic.Unity.Save
                 return SaveLoadResult.Unreadable(exception.ToString());
             }
         }
+
+        private static bool IsSupportedVersion(int version) =>
+            version == VersionlessSaveVersion ||
+            version == LegacySaveVersion ||
+            version == CurrentSaveVersion;
     }
 }
