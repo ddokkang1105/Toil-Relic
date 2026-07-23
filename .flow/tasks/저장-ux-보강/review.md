@@ -2,45 +2,57 @@
 
 ## Scope
 
-- Base: `d63d55bad0870972b555fe503665a673e48607e8`
-- Reviewed head: `5d52720f4d9f538df8e8a2941476c2670fa40ad6`
-- Mode: report-only re-review
-- Review run: `C:\Users\User\AppData\Local\Temp\compound-engineering-codex\ce-code-review\20260723-082835-60a0d30f`
+- Base: `3cd3b96` (`Record save validation re-review`)
+- Reviewed head: `33d07cddc68190374db31cede517e9162fae8f05`
+- Branch: `codex/save-ux-reliability`
+- Mode: report-only focused re-review
+- Plan: `docs/plans/2026-07-22-001-feat-save-ux-reliability-plan.md` (`ce-unified-plan/v1`, implementation-ready)
+- Review run: `C:\Users\User\AppData\Local\Temp\compound-engineering-codex\ce-code-review\20260723-105742-cfa9b66c`
 
 ## Findings
 
 | # | Severity | Finding | Disposition | Verification |
 |---|---|---|---|---|
-| 1 | P1 | `SaveSystem.Load` checks only required JSON kinds. A full-shape console payload with impossible core values is normalized by `Player.FromSaveData`, returned as `Loaded`, exposed through Continue, and can later overwrite the original bytes without New Game authorization. | Reopen `work`. Validate stable core value invariants before normalization while keeping empty inventory and equipment fields compatible; add direct-load and Title-flow preservation fixtures. | Correctness, reliability, and adversarial reviewers agreed. The independent validator traced `SaveSystem.cs:54-55` through `Player.FromSaveData` and `SaveProgress`. |
-| 2 | P1 | Unity validates `PlayerState` only after `JsonUtility` has erased field-presence information. A version-2 payload can supply valid `maxHp`, `level`, and one inventory slot while omitting zero-capable core fields such as `hp`, `experience`, and `treasureCount`; those omissions become valid zeroes and the save is returned as `Loaded`. | Reopen `work`. Add a presence-aware raw versioned payload check in `SaveService` for stable core fields, keep equipment fields optional, then apply value validation; add partial-omission PlayMode fixtures. | Maintainability and adversarial reviewers agreed. The independent validator reproduced the omission path and confirmed Continue can become available. |
-| 3 | P1 | The new exact `version == 2` gate rejects documented version-1 saves and historical versionless Unity envelopes, breaking the repository's compatibility decision before normalization can run. | Reopen `work`. Accept version 1 and the historical versionless envelope alongside version 2, continue rejecting unknown versions such as 999, and add compatibility fixtures with byte-preservation assertions. | Reliability and API-contract reviewers agreed. The independent validator confirmed `.flow/tasks/equipment-system-foundation/decisions.md` requires version-1 support and history contains a versionless `SaveEnvelope`. |
+| 1 | P1 | `SaveSystem.Load` still accepts `Experience >= RequiredExperience(Level)`. `Player.FromSaveData` silently clamps the value, returns `Loaded`, enables Continue, and permits a later save to replace the originally impossible bytes. | Reopen `work`. Share or expose the canonical required-experience calculation, reject an experience value at or above the current level threshold before materialization, and add direct-load plus real Title-flow byte-preservation fixtures. | The correctness reviewer traced Level 1 / Experience 20 through the new guard and existing clamp. A fresh validator confirmed that every production transition preserves `0 <= Experience < RequiredExperience(Level)`, so this is a persisted-state invariant rather than a new contract. |
+| 2 | P1 | The advertised versionless compatibility test removes only the `version` field from a modern payload. The original Unity writer at `8b0be99` stored `score` and had no `level` or `experience`, so the unconditional modern presence check still classifies a genuine historical save as `Unreadable`. | Reopen `work`. Make version-0 presence and conversion handling explicit for the actual historical field set, keep versions 1 and 2 strict and current writes at version 2, and add a fixture derived from `8b0be99` that proves load/Continue/normalization and byte preservation. | The API-contract reviewer compared the current probe with the original `SaveEnvelope` and `PlayerState`. A fresh validator independently confirmed the authentic versionless shape is rejected at `SaveService.cs:97`. |
+
+## Previous finding disposition
+
+| Previous finding | Status | Evidence |
+|---|---|---|
+| Console impossible values normalized to `Loaded` | Partially resolved | HP, level, negative counters, invalid inventory keys, and negative amounts are now rejected and covered. Finding #1 identifies the remaining experience upper-bound normalization path. |
+| Unity required-field omission hidden by `JsonUtility` defaults | Resolved for the modern v1/v2 core shape | Sentinel-based raw presence checks and per-field omission cases reject modern partial payloads before hydration. |
+| Exact version-2 gate rejected v1/versionless saves | Partially resolved | Versions 0, 1, and 2 now pass the version gate and version 1 has a compatibility fixture, but finding #2 shows the fixture does not represent the original versionless schema. |
 
 ## Requirements completeness
 
-- Partial: R1-R3 and AE3. The new guards reject empty or malformed payloads, but the three validated paths above can still misclassify supported or structurally invalid saves.
-- Met and unaffected by this rework: R4-R14; AE1-AE2 and AE4-AE8.
-- Partial implementation units: U1 still needs core value validation; U3 still needs raw field-presence validation and legacy version compatibility.
-- Implemented as planned and unaffected: U2, U4, and U5.
+- Partial: R1-R3 and AE3. Two parseable but unsupported states can still be classified incorrectly: an impossible console experience value becomes `Loaded`, and an authentic historical Unity save becomes `Unreadable`.
+- Partial implementation units: U1 still needs the experience upper-bound invariant; U3 still needs genuine version-0 schema compatibility.
+- Met and unaffected by this focused re-review: R4-R14, AE1-AE2, AE4-AE8, and implementation units U2, U4, and U5.
 
 ## Review coverage
 
-- Lenses: correctness, project standards, testing, maintainability, reliability, API/save-format contract, adversarial fallback, and repository learnings.
-- Cross-model review was unavailable because no authenticated different-provider reviewer was configured; a local adversarial reviewer and a fresh independent validator were used instead.
-- Mechanical merge: 9 raw findings -> 5 deduplicated candidates -> 3 primary P1 findings; 2 narrow P2 coverage findings moved to testing gaps.
-- Validator batch: 3 findings selected, 3 validated, 0 dropped, 0 validation-degraded.
-- Project-standards review found no violation. The two-file learning corpus had no direct structural-save-validation precedent; its orchestration and PlayMode patterns support keeping diagnosis visible through the real Title flow.
+- Lenses: correctness, project standards, testing, maintainability, reliability, save/API contract, adversarial fallback, and repository learnings.
+- Cross-model review was not run because no authenticated different-provider CLI was available; the in-process adversarial fallback ran instead.
+- Mechanical merge: 4 raw findings -> 4 candidates. One maintainability candidate was demoted to residual risk because the Unity fixture already exceeded 1,000 physical lines at the review base; one adversarial P2 was dropped after validation could not establish how this Unity version handles a present non-integer `version` token.
+- Validator batch: 3 findings selected, 2 validated, 1 dropped, 0 validation-degraded.
+- Project-standards, testing, and reliability reviewers found no additional actionable defect.
 - No source fixes were applied during review.
+
+## Learnings and past solutions
+
+- `docs/solutions/ui-bugs/unity-status-event-save-failure-contracts.md` supports keeping persistence semantics separate from player copy and proving behavior through the real `GameManager` path.
+- `docs/solutions/best-practices/unity-playmode-hud-contracts.md` supports the current reflection-based PlayMode boundary and retaining both direct load matrices and a real scene/Title flow.
 
 ## Residual risks
 
-- Unity inventory uniqueness/completeness and `treasureCount` consistency remain unspecified and should not be broadened into required validation without a contract decision.
-- Console validation should explicitly reject undefined numeric `ItemType` keys as part of the core inventory invariant without making later equipment fields mandatory.
+- The repository contains no authoritative historical version-1 writer, so the modern-core v1 fixture is the strongest available local compatibility evidence.
+- `SampleSceneP0PlayModeTests.cs` was already 1,045 physical lines at the base and grew by 128 lines to 1,173; splitting save-contract coverage remains useful maintenance work but is not a release blocker for this rework.
+- Unity accepts experience values at or above the current level threshold; that behavior predates this focused diff and should be resolved only if the shared save-state invariant is intentionally expanded to Unity.
 
 ## Testing gaps
 
-- Add table-driven console cases that isolate each required-field presence/kind guard and a full-shape invalid-value case through both `Load` and Title.
-- Add Unity partial-omission cases that preserve valid required siblings, plus one-invalid-invariant-at-a-time cases for `HasValidSaveData`.
-- Add version-1 and versionless Unity compatibility fixtures while retaining the unsupported-version-999 rejection case.
+- Add Unity wrong-JSON-kind fixtures for required scalar/list fields and `version` to establish this Editor version's `JsonUtility` behavior rather than relying on external serializer assumptions.
 
 ## Result
 
