@@ -70,6 +70,32 @@ public sealed class GameSaveUxTests
     }
 
     [Fact]
+    public void Run_ImpossibleCoreValues_DiagnosesWithoutOfferingContinueOrChangingBytes()
+    {
+        using var fixture = new GameFixture();
+        var original = """
+            {
+              "Name": "Impossible Wanderer",
+              "MaxHp": 0,
+              "Hp": 0,
+              "Level": 0,
+              "Experience": -1,
+              "TreasureCount": -1,
+              "Inventory": { "999": -1 }
+            }
+            """;
+        File.WriteAllText(fixture.SavePath, original);
+        var input = new ScriptedTextReader();
+
+        Assert.Throws<EndOfInputException>(() =>
+            CaptureConsole(input, () => new Game(fixture.System).Run()));
+
+        Assert.Contains("Save could not be read. Start New Game to replace it.", input.CapturedOutput);
+        Assert.DoesNotContain("Continue", input.CapturedOutput);
+        Assert.Equal(original, File.ReadAllText(fixture.SavePath));
+    }
+
+    [Fact]
     public void Run_ReplacementFailure_RemainsOnTitleWithSafeCopy()
     {
         using var fixture = new GameFixture();

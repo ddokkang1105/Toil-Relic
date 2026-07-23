@@ -52,6 +52,11 @@ public sealed class SaveSystem
             }
 
             var saveData = document.RootElement.Deserialize<PlayerSaveData>(_jsonOptions)!;
+            if (!HasValidCoreValues(saveData))
+            {
+                return LoadResult.Unreadable("The save file contains unsupported player values.");
+            }
+
             return LoadResult.Loaded(Player.FromSaveData(saveData));
         }
         catch (FileNotFoundException)
@@ -80,6 +85,15 @@ public sealed class SaveSystem
 
     private static bool HasProperty(JsonElement root, string name, JsonValueKind expectedKind) =>
         root.TryGetProperty(name, out var property) && property.ValueKind == expectedKind;
+
+    private static bool HasValidCoreValues(PlayerSaveData saveData) =>
+        saveData.MaxHp > 0 &&
+        saveData.Hp >= 0 &&
+        saveData.Hp <= saveData.MaxHp &&
+        saveData.Level > 0 &&
+        saveData.Experience >= 0 &&
+        saveData.TreasureCount >= 0 &&
+        saveData.Inventory.All(pair => Enum.IsDefined(pair.Key) && pair.Value >= 0);
 
     public PersistenceResult Delete()
     {

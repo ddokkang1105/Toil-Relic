@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using ToilRelic.Models;
 using ToilRelic.Systems;
 
@@ -93,6 +94,79 @@ public sealed class SaveSystemTests
         Assert.Equal(original, File.ReadAllText(fixture.SavePath));
     }
 
+    [Theory]
+    [InlineData("Name")]
+    [InlineData("MaxHp")]
+    [InlineData("Hp")]
+    [InlineData("Level")]
+    [InlineData("Experience")]
+    [InlineData("TreasureCount")]
+    [InlineData("Inventory")]
+    public void Load_MissingRequiredCoreField_ReturnsUnreadableWithoutChangingBytes(string fieldName)
+    {
+        using var fixture = new SaveFixture();
+        var save = CreateValidSaveJson();
+        save.Remove(fieldName);
+        var original = save.ToJsonString();
+        File.WriteAllText(fixture.SavePath, original);
+
+        var result = fixture.System.Load();
+
+        Assert.Equal(LoadStatus.Unreadable, result.Status);
+        Assert.Null(result.Player);
+        Assert.Equal(original, File.ReadAllText(fixture.SavePath));
+    }
+
+    [Theory]
+    [InlineData("Name", "42")]
+    [InlineData("MaxHp", "\"100\"")]
+    [InlineData("Hp", "\"50\"")]
+    [InlineData("Level", "\"2\"")]
+    [InlineData("Experience", "\"3\"")]
+    [InlineData("TreasureCount", "\"0\"")]
+    [InlineData("Inventory", "[]")]
+    public void Load_RequiredCoreFieldWithWrongKind_ReturnsUnreadableWithoutChangingBytes(
+        string fieldName,
+        string replacementJson)
+    {
+        using var fixture = new SaveFixture();
+        var save = CreateValidSaveJson();
+        save[fieldName] = JsonNode.Parse(replacementJson);
+        var original = save.ToJsonString();
+        File.WriteAllText(fixture.SavePath, original);
+
+        var result = fixture.System.Load();
+
+        Assert.Equal(LoadStatus.Unreadable, result.Status);
+        Assert.Null(result.Player);
+        Assert.Equal(original, File.ReadAllText(fixture.SavePath));
+    }
+
+    [Theory]
+    [InlineData("non-positive MaxHp")]
+    [InlineData("negative Hp")]
+    [InlineData("Hp above MaxHp")]
+    [InlineData("non-positive Level")]
+    [InlineData("negative Experience")]
+    [InlineData("negative TreasureCount")]
+    [InlineData("undefined ItemType")]
+    [InlineData("negative inventory amount")]
+    public void Load_ImpossibleCoreValue_ReturnsUnreadableWithoutChangingBytes(string invalidCase)
+    {
+        using var fixture = new SaveFixture();
+        var save = CreateValidSaveJson();
+        ApplyInvalidValue(save, invalidCase);
+        var original = save.ToJsonString();
+        File.WriteAllText(fixture.SavePath, original);
+
+        var result = fixture.System.Load();
+
+        Assert.Equal(LoadStatus.Unreadable, result.Status);
+        Assert.Null(result.Player);
+        Assert.False(string.IsNullOrWhiteSpace(result.Diagnostic));
+        Assert.Equal(original, File.ReadAllText(fixture.SavePath));
+    }
+
     [Fact]
     public void Load_LockedFile_ReturnsUnreadableWithoutChangingBytes()
     {
@@ -176,6 +250,51 @@ public sealed class SaveSystemTests
                 "EquippedEquipment", "EquipmentInitialized"
             },
             propertyNames);
+    }
+
+    private static JsonObject CreateValidSaveJson() => new()
+    {
+        ["Name"] = "Wanderer",
+        ["MaxHp"] = 100,
+        ["Hp"] = 50,
+        ["Level"] = 2,
+        ["Experience"] = 3,
+        ["TreasureCount"] = 0,
+        ["Inventory"] = new JsonObject()
+    };
+
+    private static void ApplyInvalidValue(JsonObject save, string invalidCase)
+    {
+        switch (invalidCase)
+        {
+            case "non-positive MaxHp":
+                save["MaxHp"] = 0;
+                save["Hp"] = 0;
+                break;
+            case "negative Hp":
+                save["Hp"] = -1;
+                break;
+            case "Hp above MaxHp":
+                save["Hp"] = 101;
+                break;
+            case "non-positive Level":
+                save["Level"] = 0;
+                break;
+            case "negative Experience":
+                save["Experience"] = -1;
+                break;
+            case "negative TreasureCount":
+                save["TreasureCount"] = -1;
+                break;
+            case "undefined ItemType":
+                save["Inventory"] = new JsonObject { ["999"] = 1 };
+                break;
+            case "negative inventory amount":
+                save["Inventory"] = new JsonObject { [nameof(ItemType.Junk)] = -1 };
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(invalidCase), invalidCase, null);
+        }
     }
 
     private sealed class SaveFixture : IDisposable
