@@ -152,7 +152,7 @@ public sealed class Player
         MaxHp = CalculateBaseMaxHp(Level) + EquipmentMaxHpBonus;
         Hp = healToFull ? MaxHp : Math.Clamp(Hp, 0, MaxHp);
     }
-    private static int RequiredExperience(int currentLevel) => 20 + ((currentLevel - 1) * 10);
+    internal static int RequiredExperience(int currentLevel) => 20 + ((currentLevel - 1) * 10);
     private static int CalculateBaseMaxHp(int level) { var safeLevel = Math.Max(1, level); return BaseMaxHp + (int)Math.Round(safeLevel + (100m * (1m + safeLevel / 100m) * safeLevel), MidpointRounding.AwayFromZero); }
 }
 

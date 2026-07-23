@@ -92,6 +92,7 @@ public sealed class SaveSystem
         saveData.Hp <= saveData.MaxHp &&
         saveData.Level > 0 &&
         saveData.Experience >= 0 &&
+        saveData.Experience < Player.RequiredExperience(saveData.Level) &&
         saveData.TreasureCount >= 0 &&
         saveData.Inventory.All(pair => Enum.IsDefined(pair.Key) && pair.Value >= 0);
 

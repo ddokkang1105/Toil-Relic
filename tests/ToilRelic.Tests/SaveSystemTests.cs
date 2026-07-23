@@ -14,6 +14,7 @@ public sealed class SaveSystemTests
         HpAboveMaxHp,
         NonPositiveLevel,
         NegativeExperience,
+        ExperienceAtLevelThreshold,
         NegativeTreasureCount,
         UndefinedItemType,
         NegativeInventoryAmount
@@ -160,6 +161,7 @@ public sealed class SaveSystemTests
     [InlineData(InvalidCoreValueCase.HpAboveMaxHp)]
     [InlineData(InvalidCoreValueCase.NonPositiveLevel)]
     [InlineData(InvalidCoreValueCase.NegativeExperience)]
+    [InlineData(InvalidCoreValueCase.ExperienceAtLevelThreshold)]
     [InlineData(InvalidCoreValueCase.NegativeTreasureCount)]
     [InlineData(InvalidCoreValueCase.UndefinedItemType)]
     [InlineData(InvalidCoreValueCase.NegativeInventoryAmount)]
@@ -294,6 +296,10 @@ public sealed class SaveSystemTests
                 break;
             case InvalidCoreValueCase.NegativeExperience:
                 save["Experience"] = -1;
+                break;
+            case InvalidCoreValueCase.ExperienceAtLevelThreshold:
+                save["Level"] = 1;
+                save["Experience"] = 20;
                 break;
             case InvalidCoreValueCase.NegativeTreasureCount:
                 save["TreasureCount"] = -1;

@@ -70,18 +70,18 @@ public sealed class GameSaveUxTests
     }
 
     [Fact]
-    public void Run_ImpossibleCoreValues_DiagnosesWithoutOfferingContinueOrChangingBytes()
+    public void Run_ExperienceAtLevelThreshold_DiagnosesWithoutOfferingContinueOrChangingBytes()
     {
         using var fixture = new GameFixture();
         var original = """
             {
               "Name": "Impossible Wanderer",
-              "MaxHp": 0,
-              "Hp": 0,
-              "Level": 0,
-              "Experience": -1,
-              "TreasureCount": -1,
-              "Inventory": { "999": -1 }
+              "MaxHp": 100,
+              "Hp": 50,
+              "Level": 1,
+              "Experience": 20,
+              "TreasureCount": 0,
+              "Inventory": {}
             }
             """;
         File.WriteAllText(fixture.SavePath, original);
