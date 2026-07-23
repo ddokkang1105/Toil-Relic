@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="4" result="Passed" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-07-23 02:37:16Z" end-time="2026-07-23 02:37:18Z" duration="1.9429144">
+  <test-suite type="TestSuite" id="1044" name="_unity-bootstrap" fullname="_unity-bootstrap" runstate="Runnable" testcasecount="36" result="Passed" start-time="2026-07-23 02:37:16Z" end-time="2026-07-23 02:37:18Z" duration="1.942914" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1038" name="ToilRelic.PlayModeTests.dll" fullname="C:/Toil-Relic-main/unity/Library/ScriptAssemblies/ToilRelic.PlayModeTests.dll" runstate="Runnable" testcasecount="36" result="Passed" start-time="2026-07-23 02:37:16Z" end-time="2026-07-23 02:37:18Z" duration="1.934178" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="18424" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1039" name="ToilRelic" fullname="ToilRelic" runstate="Runnable" testcasecount="36" result="Passed" start-time="2026-07-23 02:37:16Z" end-time="2026-07-23 02:37:18Z" duration="1.933165" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1040" name="PlayModeTests" fullname="ToilRelic.PlayModeTests" runstate="Runnable" testcasecount="36" result="Passed" start-time="2026-07-23 02:37:16Z" end-time="2026-07-23 02:37:18Z" duration="1.932507" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1001" name="SampleSceneP0PlayModeTests" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" testcasecount="36" result="Passed" start-time="2026-07-23 02:37:16Z" end-time="2026-07-23 02:37:18Z" duration="1.930957" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1012" name="P0_AuthenticVersionlessScoreSaveLoadsAndNormalizes" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_AuthenticVersionlessScoreSaveLoadsAndNormalizes" methodname="P0_AuthenticVersionlessScoreSaveLoadsAndNormalizes" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="18598738" result="Passed" start-time="2026-07-23 02:37:16Z" end-time="2026-07-23 02:37:17Z" duration="0.660155" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1013" name="P0_CurrentSaveRequiresEveryStableCorePlayerField" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_CurrentSaveRequiresEveryStableCorePlayerField" methodname="P0_CurrentSaveRequiresEveryStableCorePlayerField" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1298285113" result="Passed" start-time="2026-07-23 02:37:17Z" end-time="2026-07-23 02:37:17Z" duration="0.243710" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1018" name="P0_UnsupportedSaveVersionDisablesContinueWithoutChangingBytes" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_UnsupportedSaveVersionDisablesContinueWithoutChangingBytes" methodname="P0_UnsupportedSaveVersionDisablesContinueWithoutChangingBytes" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="266876261" result="Passed" start-time="2026-07-23 02:37:17Z" end-time="2026-07-23 02:37:18Z" duration="0.480080" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Save load failed. Unsupported save version: 999.
+]]></output>
+            </test-case>
+            <test-case id="1011" name="P0_VersionOneSaveWithoutEquipmentFieldsLoadsAndNormalizes" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_VersionOneSaveWithoutEquipmentFieldsLoadsAndNormalizes" methodname="P0_VersionOneSaveWithoutEquipmentFieldsLoadsAndNormalizes" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="946302692" result="Passed" start-time="2026-07-23 02:37:18Z" end-time="2026-07-23 02:37:18Z" duration="0.521173" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Saving results to: C:/Users/User/AppData/LocalLow/DefaultCompany/_unity-bootstrap\TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

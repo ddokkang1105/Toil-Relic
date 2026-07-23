@@ -230,14 +230,14 @@ namespace ToilRelic.PlayModeTests
         public IEnumerator P0_VersionOneSaveWithoutEquipmentFieldsLoadsAndNormalizes()
         {
             const string original = "{\"version\":1,\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":4,\"inventory\":[{\"type\":0,\"amount\":2},{\"type\":1,\"amount\":1},{\"type\":2,\"amount\":4},{\"type\":3,\"amount\":0}]}}";
-            yield return AssertHistoricalSaveLoadsAndNormalizes(original);
+            yield return AssertHistoricalSaveLoadsAndNormalizes(original, expectedLevel: 2, expectedExperience: 3);
         }
 
         [UnityTest]
-        public IEnumerator P0_VersionlessSaveWithoutEquipmentFieldsLoadsAndNormalizes()
+        public IEnumerator P0_AuthenticVersionlessScoreSaveLoadsAndNormalizes()
         {
-            const string original = "{\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":4,\"inventory\":[{\"type\":0,\"amount\":2},{\"type\":1,\"amount\":1},{\"type\":2,\"amount\":4},{\"type\":3,\"amount\":0}]}}";
-            yield return AssertHistoricalSaveLoadsAndNormalizes(original);
+            const string original = "{\"player\":{\"maxHp\":30,\"hp\":18,\"score\":400,\"treasureCount\":4,\"inventory\":[{\"type\":0,\"amount\":2},{\"type\":1,\"amount\":1},{\"type\":2,\"amount\":4}]}}";
+            yield return AssertHistoricalSaveLoadsAndNormalizes(original, expectedLevel: 1, expectedExperience: 0);
         }
 
         [UnityTest]
@@ -947,7 +947,7 @@ namespace ToilRelic.PlayModeTests
             yield return null;
         }
 
-        private IEnumerator AssertHistoricalSaveLoadsAndNormalizes(string original)
+        private IEnumerator AssertHistoricalSaveLoadsAndNormalizes(string original, int expectedLevel, int expectedExperience)
         {
             File.WriteAllText(fixtureSavePath, original);
 
@@ -969,8 +969,8 @@ namespace ToilRelic.PlayModeTests
             Assert.That(continueButton.interactable, Is.True);
             Assert.That(messageText.text, Is.EqualTo("Save found. Continue or start a new game."));
             Assert.That((int)loadedPlayer.GetType().GetProperty("Hp").GetValue(loadedPlayer), Is.EqualTo(18));
-            Assert.That((int)loadedPlayer.GetType().GetProperty("Level").GetValue(loadedPlayer), Is.EqualTo(2));
-            Assert.That((int)loadedPlayer.GetType().GetProperty("Experience").GetValue(loadedPlayer), Is.EqualTo(3));
+            Assert.That((int)loadedPlayer.GetType().GetProperty("Level").GetValue(loadedPlayer), Is.EqualTo(expectedLevel));
+            Assert.That((int)loadedPlayer.GetType().GetProperty("Experience").GetValue(loadedPlayer), Is.EqualTo(expectedExperience));
             Assert.That((int)loadedPlayer.GetType().GetProperty("TreasureCount").GetValue(loadedPlayer), Is.EqualTo(4));
             Assert.That((int)getAmount.Invoke(loadedPlayer, new[] { Enum.Parse(itemType, "Junk") }), Is.EqualTo(2));
             Assert.That((int)getAmount.Invoke(loadedPlayer, new[] { Enum.Parse(itemType, "Treasure") }), Is.EqualTo(4));

@@ -36,14 +36,22 @@ namespace ToilRelic.Unity.Save
             public int hp = MissingValue;
             public int level = MissingValue;
             public int experience = MissingValue;
+            public int score = MissingValue;
             public int treasureCount = MissingValue;
             public List<InventorySlot> inventory;
 
-            internal bool HasRequiredFields() =>
+            internal bool HasModernRequiredFields() =>
                 maxHp != MissingValue &&
                 hp != MissingValue &&
                 level != MissingValue &&
                 experience != MissingValue &&
+                treasureCount != MissingValue &&
+                inventory != null;
+
+            internal bool HasHistoricalRequiredFields() =>
+                maxHp != MissingValue &&
+                hp != MissingValue &&
+                score != MissingValue &&
                 treasureCount != MissingValue &&
                 inventory != null;
         }
@@ -94,7 +102,7 @@ namespace ToilRelic.Unity.Save
                     return SaveLoadResult.Unreadable($"Unsupported save version: {envelope.version}.");
                 }
 
-                if (presenceProbe.player == null || !presenceProbe.player.HasRequiredFields())
+                if (!HasRequiredPlayerFields(envelope.version, presenceProbe.player))
                 {
                     return SaveLoadResult.Unreadable("The save did not contain all required player fields.");
                 }
@@ -124,5 +132,10 @@ namespace ToilRelic.Unity.Save
             version == VersionlessSaveVersion ||
             version == LegacySaveVersion ||
             version == CurrentSaveVersion;
+
+        private static bool HasRequiredPlayerFields(int version, PlayerStatePresenceProbe player) =>
+            player != null &&
+            (player.HasModernRequiredFields() ||
+             version == VersionlessSaveVersion && player.HasHistoricalRequiredFields());
     }
 }
