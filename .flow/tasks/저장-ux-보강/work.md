@@ -137,3 +137,61 @@ Resolved all three P1 findings from the second review without changing the produ
 
 - The three P1 implementation blockers are resolved and ready for focused re-review.
 - Runtime QA has not been advanced; Personal Flow review must clear before QA.
+
+## Review rework: close remaining save-contract boundaries
+
+### Result
+
+Resolved the two P1 findings from the focused re-review. Console load validation now rejects experience at or above the current level threshold before `Player.FromSaveData` can clamp it. Unity version 0 now accepts either the modern required fields or the authentic original `score`-based field set from commit `8b0be99`, while versions 1 and 2 remain strict and current writes remain version 2.
+
+### Framework and execution route
+
+- Personal Flow routed implementation to active `compound-engineering:ce-work` in return-to-caller mode; Personal Flow retains the review and QA tail.
+- No live implementation-engine preference or `.compound-engineering/config.local.yaml` was present. Execution used native Codex serial subagents in the shared workspace, with the host owning authoritative verification and canonical commits.
+- `compound-engineering:ce-simplify-code` reviewed the final human-authored diff for reuse, quality, and efficiency while preserving the plan's settled structure pins. It found no behavior-preserving improvement to apply.
+
+### Implementation
+
+- U1: Exposed the canonical console `Player.RequiredExperience` calculation to the assembly and reused it in `SaveSystem` so a persisted value must satisfy `0 <= Experience < RequiredExperience(Level)` before materialization.
+- U1 coverage: Added the exact Level 1 / Experience 20 boundary to the direct invalid-value matrix and strengthened the real Title-flow fixture to prove the approved unreadable diagnosis, unavailable Continue, and byte preservation.
+- U3: Added `score` to the Unity presence probe and split modern from historical required-field sets. Version 0 accepts either set; versions 1 and 2 continue to require the modern set.
+- U3 coverage: Replaced the fabricated modern-without-version fixture with the authentic original JSON shape from `8b0be99`. The real scene flow proves load diagnosis, Continue, default level/experience, representative HP/inventory/treasure values, starter-weapon normalization, Camp entry, and unchanged bytes.
+- Preserved constraints: no serialized write-shape change, no score-to-XP conversion, no migration framework, no UI/layout change, and no broadening into unverified wrong-kind `JsonUtility` behavior.
+
+### Proof-first evidence
+
+- Console red: the focused direct-load and Title command ran 10 cases with 8 passing and 2 failing. Level 1 / Experience 20 returned `Loaded`, and Title did not show the approved unreadable diagnosis before production changes.
+- Console green: the same focused command passed 10/10 after implementation; current-format and equipment-optional compatibility checks passed 2/2.
+- Unity red: `P0_AuthenticVersionlessScoreSaveLoadsAndNormalizes` failed 1/1 before production changes with `The save did not contain all required player fields.`
+- Unity green: the authentic versionless, version-1, current required-field, and unsupported-version scenarios passed 4/4.
+
+### Verification evidence
+
+| Layer | Result | Evidence |
+|---|---|---|
+| Console build | Passed with 0 warnings and 0 errors | `dotnet build src/ToilRelic/ToilRelic.csproj --no-restore` |
+| Console full tests | 40 passed, 0 failed | `dotnet test tests/ToilRelic.Tests/ToilRelic.Tests.csproj --no-restore` |
+| Unity focused save contract | 4 passed, 0 failed | `work-rework-u3-versionless-focused-results.xml` |
+| Unity full PlayMode | 35 passed, 0 failed, 1 optional layout capture skipped | `work-rework-u3-versionless-full-results.xml`; capture requires `TOIL_RELIC_LAYOUT_EVIDENCE_DIR` |
+| Simplification | Applied 0: reuse 0, quality 0, efficiency 0; skipped 0 | Three independent behavior-preservation lenses found no actionable change |
+| Diff hygiene | Passed | `git diff --check cb7243a..HEAD` |
+
+### Commits
+
+- `83a724f` - Reject oversized console save experience
+- `c1f5648` - Load authentic versionless Unity saves
+
+### CE work return envelope
+
+- Status: `complete`; plan: `docs/plans/2026-07-22-001-feat-save-ux-reliability-plan.md`; SHA-256: `68A4F261571E139127A7D6CB9719C03104B82604CE33E97DF33B098CFBB0001C`.
+- Attempted/completed units: U1, U3. Both behavior-bearing units have proof-first and final verification evidence above.
+- Changed files: `src/ToilRelic/Models/Player.cs`, `src/ToilRelic/Systems/SaveSystem.cs`, `tests/ToilRelic.Tests/SaveSystemTests.cs`, `tests/ToilRelic.Tests/GameSaveUxTests.cs`, `unity/Assets/Scripts/Save/SaveService.cs`, `unity/Assets/Tests/PlayMode/SampleSceneP0PlayModeTests.cs`, and the two Unity result XML files listed above.
+- Implementation engine binding: `null`; requested/actual route: native Codex shared-workspace serial subagents; requested model: default; actual model: `unverified`.
+- Source kind: `plan`; external run ID, fallback reason, recovery path, and plan checkpoint: `null`.
+- Unit receipts: U1 integrated and committed as `83a724f` after host console verification; U3 integrated and committed as `c1f5648` after host focused and full Unity verification.
+- Blockers: none; settled-decision conflicts: none; behavior change: `true`; standalone shipping skipped: `true`.
+
+### Remaining review scope
+
+- Both focused P1 blockers are implemented and ready for another report-only review.
+- Runtime QA remains gated on that review; this work stage does not advance directly to QA.
