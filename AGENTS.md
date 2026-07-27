@@ -7,6 +7,8 @@ This repository contains two game implementations that should stay feature-align
 - `unity/Assets/Scripts/`: Unity gameplay/runtime scripts, organized by `Core/`, `Systems/`, `Data/`, `UI/`, `Save/`.
 - `unity/UNITY_SETUP.md`: Unity scene/setup instructions.
 - `README.md`: high-level project overview and run guidance.
+- `docs/solutions/`: documented solutions to past bugs, practices, and workflow patterns, organized by category with searchable YAML frontmatter (`module`, `tags`, `problem_type`); relevant when implementing or debugging in documented areas.
+- `CONCEPTS.md`: shared domain vocabulary for project-specific entities, processes, and status concepts; relevant when orienting to the codebase or discussing domain behavior.
 
 <!-- When changing gameplay logic (combat, loot, leveling, crafting), update both `src/ToilRelic` and `unity/Assets/Scripts` in the same PR. -->
 

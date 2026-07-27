@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -20,14 +21,69 @@ namespace ToilRelic.PlayModeTests
         private const string HudControllerTypeName = "ToilRelic.Unity.UI.HudController";
         private const string BattlePanelControllerTypeName = "ToilRelic.Unity.UI.BattlePanelController";
         private const string GameStatusControllerTypeName = "ToilRelic.Unity.UI.GameStatusController";
+        private const string GameEventsTypeName = "ToilRelic.Unity.Core.GameEvents";
+        private const string CombatSystemTypeName = "ToilRelic.Unity.Systems.CombatSystem";
+        private const string PlayModeActionContractsCategory = "PlayModeActionContracts";
         private static readonly Vector2 WidescreenVirtualSize = new Vector2(800f, 450f);
         private const float MinimumTopRegionGap = 16f;
         private const string SaveServiceTypeName = "ToilRelic.Unity.Save.SaveService";
+        private readonly List<UnityEngine.Object> fixtureObjects = new();
         private Type fixtureSaveServiceType;
         private object previousSavePathOverride;
         private string fixtureSaveDirectory;
         private string fixtureSavePath;
         private bool fixtureOverrideInstalled;
+
+        private sealed class ReflectedStringEventRecorder : IDisposable
+        {
+            private readonly EventInfo eventInfo;
+            private readonly Action<string> handler;
+            private readonly List<string> messages = new();
+            private bool subscribed;
+
+            public IReadOnlyList<string> Messages => messages;
+
+            public ReflectedStringEventRecorder(Type eventSourceType, string eventName)
+            {
+                Assert.That(eventSourceType, Is.Not.Null, $"Event source type is required for {eventName}.");
+                eventInfo = eventSourceType.GetEvent(eventName, BindingFlags.Public | BindingFlags.Static);
+                Assert.That(eventInfo, Is.Not.Null, $"Expected static event '{eventName}' was not found on {eventSourceType.FullName}.");
+                Assert.That(eventInfo.EventHandlerType, Is.EqualTo(typeof(Action<string>)),
+                    $"Event '{eventName}' must use Action<string> for assembly-neutral observation.");
+
+                handler = messages.Add;
+                eventInfo.AddEventHandler(null, handler);
+                subscribed = true;
+            }
+
+            public void Dispose()
+            {
+                if (!subscribed)
+                {
+                    return;
+                }
+
+                eventInfo.RemoveEventHandler(null, handler);
+                subscribed = false;
+            }
+        }
+
+        private sealed class RandomStateScope : IDisposable
+        {
+            private readonly UnityEngine.Random.State originalState = UnityEngine.Random.state;
+            private bool disposed;
+
+            public void Dispose()
+            {
+                if (disposed)
+                {
+                    return;
+                }
+
+                UnityEngine.Random.state = originalState;
+                disposed = true;
+            }
+        }
 
         [UnitySetUp]
         public IEnumerator LoadSampleScene()
@@ -373,6 +429,427 @@ namespace ToilRelic.PlayModeTests
                 using var reader = new StreamReader(lockStream, System.Text.Encoding.UTF8, true, 1024, true);
                 Assert.That(reader.ReadToEnd(), Is.EqualTo(original));
             }
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_NewGameButtonReplacesValidFixtureSave()
+        {
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var seededPlayer = GetPrivateField(gameManager, "player");
+            SetPrivateField(seededPlayer, "hp", 12);
+            SetPrivateField(seededPlayer, "level", 3);
+            SetPrivateField(seededPlayer, "experience", 7);
+            var seededInventory = new[]
+            {
+                (Name: "Junk", Amount: 3),
+                (Name: "RelicPart", Amount: 2),
+                (Name: "Treasure", Amount: 1),
+                (Name: "HealingPotion", Amount: 4)
+            };
+            foreach (var item in seededInventory)
+            {
+                AddItem(seededPlayer, item.Name, item.Amount);
+            }
+
+            var seededPlayerType = seededPlayer.GetType();
+            var equipmentSlotType = seededPlayerType.Assembly.GetType("ToilRelic.Unity.Core.EquipmentSlot");
+            var grantEquipment = seededPlayerType.GetMethod("GrantEquipment");
+            var equip = seededPlayerType.GetMethod("Equip");
+            Assert.That(equipmentSlotType, Is.Not.Null, "New Game setup: EquipmentSlot must be available.");
+            Assert.That(grantEquipment, Is.Not.Null, "New Game setup: PlayerState.GrantEquipment must be available.");
+            Assert.That(equip, Is.Not.Null, "New Game setup: PlayerState.Equip must be available.");
+            Assert.That((bool)grantEquipment.Invoke(seededPlayer, new object[] { "reward-weapon" }), Is.True,
+                "New Game setup: the fixture player must own a non-starter weapon.");
+            Assert.That((bool)equip.Invoke(seededPlayer,
+                new[] { Enum.Parse(equipmentSlotType, "PrimaryWeapon"), "reward-weapon" }), Is.True,
+                "New Game setup: the fixture player must equip the non-starter weapon.");
+
+            var saveResult = fixtureSaveServiceType.GetMethod("Save").Invoke(null, new[] { seededPlayer });
+            Assert.That((bool)saveResult.GetType().GetProperty("Succeeded").GetValue(saveResult), Is.True,
+                "New Game setup: a valid isolated fixture save must be created.");
+
+            yield return ReloadSampleScene();
+
+            gameManager = RequireComponent(GameManagerTypeName);
+            Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Title"),
+                "New Game setup: the valid fixture save must leave the game on Title.");
+            Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(), Is.EqualTo("Loaded"),
+                "New Game setup: the fixture save must be classified as loaded.");
+            Assert.That(File.Exists(fixtureSavePath), Is.True,
+                "New Game setup: the prior fixture save must exist before the click.");
+
+            var loadedPlayer = GetPrivateField(gameManager, "player");
+            foreach (var item in seededInventory)
+            {
+                Assert.That(GetItemAmount(loadedPlayer, item.Name), Is.GreaterThan(0),
+                    $"New Game setup: the loaded fixture player's {item.Name} count must be nonzero.");
+            }
+
+            var tryGetLoadedPrimaryWeapon = loadedPlayer.GetType().GetMethod("TryGetPrimaryWeapon");
+            var loadedPrimaryWeaponArguments = new object[] { null };
+            Assert.That(tryGetLoadedPrimaryWeapon, Is.Not.Null,
+                "New Game setup: PlayerState.TryGetPrimaryWeapon must be available.");
+            Assert.That((bool)tryGetLoadedPrimaryWeapon.Invoke(loadedPlayer, loadedPrimaryWeaponArguments), Is.True,
+                "New Game setup: the loaded fixture player must have an equipped weapon.");
+            Assert.That(loadedPrimaryWeaponArguments[0], Is.Not.Null,
+                "New Game setup: the loaded fixture weapon definition must be available.");
+            Assert.That(loadedPrimaryWeaponArguments[0].GetType().GetProperty("Id").GetValue(loadedPrimaryWeaponArguments[0]),
+                Is.EqualTo("reward-weapon"),
+                "New Game setup: the loaded fixture player must still equip the non-starter weapon.");
+
+            ClickVisibleActionButton("New GameButton", "StartNewGame");
+            yield return null;
+
+            gameManager = RequireComponent(GameManagerTypeName);
+            var player = GetPrivateField(gameManager, "player");
+            var playerType = player.GetType();
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+
+            Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Camp"),
+                "New Game: the visible action must enter Camp.");
+            Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(), Is.EqualTo("Missing"),
+                "New Game: deleting the prior save must reset the load status to Missing.");
+            Assert.That((bool)gameManager.GetType().GetProperty("HasSavedGame").GetValue(gameManager), Is.False,
+                "New Game: no saved-game offer may remain after replacement.");
+            Assert.That(File.Exists(fixtureSavePath), Is.False,
+                "New Game: the prior fixture save must be deleted without an immediate replacement save.");
+            Assert.That(GetPrivateStaticField(fixtureSaveServiceType, "savePathOverride"), Is.EqualTo(fixtureSavePath),
+                "New Game: the action must keep all save effects inside the fixture override.");
+            Assert.That(messageText.text, Is.EqualTo("A new expedition begins. Hunt, craft, and survive."),
+                "New Game: the new-expedition feedback must remain visible.");
+            Assert.That((int)playerType.GetProperty("MaxHp").GetValue(player), Is.EqualTo(30),
+                "New Game: the replacement player must have default maximum HP.");
+            Assert.That((int)playerType.GetProperty("Hp").GetValue(player), Is.EqualTo(30),
+                "New Game: the replacement player must start at full HP.");
+            Assert.That((int)playerType.GetProperty("Level").GetValue(player), Is.EqualTo(1),
+                "New Game: the replacement player must start at level 1.");
+            Assert.That((int)playerType.GetProperty("Experience").GetValue(player), Is.Zero,
+                "New Game: the replacement player must start with zero experience.");
+            Assert.That((int)playerType.GetProperty("TreasureCount").GetValue(player), Is.Zero,
+                "New Game: the replacement player must start with zero treasure.");
+
+            foreach (var item in seededInventory)
+            {
+                Assert.That(GetItemAmount(player, item.Name), Is.Zero,
+                    $"New Game: the replacement player's {item.Name} count must be zero.");
+            }
+
+            var tryGetPrimaryWeapon = playerType.GetMethod("TryGetPrimaryWeapon");
+            var primaryWeaponArguments = new object[] { null };
+            Assert.That((bool)tryGetPrimaryWeapon.Invoke(player, primaryWeaponArguments), Is.True,
+                "New Game: the replacement player must own and equip the starter weapon.");
+            Assert.That(primaryWeaponArguments[0], Is.Not.Null,
+                "New Game: the equipped starter weapon definition must be available.");
+            Assert.That(primaryWeaponArguments[0].GetType().GetProperty("Id").GetValue(primaryWeaponArguments[0]),
+                Is.EqualTo("starter-weapon"),
+                "New Game: the replacement player's primary weapon must be the starter weapon.");
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_CraftButtonConsumesExactCostAndPersistsReward()
+        {
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var player = GetPrivateField(gameManager, "player");
+            var playerType = player.GetType();
+            var stateType = GetPrivateField(gameManager, "state").GetType();
+            var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            AddItem(player, "Junk", 5);
+            AddItem(player, "RelicPart", 1);
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
+            yield return null;
+            Assert.That(File.Exists(fixtureSavePath), Is.False,
+                "Craft success setup: no save may exist before the visible action.");
+
+            ClickVisibleActionButton("Craft TreasureButton", "CraftTreasure");
+            yield return null;
+
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+            var saveStatusText = RequireSaveStatusText(status);
+            Assert.That(GetItemAmount(player, "Junk"), Is.Zero,
+                "Craft success: the exact five Junk cost must be consumed.");
+            Assert.That(GetItemAmount(player, "RelicPart"), Is.Zero,
+                "Craft success: the exact one Relic Part cost must be consumed.");
+            Assert.That(GetItemAmount(player, "Treasure"), Is.EqualTo(1),
+                "Craft success: one Treasure inventory item must be granted.");
+            Assert.That((int)playerType.GetProperty("TreasureCount").GetValue(player), Is.EqualTo(1),
+                "Craft success: the treasure total must increase by one.");
+            Assert.That(messageText.text, Is.EqualTo("Treasure crafted. Treasure +1"),
+                "Craft success: the result feedback must remain visible.");
+            Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.True,
+                "Craft success: the save result row must be visible.");
+            Assert.That(saveStatusText.text, Is.EqualTo("Save: Saved just now"),
+                "Craft success: the action must report a successful save.");
+            Assert.That(File.Exists(fixtureSavePath), Is.True,
+                "Craft success: the changed progress must be written to the fixture save.");
+            Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(), Is.EqualTo("Loaded"),
+                "Craft success: the successful save must update the load status.");
+
+            var loadResult = fixtureSaveServiceType.GetMethod("Load").Invoke(null, null);
+            Assert.That(loadResult.GetType().GetProperty("Status").GetValue(loadResult).ToString(), Is.EqualTo("Loaded"),
+                "Craft success persistence: the fixture save must load successfully.");
+            var persistedPlayer = loadResult.GetType().GetProperty("Player").GetValue(loadResult);
+            Assert.That(GetItemAmount(persistedPlayer, "Junk"), Is.Zero,
+                "Craft success persistence: Junk must remain consumed.");
+            Assert.That(GetItemAmount(persistedPlayer, "RelicPart"), Is.Zero,
+                "Craft success persistence: Relic Part must remain consumed.");
+            Assert.That(GetItemAmount(persistedPlayer, "Treasure"), Is.EqualTo(1),
+                "Craft success persistence: the Treasure inventory reward must be saved.");
+            Assert.That((int)persistedPlayer.GetType().GetProperty("TreasureCount").GetValue(persistedPlayer), Is.EqualTo(1),
+                "Craft success persistence: the treasure total must be saved.");
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_CraftButtonInsufficientMaterialsPersistsUnchangedState()
+        {
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var player = GetPrivateField(gameManager, "player");
+            var playerType = player.GetType();
+            var stateType = GetPrivateField(gameManager, "state").GetType();
+            var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            AddItem(player, "Junk", 4);
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
+            yield return null;
+            Assert.That(File.Exists(fixtureSavePath), Is.False,
+                "Craft failure setup: no save may exist before the visible action.");
+
+            ClickVisibleActionButton("Craft TreasureButton", "CraftTreasure");
+            yield return null;
+
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+            var saveStatusText = RequireSaveStatusText(status);
+            Assert.That(GetItemAmount(player, "Junk"), Is.EqualTo(4),
+                "Craft failure: insufficient Junk must remain unchanged.");
+            Assert.That(GetItemAmount(player, "RelicPart"), Is.Zero,
+                "Craft failure: the zero Relic Part count must remain unchanged.");
+            Assert.That(GetItemAmount(player, "Treasure"), Is.Zero,
+                "Craft failure: no Treasure inventory item may be granted.");
+            Assert.That((int)playerType.GetProperty("TreasureCount").GetValue(player), Is.Zero,
+                "Craft failure: the treasure total must remain unchanged.");
+            Assert.That(messageText.text, Is.EqualTo("Need junk 4/5, relic part 0/1"),
+                "Craft failure: the unmet material requirement must remain visible.");
+            Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.True,
+                "Craft failure: the save result row must be visible.");
+            Assert.That(saveStatusText.text, Is.EqualTo("Save: Saved just now"),
+                "Craft failure: the unchanged progress must still report a successful save.");
+            Assert.That(File.Exists(fixtureSavePath), Is.True,
+                "Craft failure: the unchanged progress must be written to the fixture save.");
+            Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(), Is.EqualTo("Loaded"),
+                "Craft failure: the successful save must update the load status.");
+
+            var loadResult = fixtureSaveServiceType.GetMethod("Load").Invoke(null, null);
+            Assert.That(loadResult.GetType().GetProperty("Status").GetValue(loadResult).ToString(), Is.EqualTo("Loaded"),
+                "Craft failure persistence: the fixture save must load successfully.");
+            var persistedPlayer = loadResult.GetType().GetProperty("Player").GetValue(loadResult);
+            Assert.That(GetItemAmount(persistedPlayer, "Junk"), Is.EqualTo(4),
+                "Craft failure persistence: Junk must remain unchanged.");
+            Assert.That(GetItemAmount(persistedPlayer, "RelicPart"), Is.Zero,
+                "Craft failure persistence: Relic Part must remain unchanged.");
+            Assert.That(GetItemAmount(persistedPlayer, "Treasure"), Is.Zero,
+                "Craft failure persistence: no Treasure inventory item may be saved.");
+            Assert.That((int)persistedPlayer.GetType().GetProperty("TreasureCount").GetValue(persistedPlayer), Is.Zero,
+                "Craft failure persistence: the treasure total must remain unchanged.");
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_PotionButtonConsumesPotionAndCompletesEnemyResponse()
+        {
+            yield return EnterBattle();
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var battlePanel = RequireComponent(BattlePanelControllerTypeName);
+            var player = GetPrivateField(gameManager, "player");
+            var playerType = player.GetType();
+            var publishPlayer = gameManager.GetType().GetMethod("PublishPlayer", BindingFlags.Instance | BindingFlags.NonPublic);
+            var logText = GetPrivateField(battlePanel, "logText") as Text;
+
+            playerType.GetMethod("TakeDamage").Invoke(player, new object[] { 15 });
+            AddItem(player, "HealingPotion", 1);
+            Assert.That(publishPlayer, Is.Not.Null, "Potion success setup: GameManager.PublishPlayer must exist.");
+            publishPlayer.Invoke(gameManager, null);
+            InstallHarmlessDurableEnemy(gameManager, "P0 Potion Enemy");
+            Assert.That(File.Exists(fixtureSavePath), Is.False,
+                "Potion success setup: no save may exist before the visible action.");
+
+            using var randomState = PreserveRandomState();
+            using var battleLog = ObserveStringGameEvent(gameManager, "BattleLog");
+            ClickVisibleActionButton("PotionButton", "UsePotion");
+            yield return null;
+
+            const string recoveryMessage = "You used a healing potion and recovered 12 HP.";
+            const string enemyResponse = "P0 Potion Enemy hits you for 1.";
+            Assert.That(battleLog.Messages.Count, Is.EqualTo(2),
+                "Potion success: exactly the recovery and enemy-response events must be published.");
+            Assert.That(battleLog.Messages[0], Is.EqualTo(recoveryMessage),
+                "Potion success: recovery feedback must be published before the enemy response.");
+            Assert.That(battleLog.Messages[1], Is.EqualTo(enemyResponse),
+                "Potion success: the harmless enemy response must follow recovery feedback.");
+            Assert.That(logText, Is.Not.Null, "Potion success: the accumulated battle log must be wired.");
+            var recoveryIndex = logText.text.IndexOf(recoveryMessage, StringComparison.Ordinal);
+            var enemyResponseIndex = logText.text.IndexOf(enemyResponse, StringComparison.Ordinal);
+            Assert.That(recoveryIndex, Is.GreaterThanOrEqualTo(0),
+                "Potion success: recovery feedback must remain visible in the battle log.");
+            Assert.That(enemyResponseIndex, Is.GreaterThan(recoveryIndex),
+                "Potion success: the visible enemy response must follow the recovery feedback.");
+            Assert.That(GetItemAmount(player, "HealingPotion"), Is.Zero,
+                "Potion success: exactly one healing potion must be consumed.");
+            Assert.That((int)playerType.GetProperty("Hp").GetValue(player), Is.EqualTo(26),
+                "Potion success: HP must reflect 12 recovery followed by one fixed enemy damage.");
+            Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Battle"),
+                "Potion success: the encounter must remain active.");
+            Assert.That(GetPrivateField(gameManager, "battlePhase").ToString(), Is.EqualTo("PlayerAction"),
+                "Potion success: control must return after the enemy response.");
+            Assert.That(File.Exists(fixtureSavePath), Is.False,
+                "Potion success: a nonterminal action must not write a save.");
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_PotionButtonAtFullHpPreservesPotionAndControl()
+        {
+            yield return EnterBattle();
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var battlePanel = RequireComponent(BattlePanelControllerTypeName);
+            var player = GetPrivateField(gameManager, "player");
+            var playerType = player.GetType();
+            var publishPlayer = gameManager.GetType().GetMethod("PublishPlayer", BindingFlags.Instance | BindingFlags.NonPublic);
+            var logText = GetPrivateField(battlePanel, "logText") as Text;
+            var initialHp = (int)playerType.GetProperty("Hp").GetValue(player);
+
+            AddItem(player, "HealingPotion", 1);
+            Assert.That(publishPlayer, Is.Not.Null, "Potion guard setup: GameManager.PublishPlayer must exist.");
+            publishPlayer.Invoke(gameManager, null);
+            Assert.That(initialHp, Is.EqualTo((int)playerType.GetProperty("MaxHp").GetValue(player)),
+                "Potion guard setup: the player must begin at full HP.");
+            Assert.That(File.Exists(fixtureSavePath), Is.False,
+                "Potion guard setup: no save may exist before the visible action.");
+
+            using var battleLog = ObserveStringGameEvent(gameManager, "BattleLog");
+            ClickVisibleActionButton("PotionButton", "UsePotion");
+            yield return null;
+
+            Assert.That(battleLog.Messages.Count, Is.EqualTo(1),
+                "Potion guard: no enemy-response event may follow the full-HP rejection.");
+            Assert.That(battleLog.Messages[0], Is.EqualTo("HP is already full."),
+                "Potion guard: the full-HP reason must be published.");
+            Assert.That(logText, Is.Not.Null, "Potion guard: the accumulated battle log must be wired.");
+            Assert.That(logText.text, Does.Contain("HP is already full."),
+                "Potion guard: the rejection reason must remain visible.");
+            Assert.That((int)playerType.GetProperty("Hp").GetValue(player), Is.EqualTo(initialHp),
+                "Potion guard: HP must remain unchanged.");
+            Assert.That(GetItemAmount(player, "HealingPotion"), Is.EqualTo(1),
+                "Potion guard: the healing potion must not be consumed.");
+            Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Battle"),
+                "Potion guard: the encounter must remain active.");
+            Assert.That(GetPrivateField(gameManager, "battlePhase").ToString(), Is.EqualTo("PlayerAction"),
+                "Potion guard: player control must remain available.");
+            Assert.That(File.Exists(fixtureSavePath), Is.False,
+                "Potion guard: the rejected action must not write a save.");
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_AttackButtonKeepsDurableEnemyAndReturnsControl()
+        {
+            yield return EnterBattle();
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var player = GetPrivateField(gameManager, "player");
+            var playerType = player.GetType();
+            var attackBonus = (int)playerType.GetProperty("AttackBonus").GetValue(player);
+            var playerHpBefore = (int)playerType.GetProperty("Hp").GetValue(player);
+            var enemy = InstallHarmlessDurableEnemy(gameManager, "P0 Durable Attack Enemy");
+            var enemyType = enemy.GetType();
+            var enemyHpBefore = (int)enemyType.GetProperty("Hp").GetValue(enemy);
+
+            Assert.That(File.Exists(fixtureSavePath), Is.False,
+                "Attack setup: no save may exist before the visible action.");
+
+            using var randomState = PreserveRandomState();
+            using var battleLog = ObserveStringGameEvent(gameManager, "BattleLog");
+            using var battleOutcome = ObserveStringGameEvent(gameManager, "BattleOutcome");
+            ClickVisibleActionButton("AttackButton", "Attack");
+            yield return null;
+
+            var enemyHpAfter = (int)enemyType.GetProperty("Hp").GetValue(enemy);
+            var playerDamage = enemyHpBefore - enemyHpAfter;
+            var playerHitMessage = $"You hit P0 Durable Attack Enemy for {playerDamage}.";
+            const string enemyResponse = "P0 Durable Attack Enemy hits you for 1.";
+
+            Assert.That(playerDamage, Is.InRange(4 + attackBonus, 8 + attackBonus),
+                "Attack: enemy HP must decrease within the runtime player-attack bounds.");
+            Assert.That((bool)enemyType.GetProperty("IsAlive").GetValue(enemy), Is.True,
+                "Attack: the durable enemy must survive the single visible action.");
+            Assert.That(GetPrivateField(gameManager, "currentEnemy"), Is.SameAs(enemy),
+                "Attack: the same enemy encounter must remain active.");
+            Assert.That((int)playerType.GetProperty("Hp").GetValue(player), Is.EqualTo(playerHpBefore - 1),
+                "Attack: the player must receive the fixed one-damage enemy response.");
+            Assert.That(battleLog.Messages.Count, Is.EqualTo(2),
+                "Attack: exactly the player hit and enemy-response events must be published.");
+            Assert.That(battleLog.Messages[0], Is.EqualTo(playerHitMessage),
+                "Attack: player-hit feedback must precede the enemy response.");
+            Assert.That(battleLog.Messages[1], Is.EqualTo(enemyResponse),
+                "Attack: the fixed enemy response must follow player-hit feedback.");
+            Assert.That(battleOutcome.Messages, Is.Empty,
+                "Attack: a nonlethal action must not publish a terminal outcome.");
+            Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Battle"),
+                "Attack: the encounter must remain in Battle.");
+            Assert.That(GetPrivateField(gameManager, "battlePhase").ToString(), Is.EqualTo("PlayerAction"),
+                "Attack: control must return after the enemy response.");
+            Assert.That(File.Exists(fixtureSavePath), Is.False,
+                "Attack: a nonterminal action must not write a save.");
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_FleeButtonFailureKeepsEncounterAndReturnsControl()
+        {
+            yield return EnterBattle();
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var player = GetPrivateField(gameManager, "player");
+            var playerType = player.GetType();
+            var playerHpBefore = (int)playerType.GetProperty("Hp").GetValue(player);
+            var enemy = InstallHarmlessDurableEnemy(gameManager, "P0 Failed Flee Enemy");
+
+            Assert.That(File.Exists(fixtureSavePath), Is.False,
+                "Failed Flee setup: no save may exist before the visible action.");
+
+            using var randomState = PreserveRandomState();
+            var failingSeed = FindFirstFailingFleeSeed(gameManager);
+            using var battleLog = ObserveStringGameEvent(gameManager, "BattleLog");
+            using var battleOutcome = ObserveStringGameEvent(gameManager, "BattleOutcome");
+            UnityEngine.Random.InitState(failingSeed);
+            ClickVisibleActionButton("FleeButton", "Flee");
+            yield return null;
+
+            const string failedFleeMessage = "Escape failed.";
+            const string enemyResponse = "P0 Failed Flee Enemy hits you for 1.";
+            Assert.That(battleLog.Messages.Count, Is.EqualTo(2),
+                "Failed Flee: exactly the failure and enemy-response events must be published.");
+            Assert.That(battleLog.Messages[0], Is.EqualTo(failedFleeMessage),
+                "Failed Flee: failure feedback must precede the enemy response.");
+            Assert.That(battleLog.Messages[1], Is.EqualTo(enemyResponse),
+                "Failed Flee: the fixed enemy response must follow failure feedback.");
+            Assert.That(battleLog.Messages, Does.Not.Contain("Escape successful."),
+                "Failed Flee: no successful-escape feedback may be published.");
+            Assert.That(battleOutcome.Messages, Is.Empty,
+                "Failed Flee: no terminal escape outcome may be published.");
+            Assert.That(GetPrivateField(gameManager, "currentEnemy"), Is.SameAs(enemy),
+                "Failed Flee: the same enemy encounter must remain active.");
+            Assert.That((int)playerType.GetProperty("Hp").GetValue(player), Is.EqualTo(playerHpBefore - 1),
+                "Failed Flee: the player must receive the fixed one-damage enemy response.");
+            Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Battle"),
+                "Failed Flee: the encounter must remain in Battle.");
+            Assert.That(GetPrivateField(gameManager, "battlePhase").ToString(), Is.EqualTo("PlayerAction"),
+                "Failed Flee: control must return after the enemy response.");
+            Assert.That(File.Exists(fixtureSavePath), Is.False,
+                "Failed Flee: a nonterminal action must not write a save.");
         }
 
         [UnityTest]
@@ -1028,6 +1505,15 @@ namespace ToilRelic.PlayModeTests
 
         private void CleanupSaveFixtureState()
         {
+            foreach (var fixtureObject in fixtureObjects)
+            {
+                if (fixtureObject != null)
+                {
+                    UnityEngine.Object.Destroy(fixtureObject);
+                }
+            }
+            fixtureObjects.Clear();
+
             if (fixtureOverrideInstalled)
             {
                 SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", previousSavePathOverride);
@@ -1051,6 +1537,104 @@ namespace ToilRelic.PlayModeTests
             var raiseMethod = gameEventsType.GetMethod("RaiseSaveStatusChanged");
             Assert.That(raiseMethod, Is.Not.Null, "GameEvents must publish semantic save feedback.");
             raiseMethod.Invoke(null, new[] { Enum.Parse(saveFeedbackType, status) });
+        }
+
+        private static Button RequireVisibleActionButton(string buttonName, string expectedMethodName)
+        {
+            var button = RequireRectTransform(buttonName).GetComponent<Button>();
+            Assert.That(button, Is.Not.Null, $"Visible action button is missing: {buttonName}.");
+            Assert.That(button.gameObject.activeInHierarchy, Is.True, $"{buttonName} must be active before pointer dispatch.");
+            Assert.That(button.interactable, Is.True, $"{buttonName} must be interactable before pointer dispatch.");
+            Assert.That(button.onClick.GetPersistentEventCount(), Is.EqualTo(1),
+                $"{buttonName} must retain exactly one persistent action.");
+
+            var target = button.onClick.GetPersistentTarget(0);
+            Assert.That(target, Is.Not.Null, $"{buttonName} must retain a persistent GameActionBridge target.");
+            Assert.That(target.GetType().FullName, Is.EqualTo(GameActionBridgeTypeName),
+                $"{buttonName} must target {GameActionBridgeTypeName}.");
+            Assert.That(button.onClick.GetPersistentMethodName(0), Is.EqualTo(expectedMethodName),
+                $"{buttonName} must remain bound to {expectedMethodName}.");
+            return button;
+        }
+
+        private static void ClickVisibleActionButton(string buttonName, string expectedMethodName)
+        {
+            var button = RequireVisibleActionButton(buttonName, expectedMethodName);
+            var eventSystem = EventSystem.current;
+            Assert.That(eventSystem, Is.Not.Null, $"{buttonName} requires an active EventSystem for pointer dispatch.");
+            Assert.That(eventSystem.gameObject.activeInHierarchy, Is.True,
+                $"{buttonName} requires the scene EventSystem to be active.");
+
+            var eventData = new PointerEventData(eventSystem)
+            {
+                button = PointerEventData.InputButton.Left
+            };
+            var handled = ExecuteEvents.Execute(button.gameObject, eventData, ExecuteEvents.pointerClickHandler);
+            Assert.That(handled, Is.True, $"{buttonName} did not handle the pointer-click event.");
+        }
+
+        private static ReflectedStringEventRecorder ObserveStringGameEvent(Component gameManager, string eventName)
+        {
+            var gameEventsType = gameManager.GetType().Assembly.GetType(GameEventsTypeName);
+            Assert.That(gameEventsType, Is.Not.Null, "GameEvents must be available for semantic event observation.");
+            return new ReflectedStringEventRecorder(gameEventsType, eventName);
+        }
+
+        private static void AddItem(object player, string itemName, int amount)
+        {
+            var playerType = player.GetType();
+            var itemType = playerType.Assembly.GetType("ToilRelic.Unity.Core.ItemType");
+            var add = playerType.GetMethod("Add");
+            Assert.That(itemType, Is.Not.Null, "ItemType must be available for inventory setup.");
+            Assert.That(add, Is.Not.Null, "PlayerState.Add must be available for inventory setup.");
+            add.Invoke(player, new object[] { Enum.Parse(itemType, itemName), amount });
+        }
+
+        private static int GetItemAmount(object player, string itemName)
+        {
+            var playerType = player.GetType();
+            var itemType = playerType.Assembly.GetType("ToilRelic.Unity.Core.ItemType");
+            var getAmount = playerType.GetMethod("GetAmount");
+            Assert.That(itemType, Is.Not.Null, "ItemType must be available for inventory assertions.");
+            Assert.That(getAmount, Is.Not.Null, "PlayerState.GetAmount must be available for inventory assertions.");
+            return (int)getAmount.Invoke(player, new[] { Enum.Parse(itemType, itemName) });
+        }
+
+        private static RandomStateScope PreserveRandomState()
+        {
+            return new RandomStateScope();
+        }
+
+        private static int FindFirstFailingFleeSeed(Component gameManager, int maximumSeedExclusive = 10000)
+        {
+            var combatSystemType = gameManager.GetType().Assembly.GetType(CombatSystemTypeName);
+            Assert.That(combatSystemType, Is.Not.Null, "CombatSystem must be available for deterministic flee preparation.");
+            var tryFlee = combatSystemType.GetMethod("TryFlee", BindingFlags.Instance | BindingFlags.Public);
+            Assert.That(tryFlee, Is.Not.Null, "CombatSystem.TryFlee must be available for deterministic flee preparation.");
+            var combatSystem = Activator.CreateInstance(combatSystemType);
+            using var randomState = PreserveRandomState();
+
+            for (var seed = 0; seed < maximumSeedExclusive; seed++)
+            {
+                UnityEngine.Random.InitState(seed);
+                if (!(bool)tryFlee.Invoke(combatSystem, null))
+                {
+                    return seed;
+                }
+            }
+
+            Assert.Fail($"No failing first flee roll was found below seed {maximumSeedExclusive}.");
+            return 0;
+        }
+
+        private object InstallHarmlessDurableEnemy(Component gameManager, string displayName)
+        {
+            var enemy = CreateEnemyRuntime(displayName, maxHp: 100, attackMin: 1, attackMax: 1, expReward: 1);
+            SetPrivateField(gameManager, "currentEnemy", enemy);
+            var publishEnemy = gameManager.GetType().GetMethod("PublishEnemy", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(publishEnemy, Is.Not.Null, "GameManager.PublishEnemy must exist for deterministic enemy setup.");
+            publishEnemy.Invoke(gameManager, null);
+            return enemy;
         }
 
         private static IEnumerator CaptureStableScreenshot(string evidenceDirectory, string fileName, int width, int height)
@@ -1115,13 +1699,24 @@ namespace ToilRelic.PlayModeTests
             Assert.That(new FileInfo(path).Length, Is.GreaterThan(0), $"Screenshot must not be empty: {path}");
         }
 
-        private static object CreateEnemyRuntime(int maxHp, int attackMin, int attackMax, int expReward)
+        private object CreateEnemyRuntime(int maxHp, int attackMin, int attackMax, int expReward)
+        {
+            return CreateEnemyRuntime("P0 Lethal Enemy", maxHp, attackMin, attackMax, expReward);
+        }
+
+        private object CreateEnemyRuntime(
+            string displayName,
+            int maxHp,
+            int attackMin,
+            int attackMax,
+            int expReward)
         {
             var assembly = RequireComponent(GameManagerTypeName).GetType().Assembly;
             var enemyDataType = assembly.GetType("ToilRelic.Unity.Data.EnemyData");
             var enemyRuntimeType = assembly.GetType("ToilRelic.Unity.Systems.EnemyRuntime");
             var enemyData = ScriptableObject.CreateInstance(enemyDataType);
-            enemyDataType.GetField("displayName").SetValue(enemyData, "P0 Lethal Enemy");
+            fixtureObjects.Add(enemyData);
+            enemyDataType.GetField("displayName").SetValue(enemyData, displayName);
             enemyDataType.GetField("maxHp").SetValue(enemyData, maxHp);
             enemyDataType.GetField("attackMin").SetValue(enemyData, attackMin);
             enemyDataType.GetField("attackMax").SetValue(enemyData, attackMax);

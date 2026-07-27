@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="7" result="Passed" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-07-24 02:20:33Z" end-time="2026-07-24 02:20:34Z" duration="1.7838542">
+  <test-suite type="TestSuite" id="1051" name="_unity-bootstrap" fullname="_unity-bootstrap" runstate="Runnable" testcasecount="43" result="Passed" start-time="2026-07-24 02:20:33Z" end-time="2026-07-24 02:20:34Z" duration="1.783854" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1045" name="ToilRelic.PlayModeTests.dll" fullname="C:/Toil-Relic-main/unity/Library/ScriptAssemblies/ToilRelic.PlayModeTests.dll" runstate="Runnable" testcasecount="43" result="Passed" start-time="2026-07-24 02:20:33Z" end-time="2026-07-24 02:20:34Z" duration="1.774342" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="28924" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1046" name="ToilRelic" fullname="ToilRelic" runstate="Runnable" testcasecount="43" result="Passed" start-time="2026-07-24 02:20:33Z" end-time="2026-07-24 02:20:34Z" duration="1.773060" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1047" name="PlayModeTests" fullname="ToilRelic.PlayModeTests" runstate="Runnable" testcasecount="43" result="Passed" start-time="2026-07-24 02:20:33Z" end-time="2026-07-24 02:20:34Z" duration="1.772383" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1001" name="SampleSceneP0PlayModeTests" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" testcasecount="43" result="Passed" start-time="2026-07-24 02:20:33Z" end-time="2026-07-24 02:20:34Z" duration="1.770945" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1025" name="P0_AttackButtonKeepsDurableEnemyAndReturnsControl" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_AttackButtonKeepsDurableEnemyAndReturnsControl" methodname="P0_AttackButtonKeepsDurableEnemyAndReturnsControl" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="770101109" result="Passed" start-time="2026-07-24 02:20:33Z" end-time="2026-07-24 02:20:33Z" duration="0.434596" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="Category" value="PlayModeActionContracts" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1021" name="P0_CraftButtonConsumesExactCostAndPersistsReward" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_CraftButtonConsumesExactCostAndPersistsReward" methodname="P0_CraftButtonConsumesExactCostAndPersistsReward" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="786805935" result="Passed" start-time="2026-07-24 02:20:33Z" end-time="2026-07-24 02:20:33Z" duration="0.217707" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="Category" value="PlayModeActionContracts" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1022" name="P0_CraftButtonInsufficientMaterialsPersistsUnchangedState" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_CraftButtonInsufficientMaterialsPersistsUnchangedState" methodname="P0_CraftButtonInsufficientMaterialsPersistsUnchangedState" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="911330856" result="Passed" start-time="2026-07-24 02:20:33Z" end-time="2026-07-24 02:20:33Z" duration="0.193407" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="Category" value="PlayModeActionContracts" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1026" name="P0_FleeButtonFailureKeepsEncounterAndReturnsControl" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_FleeButtonFailureKeepsEncounterAndReturnsControl" methodname="P0_FleeButtonFailureKeepsEncounterAndReturnsControl" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="2520792" result="Passed" start-time="2026-07-24 02:20:33Z" end-time="2026-07-24 02:20:34Z" duration="0.176305" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="Category" value="PlayModeActionContracts" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1020" name="P0_NewGameButtonReplacesValidFixtureSave" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_NewGameButtonReplacesValidFixtureSave" methodname="P0_NewGameButtonReplacesValidFixtureSave" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1143866658" result="Passed" start-time="2026-07-24 02:20:34Z" end-time="2026-07-24 02:20:34Z" duration="0.357088" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="Category" value="PlayModeActionContracts" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1024" name="P0_PotionButtonAtFullHpPreservesPotionAndControl" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_PotionButtonAtFullHpPreservesPotionAndControl" methodname="P0_PotionButtonAtFullHpPreservesPotionAndControl" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="825107233" result="Passed" start-time="2026-07-24 02:20:34Z" end-time="2026-07-24 02:20:34Z" duration="0.190791" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="Category" value="PlayModeActionContracts" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1023" name="P0_PotionButtonConsumesPotionAndCompletesEnemyResponse" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_PotionButtonConsumesPotionAndCompletesEnemyResponse" methodname="P0_PotionButtonConsumesPotionAndCompletesEnemyResponse" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="2033714392" result="Passed" start-time="2026-07-24 02:20:34Z" end-time="2026-07-24 02:20:34Z" duration="0.185170" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="Category" value="PlayModeActionContracts" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Saving results to: C:/Users/User/AppData/LocalLow/DefaultCompany/_unity-bootstrap\TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
