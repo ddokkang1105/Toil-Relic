@@ -18,6 +18,18 @@ Battle Phase is separate from Game State so presentation can wait for animation,
 
 The classification of the startup save-load attempt that governs whether progress can continue normally or must be replaced through New Game.
 
+### Equipment Comparison Preview
+
+A read-only view of a candidate equipment item against an explicit destination slot, including item-stat deltas and the resulting aggregate combat stats.
+
+The preview does not change equipped state or saved progress until the player confirms an equip action.
+
+## Development workflow
+
+### Personal Flow
+
+The repository's development task lifecycle that preserves decisions, execution status, review findings, verification evidence, and follow-ups from definition through closure.
+
 ## Testing vocabulary
 
 ### Action Contract

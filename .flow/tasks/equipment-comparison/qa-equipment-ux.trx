@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="53726554-dcff-4201-979c-e82d9a8685bb" name="User@DOYOUNG 2026-08-04 15:41:15" runUser="DOYOUNG\User" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-08-04T15:41:15.7735374+09:00" queuing="2026-08-04T15:41:15.7735381+09:00" start="2026-08-04T15:41:11.1636682+09:00" finish="2026-08-04T15:41:15.7867670+09:00" />
+  <TestSettings name="default" id="1cfd3528-c3b1-4a69-a5bf-4b6a9a81e9a2">
+    <Deployment runDeploymentRoot="User_DOYOUNG_2026-08-04_15_41_15" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="6227383d-481d-4cde-a4f3-45d1d8b8cfb3" testId="aa58b29e-0b8f-db38-32b9-971a83430296" testName="ToilRelic.Tests.GameEquipmentUxTests.Run_EquipmentSaveFailure_KeepsMutationVisibleAndLeavesWarningAsFinalOutcome" computerName="DOYOUNG" duration="00:00:00.0316629" startTime="2026-08-04T15:41:15.6298685+09:00" endTime="2026-08-04T15:41:15.6298690+09:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6227383d-481d-4cde-a4f3-45d1d8b8cfb3" />
+    <UnitTestResult executionId="d5420246-38ab-4fa6-8940-2deb0d3c9538" testId="bdb8dc34-7097-c142-cc67-7b62857c1c7f" testName="ToilRelic.Tests.GameEquipmentUxTests.Run_OptionalEquipment_EquipsAndUnequipsWithSuccessOnlySaves" computerName="DOYOUNG" duration="00:00:00.0402190" startTime="2026-08-04T15:41:15.5980503+09:00" endTime="2026-08-04T15:41:15.5980507+09:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d5420246-38ab-4fa6-8940-2deb0d3c9538" />
+    <UnitTestResult executionId="6decd5b2-21e1-4653-a3e6-b5c639970ad7" testId="cd8bc023-3c4b-09fd-daae-ae26fed0a0f0" testName="ToilRelic.Tests.GameEquipmentUxTests.Run_CandidateRemovedAfterPreview_IsRejectedWithoutSaving" computerName="DOYOUNG" duration="00:00:00.0232060" startTime="2026-08-04T15:41:15.5219569+09:00" endTime="2026-08-04T15:41:15.5219575+09:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6decd5b2-21e1-4653-a3e6-b5c639970ad7" />
+    <UnitTestResult executionId="e9fe8961-d4d9-488e-a1d4-30ec38f378bd" testId="dbcad6f8-39e0-efff-68ab-595c87660380" testName="ToilRelic.Tests.GameEquipmentUxTests.Run_PreviewRewardThenCancel_LeavesSaveBytesUnchangedAndUnwindsStepwise" computerName="DOYOUNG" duration="00:00:00.0143029" startTime="2026-08-04T15:41:15.5363758+09:00" endTime="2026-08-04T15:41:15.5363761+09:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e9fe8961-d4d9-488e-a1d4-30ec38f378bd" />
+    <UnitTestResult executionId="d6aa9e82-6a12-4506-a771-1201974b15c8" testId="7b500b68-953e-019e-fa23-ea3571631ffc" testName="ToilRelic.Tests.GameEquipmentUxTests.Run_PreviewStarterFromReward_ShowsNegativeAttackDeltaWithoutSaving" computerName="DOYOUNG" duration="00:00:01.0994427" startTime="2026-08-04T15:41:15.4992583+09:00" endTime="2026-08-04T15:41:15.4992867+09:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d6aa9e82-6a12-4506-a771-1201974b15c8" />
+    <UnitTestResult executionId="4a6917b7-b580-4704-b178-56168f98ef87" testId="34075324-728b-eef4-72a4-2093adb9bba2" testName="ToilRelic.Tests.GameEquipmentUxTests.Run_ConfirmReward_RevalidatesSavesAndReloadsReplacement" computerName="DOYOUNG" duration="00:00:00.0158600" startTime="2026-08-04T15:41:15.6571772+09:00" endTime="2026-08-04T15:41:15.6571777+09:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4a6917b7-b580-4704-b178-56168f98ef87" />
+    <UnitTestResult executionId="fbb2ba10-a4a3-449a-86e1-d0ad6c9b50d1" testId="a30f7259-c117-2f8f-197d-c1eec8a07450" testName="ToilRelic.Tests.GameEquipmentUxTests.Run_RingEquippedInRingOne_IsAbsentFromRingTwoCandidates" computerName="DOYOUNG" duration="00:00:00.0111473" startTime="2026-08-04T15:41:15.6412004+09:00" endTime="2026-08-04T15:41:15.6412005+09:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fbb2ba10-a4a3-449a-86e1-d0ad6c9b50d1" />
+    <UnitTestResult executionId="fbeb0043-1fa9-4a53-b223-defcac3f32d1" testId="2b1518a9-af8f-c307-7d25-699a675c66c2" testName="ToilRelic.Tests.GameEquipmentUxTests.Run_SameItemAndMandatoryUnequip_DoNotChangeSaveBytes" computerName="DOYOUNG" duration="00:00:00.0211104" startTime="2026-08-04T15:41:15.5576803+09:00" endTime="2026-08-04T15:41:15.5576809+09:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fbeb0043-1fa9-4a53-b223-defcac3f32d1" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="ToilRelic.Tests.GameEquipmentUxTests.Run_SameItemAndMandatoryUnequip_DoNotChangeSaveBytes" storage="c:\users\user\appdata\local\temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\toilrelic.tests\bin\debug\net8.0\toilrelic.tests.dll" id="2b1518a9-af8f-c307-7d25-699a675c66c2">
+      <Execution id="fbeb0043-1fa9-4a53-b223-defcac3f32d1" />
+      <TestMethod codeBase="C:\Users\User\AppData\Local\Temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\ToilRelic.Tests\bin\Debug\net8.0\ToilRelic.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="ToilRelic.Tests.GameEquipmentUxTests" name="Run_SameItemAndMandatoryUnequip_DoNotChangeSaveBytes" />
+    </UnitTest>
+    <UnitTest name="ToilRelic.Tests.GameEquipmentUxTests.Run_CandidateRemovedAfterPreview_IsRejectedWithoutSaving" storage="c:\users\user\appdata\local\temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\toilrelic.tests\bin\debug\net8.0\toilrelic.tests.dll" id="cd8bc023-3c4b-09fd-daae-ae26fed0a0f0">
+      <Execution id="6decd5b2-21e1-4653-a3e6-b5c639970ad7" />
+      <TestMethod codeBase="C:\Users\User\AppData\Local\Temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\ToilRelic.Tests\bin\Debug\net8.0\ToilRelic.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="ToilRelic.Tests.GameEquipmentUxTests" name="Run_CandidateRemovedAfterPreview_IsRejectedWithoutSaving" />
+    </UnitTest>
+    <UnitTest name="ToilRelic.Tests.GameEquipmentUxTests.Run_PreviewRewardThenCancel_LeavesSaveBytesUnchangedAndUnwindsStepwise" storage="c:\users\user\appdata\local\temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\toilrelic.tests\bin\debug\net8.0\toilrelic.tests.dll" id="dbcad6f8-39e0-efff-68ab-595c87660380">
+      <Execution id="e9fe8961-d4d9-488e-a1d4-30ec38f378bd" />
+      <TestMethod codeBase="C:\Users\User\AppData\Local\Temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\ToilRelic.Tests\bin\Debug\net8.0\ToilRelic.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="ToilRelic.Tests.GameEquipmentUxTests" name="Run_PreviewRewardThenCancel_LeavesSaveBytesUnchangedAndUnwindsStepwise" />
+    </UnitTest>
+    <UnitTest name="ToilRelic.Tests.GameEquipmentUxTests.Run_PreviewStarterFromReward_ShowsNegativeAttackDeltaWithoutSaving" storage="c:\users\user\appdata\local\temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\toilrelic.tests\bin\debug\net8.0\toilrelic.tests.dll" id="7b500b68-953e-019e-fa23-ea3571631ffc">
+      <Execution id="d6aa9e82-6a12-4506-a771-1201974b15c8" />
+      <TestMethod codeBase="C:\Users\User\AppData\Local\Temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\ToilRelic.Tests\bin\Debug\net8.0\ToilRelic.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="ToilRelic.Tests.GameEquipmentUxTests" name="Run_PreviewStarterFromReward_ShowsNegativeAttackDeltaWithoutSaving" />
+    </UnitTest>
+    <UnitTest name="ToilRelic.Tests.GameEquipmentUxTests.Run_RingEquippedInRingOne_IsAbsentFromRingTwoCandidates" storage="c:\users\user\appdata\local\temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\toilrelic.tests\bin\debug\net8.0\toilrelic.tests.dll" id="a30f7259-c117-2f8f-197d-c1eec8a07450">
+      <Execution id="fbb2ba10-a4a3-449a-86e1-d0ad6c9b50d1" />
+      <TestMethod codeBase="C:\Users\User\AppData\Local\Temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\ToilRelic.Tests\bin\Debug\net8.0\ToilRelic.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="ToilRelic.Tests.GameEquipmentUxTests" name="Run_RingEquippedInRingOne_IsAbsentFromRingTwoCandidates" />
+    </UnitTest>
+    <UnitTest name="ToilRelic.Tests.GameEquipmentUxTests.Run_EquipmentSaveFailure_KeepsMutationVisibleAndLeavesWarningAsFinalOutcome" storage="c:\users\user\appdata\local\temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\toilrelic.tests\bin\debug\net8.0\toilrelic.tests.dll" id="aa58b29e-0b8f-db38-32b9-971a83430296">
+      <Execution id="6227383d-481d-4cde-a4f3-45d1d8b8cfb3" />
+      <TestMethod codeBase="C:\Users\User\AppData\Local\Temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\ToilRelic.Tests\bin\Debug\net8.0\ToilRelic.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="ToilRelic.Tests.GameEquipmentUxTests" name="Run_EquipmentSaveFailure_KeepsMutationVisibleAndLeavesWarningAsFinalOutcome" />
+    </UnitTest>
+    <UnitTest name="ToilRelic.Tests.GameEquipmentUxTests.Run_OptionalEquipment_EquipsAndUnequipsWithSuccessOnlySaves" storage="c:\users\user\appdata\local\temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\toilrelic.tests\bin\debug\net8.0\toilrelic.tests.dll" id="bdb8dc34-7097-c142-cc67-7b62857c1c7f">
+      <Execution id="d5420246-38ab-4fa6-8940-2deb0d3c9538" />
+      <TestMethod codeBase="C:\Users\User\AppData\Local\Temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\ToilRelic.Tests\bin\Debug\net8.0\ToilRelic.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="ToilRelic.Tests.GameEquipmentUxTests" name="Run_OptionalEquipment_EquipsAndUnequipsWithSuccessOnlySaves" />
+    </UnitTest>
+    <UnitTest name="ToilRelic.Tests.GameEquipmentUxTests.Run_ConfirmReward_RevalidatesSavesAndReloadsReplacement" storage="c:\users\user\appdata\local\temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\toilrelic.tests\bin\debug\net8.0\toilrelic.tests.dll" id="34075324-728b-eef4-72a4-2093adb9bba2">
+      <Execution id="4a6917b7-b580-4704-b178-56168f98ef87" />
+      <TestMethod codeBase="C:\Users\User\AppData\Local\Temp\equipment-comparison-qa-4d808af120ed4b76891ee56fee8ddab5\tests\ToilRelic.Tests\bin\Debug\net8.0\ToilRelic.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="ToilRelic.Tests.GameEquipmentUxTests" name="Run_ConfirmReward_RevalidatesSavesAndReloadsReplacement" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="aa58b29e-0b8f-db38-32b9-971a83430296" executionId="6227383d-481d-4cde-a4f3-45d1d8b8cfb3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bdb8dc34-7097-c142-cc67-7b62857c1c7f" executionId="d5420246-38ab-4fa6-8940-2deb0d3c9538" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cd8bc023-3c4b-09fd-daae-ae26fed0a0f0" executionId="6decd5b2-21e1-4653-a3e6-b5c639970ad7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="dbcad6f8-39e0-efff-68ab-595c87660380" executionId="e9fe8961-d4d9-488e-a1d4-30ec38f378bd" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7b500b68-953e-019e-fa23-ea3571631ffc" executionId="d6aa9e82-6a12-4506-a771-1201974b15c8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="34075324-728b-eef4-72a4-2093adb9bba2" executionId="4a6917b7-b580-4704-b178-56168f98ef87" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a30f7259-c117-2f8f-197d-c1eec8a07450" executionId="fbb2ba10-a4a3-449a-86e1-d0ad6c9b50d1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2b1518a9-af8f-c307-7d25-699a675c66c2" executionId="fbeb0043-1fa9-4a53-b223-defcac3f32d1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="목록에 없는 결과" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="로드된 모든 결과" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="8" executed="8" passed="8" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.5.3.1+6b60a9e56a (64-bit .NET 8.0.29)&#xD;
+[xUnit.net 00:00:01.24]   Discovering: ToilRelic.Tests&#xD;
+[xUnit.net 00:00:01.32]   Discovered:  ToilRelic.Tests&#xD;
+[xUnit.net 00:00:01.33]   Starting:    ToilRelic.Tests&#xD;
+[xUnit.net 00:00:02.66]   Finished:    ToilRelic.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

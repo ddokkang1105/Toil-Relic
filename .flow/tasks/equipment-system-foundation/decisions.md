@@ -36,6 +36,12 @@
 | CE brainstorm | complete (fallback) | CE 명령 미노출 환경에서 저장소 기반으로 수행. Weapon 1슬롯, AttackBonus, 정적 정의 ID, 기본 장비, 첫 승리 후보 무기를 확정했다. |
 | gstack engineering review | complete (fallback) | gstack 명령 미노출 환경에서 저장소 기반으로 수행. 수량형 인벤토리 분리, 코드 기반 Catalog, 저장 정규화, 공격 보너스 전달 경계를 확정했다. |
 
+## Superseding design note — 2026-07-28
+
+- 후속 `장비 슬롯 및 몬스터 데이터 재정립` 태스크가 장비 모델을 12개 물리 슬롯으로 확장했다.
+- 그 태스크의 승인된 규칙에 따라 `PrimaryWeapon`은 신규·레거시 플레이어에게 항상 필요하며 해제할 수 없다. 선택 슬롯만 해제할 수 있다.
+- 이 확장은 본 태스크가 세운 안정 ID, 분리된 소유/장착 상태, 저장 정규화, 전투 능력치 집계 계약을 유지한다. 따라서 QA는 현재 저장소의 상위 규칙을 기준으로 수행했다.
+
 ## Engineering review
 
 ### Recommended file boundaries
