@@ -60,6 +60,11 @@ public static class EquipmentCatalog
         [RewardWeaponId] = new(RewardWeaponId, "Reward Weapon", EquipmentCategory.PrimaryWeapon, AttackBonus: 2)
     };
 
+    public static IReadOnlyList<EquipmentDefinition> All => Definitions.Values
+        .OrderBy(definition => definition.DisplayName, StringComparer.Ordinal)
+        .ThenBy(definition => definition.Id, StringComparer.Ordinal)
+        .ToArray();
+
     public static bool TryGet(string? id, out EquipmentDefinition definition)
     {
         if (string.IsNullOrWhiteSpace(id))

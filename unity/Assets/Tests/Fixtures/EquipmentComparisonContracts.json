@@ -1,0 +1,252 @@
+{
+  "definitions": [
+    {
+      "id": "current-ring",
+      "displayName": "Current Ring",
+      "category": "Ring",
+      "attackBonus": 1,
+      "defenseBonus": 2,
+      "damageReductionBonus": 3,
+      "maxHpBonus": 4
+    },
+    {
+      "id": "all-stat-ring",
+      "displayName": "All-Stat Ring With A Deliberately Long Fixture Name",
+      "category": "Ring",
+      "attackBonus": 5,
+      "defenseBonus": 7,
+      "damageReductionBonus": 11,
+      "maxHpBonus": 13
+    },
+    {
+      "id": "long-name-armor",
+      "displayName": "Armor With An Exceptionally Long Test-Only Display Name",
+      "category": "Armor",
+      "attackBonus": 0,
+      "defenseBonus": 9,
+      "damageReductionBonus": 0,
+      "maxHpBonus": 6
+    }
+  ],
+  "comparisonCases": [
+    {
+      "name": "valid primary replacement",
+      "slot": "PrimaryWeapon",
+      "candidateId": "reward-weapon",
+      "ownedIds": ["reward-weapon"],
+      "equipped": [],
+      "expectedReason": "None",
+      "expectedIsValid": true,
+      "expectedCanCommit": true,
+      "expectedCurrentId": "starter-weapon",
+      "expectedCandidateId": "reward-weapon",
+      "expectedDeltas": [
+        { "stat": "Attack", "currentValue": 0, "candidateValue": 2, "delta": 2 }
+      ],
+      "expectedProjectedAttackBonus": 2,
+      "expectedProjectedDefenseBonus": 0,
+      "expectedProjectedDamageReductionBonus": 0,
+      "expectedProjectedEquipmentMaxHpBonus": 0,
+      "expectedProjectedMaxHpDelta": 0
+    },
+    {
+      "name": "primary weapon downgrade shows a negative delta",
+      "slot": "PrimaryWeapon",
+      "candidateId": "starter-weapon",
+      "ownedIds": ["reward-weapon"],
+      "equipped": [
+        { "slot": "PrimaryWeapon", "equipmentId": "reward-weapon" }
+      ],
+      "expectedReason": "None",
+      "expectedIsValid": true,
+      "expectedCanCommit": true,
+      "expectedCurrentId": "reward-weapon",
+      "expectedCandidateId": "starter-weapon",
+      "expectedDeltas": [
+        { "stat": "Attack", "currentValue": 2, "candidateValue": 0, "delta": -2 }
+      ],
+      "expectedProjectedAttackBonus": 0,
+      "expectedProjectedDefenseBonus": 0,
+      "expectedProjectedDamageReductionBonus": 0,
+      "expectedProjectedEquipmentMaxHpBonus": 0,
+      "expectedProjectedMaxHpDelta": 0
+    },
+    {
+      "name": "empty optional slot",
+      "slot": "Ring1",
+      "candidateId": "current-ring",
+      "ownedIds": ["current-ring"],
+      "equipped": [],
+      "expectedReason": "None",
+      "expectedIsValid": true,
+      "expectedCanCommit": true,
+      "expectedCurrentId": null,
+      "expectedCandidateId": "current-ring",
+      "expectedDeltas": [
+        { "stat": "Attack", "currentValue": 0, "candidateValue": 1, "delta": 1 },
+        { "stat": "Defense", "currentValue": 0, "candidateValue": 2, "delta": 2 },
+        { "stat": "DamageReduction", "currentValue": 0, "candidateValue": 3, "delta": 3 },
+        { "stat": "MaxHp", "currentValue": 0, "candidateValue": 4, "delta": 4 }
+      ],
+      "expectedProjectedAttackBonus": 1,
+      "expectedProjectedDefenseBonus": 2,
+      "expectedProjectedDamageReductionBonus": 3,
+      "expectedProjectedEquipmentMaxHpBonus": 4,
+      "expectedProjectedMaxHpDelta": 4
+    },
+    {
+      "name": "same zero-stat item",
+      "slot": "PrimaryWeapon",
+      "candidateId": "starter-weapon",
+      "ownedIds": [],
+      "equipped": [],
+      "expectedReason": "SameItem",
+      "expectedIsValid": true,
+      "expectedCanCommit": false,
+      "expectedCurrentId": "starter-weapon",
+      "expectedCandidateId": "starter-weapon",
+      "expectedDeltas": [],
+      "expectedProjectedAttackBonus": 0,
+      "expectedProjectedDefenseBonus": 0,
+      "expectedProjectedDamageReductionBonus": 0,
+      "expectedProjectedEquipmentMaxHpBonus": 0,
+      "expectedProjectedMaxHpDelta": 0
+    },
+    {
+      "name": "unknown candidate",
+      "slot": "PrimaryWeapon",
+      "candidateId": "missing-item",
+      "ownedIds": [],
+      "equipped": [],
+      "expectedReason": "UnknownCandidate",
+      "expectedIsValid": false,
+      "expectedCanCommit": false,
+      "expectedCurrentId": "starter-weapon",
+      "expectedCandidateId": null,
+      "expectedDeltas": [],
+      "expectedProjectedAttackBonus": 0,
+      "expectedProjectedDefenseBonus": 0,
+      "expectedProjectedDamageReductionBonus": 0,
+      "expectedProjectedEquipmentMaxHpBonus": 0,
+      "expectedProjectedMaxHpDelta": 0
+    },
+    {
+      "name": "unowned candidate",
+      "slot": "PrimaryWeapon",
+      "candidateId": "reward-weapon",
+      "ownedIds": [],
+      "equipped": [],
+      "expectedReason": "CandidateNotOwned",
+      "expectedIsValid": false,
+      "expectedCanCommit": false,
+      "expectedCurrentId": "starter-weapon",
+      "expectedCandidateId": "reward-weapon",
+      "expectedDeltas": [],
+      "expectedProjectedAttackBonus": 0,
+      "expectedProjectedDefenseBonus": 0,
+      "expectedProjectedDamageReductionBonus": 0,
+      "expectedProjectedEquipmentMaxHpBonus": 0,
+      "expectedProjectedMaxHpDelta": 0
+    },
+    {
+      "name": "incompatible candidate",
+      "slot": "Hat",
+      "candidateId": "current-ring",
+      "ownedIds": ["current-ring"],
+      "equipped": [],
+      "expectedReason": "IncompatibleSlot",
+      "expectedIsValid": false,
+      "expectedCanCommit": false,
+      "expectedCurrentId": null,
+      "expectedCandidateId": "current-ring",
+      "expectedDeltas": [],
+      "expectedProjectedAttackBonus": 0,
+      "expectedProjectedDefenseBonus": 0,
+      "expectedProjectedDamageReductionBonus": 0,
+      "expectedProjectedEquipmentMaxHpBonus": 0,
+      "expectedProjectedMaxHpDelta": 0
+    },
+    {
+      "name": "candidate already used elsewhere",
+      "slot": "Ring2",
+      "candidateId": "current-ring",
+      "ownedIds": ["current-ring"],
+      "equipped": [
+        { "slot": "Ring1", "equipmentId": "current-ring" }
+      ],
+      "expectedReason": "CandidateEquippedElsewhere",
+      "expectedIsValid": false,
+      "expectedCanCommit": false,
+      "expectedCurrentId": null,
+      "expectedCandidateId": "current-ring",
+      "expectedDeltas": [],
+      "expectedProjectedAttackBonus": 1,
+      "expectedProjectedDefenseBonus": 2,
+      "expectedProjectedDamageReductionBonus": 3,
+      "expectedProjectedEquipmentMaxHpBonus": 4,
+      "expectedProjectedMaxHpDelta": 0
+    },
+    {
+      "name": "all-stat runtime-relative max hp replacement",
+      "slot": "Ring1",
+      "candidateId": "all-stat-ring",
+      "ownedIds": ["current-ring", "all-stat-ring"],
+      "equipped": [
+        { "slot": "Ring1", "equipmentId": "current-ring" }
+      ],
+      "expectedReason": "None",
+      "expectedIsValid": true,
+      "expectedCanCommit": true,
+      "expectedCurrentId": "current-ring",
+      "expectedCandidateId": "all-stat-ring",
+      "expectedDeltas": [
+        { "stat": "Attack", "currentValue": 1, "candidateValue": 5, "delta": 4 },
+        { "stat": "Defense", "currentValue": 2, "candidateValue": 7, "delta": 5 },
+        { "stat": "DamageReduction", "currentValue": 3, "candidateValue": 11, "delta": 8 },
+        { "stat": "MaxHp", "currentValue": 4, "candidateValue": 13, "delta": 9 }
+      ],
+      "expectedProjectedAttackBonus": 5,
+      "expectedProjectedDefenseBonus": 7,
+      "expectedProjectedDamageReductionBonus": 11,
+      "expectedProjectedEquipmentMaxHpBonus": 13,
+      "expectedProjectedMaxHpDelta": 9
+    }
+  ],
+  "unequipCases": [
+    {
+      "name": "occupied optional slot",
+      "slot": "Ring1",
+      "ownedIds": ["current-ring"],
+      "equipped": [
+        { "slot": "Ring1", "equipmentId": "current-ring" }
+      ],
+      "expectedStatus": "OccupiedOptional",
+      "expectedIsOccupied": true,
+      "expectedIsMandatory": false,
+      "expectedCanCommit": true,
+      "expectedCurrentId": "current-ring"
+    },
+    {
+      "name": "empty optional slot",
+      "slot": "Ring2",
+      "ownedIds": [],
+      "equipped": [],
+      "expectedStatus": "EmptySlot",
+      "expectedIsOccupied": false,
+      "expectedIsMandatory": false,
+      "expectedCanCommit": false,
+      "expectedCurrentId": null
+    },
+    {
+      "name": "mandatory primary weapon",
+      "slot": "PrimaryWeapon",
+      "ownedIds": [],
+      "equipped": [],
+      "expectedStatus": "MandatoryPrimaryWeapon",
+      "expectedIsOccupied": true,
+      "expectedIsMandatory": true,
+      "expectedCanCommit": false,
+      "expectedCurrentId": "starter-weapon"
+    }
+  ]
+}

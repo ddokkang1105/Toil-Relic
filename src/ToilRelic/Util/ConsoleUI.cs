@@ -83,6 +83,57 @@ public static class ConsoleUI
         Console.WriteLine();
     }
 
+    public static void EquipmentSlot(EquipmentSlot slot, EquipmentDefinition? current)
+    {
+        Console.WriteLine($"[{slot}]");
+        Console.WriteLine($"Current: {current?.DisplayName ?? "Empty"}");
+        Console.WriteLine();
+    }
+
+    public static string EquipmentOption(EquipmentDefinition equipment)
+    {
+        var modifiers = new List<string>();
+        AddModifier(modifiers, "Attack", equipment.AttackBonus);
+        AddModifier(modifiers, "Defense", equipment.DefenseBonus);
+        AddModifier(modifiers, "Damage reduction", equipment.DamageReductionBonus);
+        AddModifier(modifiers, "Max HP", equipment.MaxHpBonus);
+        return modifiers.Count == 0
+            ? $"{equipment.DisplayName} (no modifiers)"
+            : $"{equipment.DisplayName} ({string.Join(", ", modifiers)})";
+    }
+
+    public static void EquipmentComparison(EquipmentComparisonResult comparison)
+    {
+        Console.WriteLine("[Equipment comparison]");
+        Console.WriteLine($"Destination: {comparison.DestinationSlot}");
+        Console.WriteLine($"Current: {comparison.Current?.DisplayName ?? "Empty"}");
+        Console.WriteLine($"Candidate: {comparison.Candidate?.DisplayName ?? "Unavailable"}");
+        if (comparison.StatDeltas.Count == 0)
+        {
+            Console.WriteLine("No equipment stat change (±0)");
+        }
+
+        foreach (var stat in comparison.StatDeltas)
+        {
+            Console.WriteLine($"{StatLabel(stat.Stat)}: {stat.CurrentValue} -> {stat.CandidateValue} ({SignedDelta(stat.Delta)})");
+        }
+
+        Console.WriteLine(
+            $"Projected: Attack {SignedBonus(comparison.ProjectedAttackBonus)}, " +
+            $"Defense {SignedBonus(comparison.ProjectedDefenseBonus)}, " +
+            $"Damage reduction {SignedBonus(comparison.ProjectedDamageReductionBonus)}, " +
+            $"Max HP {comparison.ProjectedMaxHp}");
+        Console.WriteLine();
+    }
+
+    public static void UnequipPreview(UnequipEligibilityResult result)
+    {
+        Console.WriteLine("[Unequip preview]");
+        Console.WriteLine($"Destination: {result.DestinationSlot}");
+        Console.WriteLine($"Current: {result.Current?.DisplayName ?? "Empty"}");
+        Console.WriteLine();
+    }
+
     public static void Pause()
     {
         Console.Write("계속하려면 Enter...");
@@ -100,4 +151,30 @@ public static class ConsoleUI
             _ => type.ToString()
         };
     }
+
+    private static void AddModifier(ICollection<string> modifiers, string label, int value)
+    {
+        if (value != 0)
+        {
+            modifiers.Add($"{label} {SignedBonus(value)}");
+        }
+    }
+
+    private static string StatLabel(EquipmentStat stat) => stat switch
+    {
+        EquipmentStat.Attack => "Attack",
+        EquipmentStat.Defense => "Defense",
+        EquipmentStat.DamageReduction => "Damage reduction",
+        EquipmentStat.MaxHp => "Max HP",
+        _ => stat.ToString()
+    };
+
+    private static string SignedDelta(int value) => value switch
+    {
+        > 0 => $"+{value}",
+        < 0 => value.ToString(),
+        _ => "±0"
+    };
+
+    private static string SignedBonus(int value) => value >= 0 ? $"+{value}" : value.ToString();
 }

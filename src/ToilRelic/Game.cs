@@ -149,23 +149,170 @@ public sealed class Game
 
     private void ShowEquipment()
     {
-        ConsoleUI.Equipment(_player);
         var slots = Enum.GetValues<EquipmentSlot>();
-        var slotOptions = new Dictionary<int, string> { { 0, "Back" } };
-        for (var index = 0; index < slots.Length; index++) slotOptions[index + 1] = slots[index].ToString();
-        ConsoleUI.Menu("Equipment slot", slotOptions);
-        var slotChoice = ConsoleUI.ReadInt("Select", 0, slots.Length);
-        if (slotChoice == 0) return;
-        var slot = slots[slotChoice - 1];
-        var candidates = _player.OwnedEquipmentIds.Where(id => EquipmentCatalog.TryGet(id, out var item) && item.CanEquipTo(slot)).ToList();
-        var itemOptions = new Dictionary<int, string> { { 0, slot == EquipmentSlot.PrimaryWeapon ? "Back" : "Unequip" } };
-        for (var index = 0; index < candidates.Count; index++) { EquipmentCatalog.TryGet(candidates[index], out var item); itemOptions[index + 1] = item.DisplayName; }
-        ConsoleUI.Menu($"{slot} equipment", itemOptions);
-        var itemChoice = ConsoleUI.ReadInt("Select", 0, candidates.Count);
-        var result = itemChoice == 0 ? slot == EquipmentSlot.PrimaryWeapon ? "Primary weapon cannot be unequipped." : _player.Unequip(slot) ? "Equipment removed." : "No equipment to remove." : _player.Equip(slot, candidates[itemChoice - 1]) ? "Equipment equipped." : "Equipment could not be equipped.";
-        ConsoleUI.Section("Equipment", result);
-        SaveProgress(); ConsoleUI.Pause();
+        while (true)
+        {
+            ConsoleUI.Equipment(_player);
+            var slotOptions = new Dictionary<int, string> { { 0, "Back" } };
+            for (var index = 0; index < slots.Length; index++)
+            {
+                slotOptions[index + 1] = slots[index].ToString();
+            }
+
+            ConsoleUI.Menu("Equipment slot", slotOptions);
+            var slotChoice = ConsoleUI.ReadInt("Select", 0, slots.Length);
+            if (slotChoice == 0)
+            {
+                return;
+            }
+
+            ShowEquipmentSlot(slots[slotChoice - 1]);
+        }
     }
+
+    private void ShowEquipmentSlot(EquipmentSlot slot)
+    {
+        while (true)
+        {
+            var candidates = GetEquipmentCandidates(slot);
+            var unequip = EquipmentComparisonEvaluator.EvaluateUnequip(_player, slot);
+            var noCandidates = candidates.Count == 0;
+            ConsoleUI.EquipmentSlot(slot, unequip.Current);
+            if (noCandidates)
+            {
+                ConsoleUI.Section("Equipment", "No compatible owned equipment is available for this slot.");
+            }
+
+            var itemOptions = new Dictionary<int, string> { { 0, "Back" } };
+            for (var index = 0; index < candidates.Count; index++)
+            {
+                itemOptions[index + 1] = ConsoleUI.EquipmentOption(candidates[index]);
+            }
+
+            var unavailableEquipChoice = candidates.Count + 1;
+            var unequipChoice = unavailableEquipChoice;
+            if (noCandidates)
+            {
+                itemOptions[unavailableEquipChoice] =
+                    "Equip (unavailable: No compatible owned equipment is available.)";
+                unequipChoice++;
+            }
+
+            itemOptions[unequipChoice] = unequip.CanCommit
+                ? "Unequip"
+                : $"Unequip (unavailable: {UnequipRejection(unequip)})";
+            ConsoleUI.Menu($"{slot} equipment", itemOptions);
+
+            var itemChoice = ConsoleUI.ReadInt("Select", 0, noCandidates ? 0 : unequipChoice);
+            if (itemChoice == 0)
+            {
+                return;
+            }
+
+            if (itemChoice == unequipChoice)
+            {
+                ConfirmUnequip(slot);
+                continue;
+            }
+
+            ConfirmEquip(slot, candidates[itemChoice - 1].Id);
+        }
+    }
+
+    private void ConfirmEquip(EquipmentSlot slot, string candidateId)
+    {
+        var preview = EquipmentComparisonEvaluator.Compare(_player, slot, candidateId);
+        ConsoleUI.EquipmentComparison(preview);
+        var equipLabel = preview.CanCommit
+            ? "Equip"
+            : $"Equip (unavailable: {ComparisonRejection(preview.Reason)})";
+        ConsoleUI.Menu("Equip confirmation", new Dictionary<int, string> { { 0, "Back" }, { 1, equipLabel } });
+        if (!preview.CanCommit)
+        {
+            ConsoleUI.ReadInt("Select", 0, 0);
+            return;
+        }
+
+        if (ConsoleUI.ReadInt("Select", 0, 1) == 0)
+        {
+            return;
+        }
+
+        var current = EquipmentComparisonEvaluator.Compare(_player, slot, candidateId);
+        if (!current.CanCommit)
+        {
+            ConsoleUI.Section("Equipment", ComparisonRejection(current.Reason));
+            return;
+        }
+
+        if (!_player.Equip(slot, candidateId))
+        {
+            ConsoleUI.Section("Equipment", "Equipment could not be equipped.");
+            return;
+        }
+
+        ConsoleUI.Section("Equipment", "Equipment equipped.");
+        ConsoleUI.EquipmentSlot(slot, current.Candidate);
+        SaveProgress();
+    }
+
+    private void ConfirmUnequip(EquipmentSlot slot)
+    {
+        var preview = EquipmentComparisonEvaluator.EvaluateUnequip(_player, slot);
+        ConsoleUI.UnequipPreview(preview);
+        var unequipLabel = preview.CanCommit
+            ? "Unequip"
+            : $"Unequip (unavailable: {UnequipRejection(preview)})";
+        ConsoleUI.Menu("Unequip confirmation", new Dictionary<int, string> { { 0, "Back" }, { 1, unequipLabel } });
+        if (!preview.CanCommit)
+        {
+            ConsoleUI.ReadInt("Select", 0, 0);
+            return;
+        }
+
+        if (ConsoleUI.ReadInt("Select", 0, 1) == 0)
+        {
+            return;
+        }
+
+        var current = EquipmentComparisonEvaluator.EvaluateUnequip(_player, slot);
+        if (!current.CanCommit)
+        {
+            ConsoleUI.Section("Equipment", UnequipRejection(current));
+            return;
+        }
+
+        if (!_player.Unequip(slot))
+        {
+            ConsoleUI.Section("Equipment", "Equipment could not be removed.");
+            return;
+        }
+
+        ConsoleUI.Section("Equipment", "Equipment removed.");
+        ConsoleUI.EquipmentSlot(slot, current: null);
+        SaveProgress();
+    }
+
+    private List<EquipmentDefinition> GetEquipmentCandidates(EquipmentSlot slot) => EquipmentCatalog.All
+        .Where(item => EquipmentComparisonEvaluator.IsCandidateAvailable(_player, slot, item.Id))
+        .ToList();
+
+    private static string ComparisonRejection(EquipmentComparisonReason reason) => reason switch
+    {
+        EquipmentComparisonReason.SameItem => "That item is already equipped.",
+        EquipmentComparisonReason.UnknownCandidate => "That equipment is no longer available.",
+        EquipmentComparisonReason.CandidateNotOwned => "That equipment is not owned.",
+        EquipmentComparisonReason.IncompatibleSlot => "That equipment does not fit this slot.",
+        EquipmentComparisonReason.CandidateEquippedElsewhere => "That equipment is already equipped in another slot.",
+        _ => "Equipment could not be equipped."
+    };
+
+    private static string UnequipRejection(UnequipEligibilityResult result) => result.Status switch
+    {
+        UnequipEligibilityStatus.MandatoryPrimaryWeapon => "Primary weapon cannot be unequipped.",
+        UnequipEligibilityStatus.EmptySlot => "No equipment to remove.",
+        _ => "Equipment could not be removed."
+    };
 
     private static string BuildLootLog(int junk, int relicPart, int healingPotion, int expReward, bool rewardWeaponGranted)
     {

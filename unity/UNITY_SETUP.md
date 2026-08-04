@@ -1,55 +1,64 @@
 # Unity Setup Guide
 
-## 1) Project and folders
-1. Create a Unity 2D or 3D project in Unity Hub.
-2. Copy this folder into your project:
-   - `Toil-Relic/unity/Assets/Scripts`
-3. In Unity, create folders:
-   - `Assets/ScriptableObjects`
+## 1) Project and data
 
-## 2) Create ScriptableObjects
-1. Enemy database
-   - Right click `Assets/ScriptableObjects` -> `Create -> ToilRelic -> Enemy Database`
-   - Name it `EnemyDatabase_Main`
-2. Enemy entries
-   - Create 3-5 assets with `Create -> ToilRelic -> Enemy`
-   - Example values:
-     - Mine Vermin: HP 10, ATK 2-4, EXP 10
-     - Rust Golem: HP 14, ATK 3-5, EXP 14
-     - Ruin Wraith: HP 18, ATK 4-6, EXP 20
-   - Add them into `EnemyDatabase_Main` list.
-   - Optional: assign `Battle Visual Prefab` (2D or 3D) and a 2D HUD portrait.
-3. Drop table
-   - `Create -> ToilRelic -> Drop Table`
-   - Name it `DropTable_Default`
-   - Default is junk 1-3, relic chance 0.25
+1. Open `unity` as the Unity project. The supported editor for the committed scene is Unity `6000.3.19f1`.
+2. Keep generated data under `Assets/ScriptableObjects`:
+   - `EnemyDatabase_Main.asset`
+   - `DropTable_Default.asset`
+   - the Mine Vermin, Rust Golem, and Ruin Wraith enemy assets
+3. The scene bootstrap creates or refreshes those assets and wires them into `GameManager`.
 
-## 3) Scene objects
-1. Create empty object `GameManager` and attach `GameManager.cs`
-   - Assign `EnemyDatabase_Main` and `DropTable_Default`.
-2. Create UI texts and attach:
-   - `HudController` (HP/Level/Inventory TMP texts)
-   - `BattlePanelController` (Enemy text + Log text)
-   - Optional: assign an additional TMP text to `HudController`'s `Equipment Text` field to show the equipped weapon.
-3. Create empty object `UIActions` and attach `GameActionBridge`
-   - Assign `GameManager` field.
-4. Create buttons and bind OnClick to `UIActions`:
-   - Camp: `StartHunt`, `Rest`, `CraftTreasure`
-   - Battle: `Attack`, `Defend`, `Flee`
-  - Optional camp equipment buttons: `EquipStarterWeapon`, `EquipRewardWeapon`.
-  - The primary weapon is always occupied. A future equipment screen can call `EquipEquipment(slot, equipmentId)` and `UnequipEquipment(slot)` for every non-primary physical slot.
-5. Optional panel toggle
-   - Attach `StatePanelController`
-   - Assign camp panel and battle panel.
+## 2) Regenerate the committed scene
 
-## 4) Run
-- Press Play.
-- Camp state starts first.
-- Hunt -> Battle -> Loot -> Camp loop.
-- Save file path: `Application.persistentDataPath/toil_relic_save.json`
+Use `Tools -> Toil Relic -> Regenerate Sample Scene` in the Unity editor, or run:
+
+```powershell
+& '<Unity.exe>' -batchmode -quit -projectPath '<repo>\unity' -executeMethod ToilRelic.Unity.Editor.ToilRelicSceneBootstrap.ConfigureSampleScene -logFile '<bootstrap.log>'
+```
+
+The bootstrap is the authority for `Assets/Scenes/SampleScene.unity`; do not hand-edit the scene YAML. Regenerate the scene after changing the bootstrap, then commit both files together.
+
+## 3) Generated scene contract
+
+The generated canvas contains:
+
+- `TitlePanel`: Continue, New Game, and Quit.
+- `CampPanel`: the Camp state root assigned to `StatePanelController.campPanel`.
+  - `CampActionMenu`: Hunt, Rest, Craft Treasure, and Equipment.
+  - `EquipmentPanel`: the dedicated slot, candidate, comparison, totals, validation, and action UI.
+- `BattlePanel`: battle status plus Attack, Defend, Flee, and Potion.
+- compact `Hud` and `GameStatus` regions above the state panels.
+
+Hunt, Rest, Craft Treasure, and battle actions persistently target `UIActions/GameActionBridge`. Equipment is Camp-local: the Camp Equipment entry and the fixed Back, Equip, and Unequip buttons persistently target `EquipmentPanelController`, which is attached to `CampPanel`.
+
+`EquipmentPanelController` must serialize all of the following references:
+
+- `GameManager`
+- `CampActionMenu` and `EquipmentPanel`
+- Equipment entry, Back, Equip, and Unequip buttons
+- `SlotRowsContainer` and `CandidateRowsContainer`
+- comparison, totals, and validation texts
+
+The 12 slot rows and owned candidate rows are created at runtime by the controller. The bootstrap only creates their bounded scroll/layout containers. The primary weapon is mandatory; optional occupied slots can be unequipped. Equip and Unequip revalidate through `GameManager.EquipEquipment(slot, equipmentId)` and `GameManager.UnequipEquipment(slot)` before saving.
+
+## 4) Run and verify
+
+- Press Play. The title screen appears first; New Game or Continue enters Camp.
+- Use `Camp -> Equipment` to preview an owned candidate, compare projected totals, Equip, Unequip an optional slot, or Back to Camp.
+- The main loop remains Camp -> Hunt -> Battle -> Loot -> Camp.
+- Saves use `Application.persistentDataPath/toil_relic_save.json`.
+
+Run the Play Mode assembly without `-quit` so the Unity Test Runner can terminate its own process:
+
+```powershell
+& '<Unity.exe>' -batchmode -nographics -projectPath '<repo>\unity' -runTests -testPlatform PlayMode -assemblyNames ToilRelic.PlayModeTests -testResults '<results.xml>' -logFile '<tests.log>'
+```
+
+For rendered layout evidence, set `TOIL_RELIC_LAYOUT_EVIDENCE_DIR`, run `P0_CaptureLayoutEvidenceWhenRequested` with graphics enabled, and inspect the 1280x720 and 800x600 PNGs.
 
 ## Notes
-- The gameplay logic is in plain C# classes under `Systems` and `Core`.
-- `BattlePhaseChanged` separates player input, enemy response, and resolution. Use it to sequence animations, VFX, or camera movement; do not put those waits into the gameplay systems.
-- You can later swap UI or 2D/3D presentation without rewriting battle/crafting math.
-- Enemy `Equipment Drop Profile Id` is a future-content reference only; do not assign equipment rewards until a drop-table task defines rates and rarity.
+
+- Gameplay logic remains in plain C# types under `Systems` and `Core`; scene UI only presents and dispatches it.
+- `BattlePhaseChanged` separates player input, enemy response, and resolution. Sequence animation or VFX around that event instead of adding waits to gameplay systems.
+- Enemy `Equipment Drop Profile Id` remains a future-content reference; do not assign equipment rewards until a drop-table task defines rates and rarity.

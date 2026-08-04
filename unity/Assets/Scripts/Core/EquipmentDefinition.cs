@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ToilRelic.Unity.Core
 {
@@ -33,6 +34,10 @@ namespace ToilRelic.Unity.Core
             { StarterWeaponId, new EquipmentDefinition(StarterWeaponId, "Starter Weapon", EquipmentCategory.PrimaryWeapon) },
             { RewardWeaponId, new EquipmentDefinition(RewardWeaponId, "Reward Weapon", EquipmentCategory.PrimaryWeapon, attackBonus: 2) }
         };
+        public static IReadOnlyList<EquipmentDefinition> All => Definitions.Values
+            .OrderBy(definition => definition.DisplayName, StringComparer.Ordinal)
+            .ThenBy(definition => definition.Id, StringComparer.Ordinal)
+            .ToArray();
         public static bool TryGet(string id, out EquipmentDefinition definition) { if (string.IsNullOrEmpty(id)) { definition = null; return false; } return Definitions.TryGetValue(id, out definition); }
     }
 }

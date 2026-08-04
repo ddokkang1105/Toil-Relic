@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
@@ -21,6 +22,8 @@ namespace ToilRelic.PlayModeTests
         private const string HudControllerTypeName = "ToilRelic.Unity.UI.HudController";
         private const string BattlePanelControllerTypeName = "ToilRelic.Unity.UI.BattlePanelController";
         private const string GameStatusControllerTypeName = "ToilRelic.Unity.UI.GameStatusController";
+        private const string StatePanelControllerTypeName = "ToilRelic.Unity.UI.StatePanelController";
+        private const string EquipmentPanelControllerTypeName = "ToilRelic.Unity.UI.EquipmentPanelController";
         private const string GameEventsTypeName = "ToilRelic.Unity.Core.GameEvents";
         private const string CombatSystemTypeName = "ToilRelic.Unity.Systems.CombatSystem";
         private const string PlayModeActionContractsCategory = "PlayModeActionContracts";
@@ -33,6 +36,149 @@ namespace ToilRelic.PlayModeTests
         private string fixtureSaveDirectory;
         private string fixtureSavePath;
         private bool fixtureOverrideInstalled;
+        private CatalogFixtureScope equipmentCatalogScope;
+
+        [Serializable]
+        private sealed class EquipmentComparisonContractFixture
+        {
+            public EquipmentDefinitionFixture[] definitions;
+            public ComparisonCaseFixture[] comparisonCases;
+            public UnequipCaseFixture[] unequipCases;
+        }
+
+        [Serializable]
+        private sealed class EquipmentDefinitionFixture
+        {
+            public string id;
+            public string displayName;
+            public string category;
+            public int attackBonus;
+            public int defenseBonus;
+            public int damageReductionBonus;
+            public int maxHpBonus;
+        }
+
+        [Serializable]
+        private sealed class ComparisonCaseFixture
+        {
+            public string name;
+            public string slot;
+            public string candidateId;
+            public string[] ownedIds;
+            public EquippedFixtureEntry[] equipped;
+            public string expectedReason;
+            public bool expectedIsValid;
+            public bool expectedCanCommit;
+            public string expectedCurrentId;
+            public string expectedCandidateId;
+            public StatDeltaFixture[] expectedDeltas;
+            public int expectedProjectedAttackBonus;
+            public int expectedProjectedDefenseBonus;
+            public int expectedProjectedDamageReductionBonus;
+            public int expectedProjectedEquipmentMaxHpBonus;
+            public int expectedProjectedMaxHpDelta;
+        }
+
+        [Serializable]
+        private sealed class UnequipCaseFixture
+        {
+            public string name;
+            public string slot;
+            public string[] ownedIds;
+            public EquippedFixtureEntry[] equipped;
+            public string expectedStatus;
+            public bool expectedIsOccupied;
+            public bool expectedIsMandatory;
+            public bool expectedCanCommit;
+            public string expectedCurrentId;
+        }
+
+        [Serializable]
+        private sealed class EquippedFixtureEntry
+        {
+            public string slot;
+            public string equipmentId;
+        }
+
+        [Serializable]
+        private sealed class StatDeltaFixture
+        {
+            public string stat;
+            public int currentValue;
+            public int candidateValue;
+            public int delta;
+        }
+
+        private sealed class CatalogFixtureScope : IDisposable
+        {
+            private readonly IDictionary definitions;
+            private readonly List<DictionaryEntry> snapshot;
+            private bool disposed;
+
+            private CatalogFixtureScope(IDictionary definitions)
+            {
+                this.definitions = definitions;
+                snapshot = new List<DictionaryEntry>();
+                var enumerator = definitions.GetEnumerator();
+                while (enumerator.MoveNext())
+                {
+                    snapshot.Add(enumerator.Entry);
+                }
+            }
+
+            public static CatalogFixtureScope Install(
+                Type catalogType,
+                Type definitionType,
+                Type categoryType,
+                IEnumerable<EquipmentDefinitionFixture> fixtures)
+            {
+                var field = catalogType.GetField("Definitions", BindingFlags.Static | BindingFlags.NonPublic);
+                Assert.That(field, Is.Not.Null, "EquipmentCatalog.Definitions must remain available for scoped tests.");
+                var definitions = field.GetValue(null) as IDictionary;
+                Assert.That(definitions, Is.Not.Null, "EquipmentCatalog.Definitions must implement IDictionary.");
+                var scope = new CatalogFixtureScope(definitions);
+
+                try
+                {
+                    foreach (var fixture in fixtures)
+                    {
+                        var definition = Activator.CreateInstance(
+                            definitionType,
+                            fixture.id,
+                            fixture.displayName,
+                            Enum.Parse(categoryType, fixture.category),
+                            fixture.attackBonus,
+                            fixture.defenseBonus,
+                            fixture.damageReductionBonus,
+                            fixture.maxHpBonus);
+                        definitions.Add(fixture.id, definition);
+                    }
+
+                    return scope;
+                }
+                catch
+                {
+                    scope.Dispose();
+                    throw;
+                }
+            }
+
+            public void Dispose()
+            {
+                if (disposed)
+                {
+                    return;
+                }
+
+                definitions.Clear();
+                foreach (var pair in snapshot)
+                {
+                    definitions.Add(pair.Key, pair.Value);
+                }
+
+                disposed = true;
+            }
+        }
 
         private sealed class ReflectedStringEventRecorder : IDisposable
         {
@@ -52,6 +198,48 @@ namespace ToilRelic.PlayModeTests
                     $"Event '{eventName}' must use Action<string> for assembly-neutral observation.");
 
                 handler = messages.Add;
+                eventInfo.AddEventHandler(null, handler);
+                subscribed = true;
+            }
+
+            public void Dispose()
+            {
+                if (!subscribed)
+                {
+                    return;
+                }
+
+                eventInfo.RemoveEventHandler(null, handler);
+                subscribed = false;
+            }
+        }
+
+        private sealed class ReflectedEventRecorder : IDisposable
+        {
+            private readonly EventInfo eventInfo;
+            private readonly Delegate handler;
+            private bool subscribed;
+
+            public IList<object> Values { get; } = new List<object>();
+
+            public ReflectedEventRecorder(Type eventSourceType, string eventName, ICollection<string> order)
+            {
+                eventInfo = eventSourceType.GetEvent(eventName, BindingFlags.Public | BindingFlags.Static);
+                Assert.That(eventInfo, Is.Not.Null, $"Expected static event '{eventName}' was not found.");
+                var invoke = eventInfo.EventHandlerType.GetMethod("Invoke");
+                var parameters = invoke.GetParameters();
+                Assert.That(parameters.Length, Is.EqualTo(1), $"Event '{eventName}' must have one argument.");
+
+                var value = Expression.Parameter(parameters[0].ParameterType, "value");
+                var record = new Action<object>(recorded =>
+                {
+                    Values.Add(recorded);
+                    order.Add(eventName);
+                });
+                handler = Expression.Lambda(
+                    eventInfo.EventHandlerType,
+                    Expression.Invoke(Expression.Constant(record), Expression.Convert(value, typeof(object))),
+                    value).Compile();
                 eventInfo.AddEventHandler(null, handler);
                 subscribed = true;
             }
@@ -118,6 +306,8 @@ namespace ToilRelic.PlayModeTests
         [UnityTearDown]
         public IEnumerator CleanupSaveFixture()
         {
+            equipmentCatalogScope?.Dispose();
+            equipmentCatalogScope = null;
             CleanupSaveFixtureState();
             yield return null;
         }
@@ -148,6 +338,847 @@ namespace ToilRelic.PlayModeTests
             yield return null;
             Assert.That(FindComponent(GameActionBridgeTypeName), Is.Not.Null,
                 "P0 setup: SampleScene needs a UIActions object with GameActionBridge.");
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_EquipmentComparisonContractsMatchCanonicalFixture()
+        {
+            yield return null;
+            var fixture = LoadEquipmentComparisonFixture();
+            var playerType = FindType("ToilRelic.Unity.Core.PlayerState");
+            var slotType = FindType("ToilRelic.Unity.Core.EquipmentSlot");
+            var definitionType = FindType("ToilRelic.Unity.Core.EquipmentDefinition");
+            var categoryType = FindType("ToilRelic.Unity.Core.EquipmentCategory");
+            var catalogType = FindType("ToilRelic.Unity.Core.EquipmentCatalog");
+            var evaluatorType = FindType("ToilRelic.Unity.Core.EquipmentComparisonEvaluator");
+
+            Assert.That(playerType, Is.Not.Null);
+            Assert.That(slotType, Is.Not.Null);
+            Assert.That(definitionType, Is.Not.Null);
+            Assert.That(categoryType, Is.Not.Null);
+            Assert.That(catalogType, Is.Not.Null);
+            Assert.That(evaluatorType, Is.Not.Null);
+            Assert.That(GetCatalogCount(catalogType), Is.EqualTo(2));
+
+            equipmentCatalogScope = CatalogFixtureScope.Install(
+                catalogType, definitionType, categoryType, fixture.definitions);
+            try
+            {
+                var compare = evaluatorType.GetMethod("Compare", BindingFlags.Public | BindingFlags.Static);
+                var evaluateUnequip = evaluatorType.GetMethod("EvaluateUnequip", BindingFlags.Public | BindingFlags.Static);
+                Assert.That(compare, Is.Not.Null);
+                Assert.That(evaluateUnequip, Is.Not.Null);
+
+                foreach (var testCase in fixture.comparisonCases)
+                {
+                    var player = CreateEquipmentFixturePlayer(playerType, slotType, testCase.ownedIds, testCase.equipped);
+                    var slot = Enum.Parse(slotType, testCase.slot);
+                    var before = JsonUtility.ToJson(player);
+                    var currentMaxHp = (int)GetPublicProperty(player, "MaxHp");
+
+                    var result = compare.Invoke(null, new[] { player, slot, testCase.candidateId });
+
+                    Assert.That(GetPublicProperty(result, "Reason").ToString(), Is.EqualTo(testCase.expectedReason), testCase.name);
+                    Assert.That(GetPublicProperty(result, "IsValid"), Is.EqualTo(testCase.expectedIsValid), testCase.name);
+                    Assert.That(GetPublicProperty(result, "CanCommit"), Is.EqualTo(testCase.expectedCanCommit), testCase.name);
+                    Assert.That(GetEquipmentId(GetPublicProperty(result, "Current")), Is.EqualTo(NullIfEmpty(testCase.expectedCurrentId)), testCase.name);
+                    Assert.That(GetEquipmentId(GetPublicProperty(result, "Candidate")), Is.EqualTo(NullIfEmpty(testCase.expectedCandidateId)), testCase.name);
+                    Assert.That(GetPublicProperty(result, "ProjectedAttackBonus"), Is.EqualTo(testCase.expectedProjectedAttackBonus), testCase.name);
+                    Assert.That(GetPublicProperty(result, "ProjectedDefenseBonus"), Is.EqualTo(testCase.expectedProjectedDefenseBonus), testCase.name);
+                    Assert.That(GetPublicProperty(result, "ProjectedDamageReductionBonus"), Is.EqualTo(testCase.expectedProjectedDamageReductionBonus), testCase.name);
+                    Assert.That(GetPublicProperty(result, "ProjectedEquipmentMaxHpBonus"), Is.EqualTo(testCase.expectedProjectedEquipmentMaxHpBonus), testCase.name);
+                    Assert.That((int)GetPublicProperty(result, "ProjectedMaxHp") - currentMaxHp,
+                        Is.EqualTo(testCase.expectedProjectedMaxHpDelta), testCase.name);
+
+                    var actualDeltas = ((IEnumerable)GetPublicProperty(result, "StatDeltas"))
+                        .Cast<object>()
+                        .Select(FormatDelta)
+                        .ToArray();
+                    var expectedDeltas = testCase.expectedDeltas
+                        .Select(delta => $"{delta.stat}:{delta.currentValue}:{delta.candidateValue}:{delta.delta}")
+                        .ToArray();
+                    Assert.That(actualDeltas, Is.EqualTo(expectedDeltas), testCase.name);
+                    Assert.That(JsonUtility.ToJson(player), Is.EqualTo(before), testCase.name);
+                }
+
+                foreach (var testCase in fixture.unequipCases)
+                {
+                    var player = CreateEquipmentFixturePlayer(playerType, slotType, testCase.ownedIds, testCase.equipped);
+                    var slot = Enum.Parse(slotType, testCase.slot);
+                    var before = JsonUtility.ToJson(player);
+
+                    var result = evaluateUnequip.Invoke(null, new[] { player, slot });
+
+                    Assert.That(GetPublicProperty(result, "Status").ToString(), Is.EqualTo(testCase.expectedStatus), testCase.name);
+                    Assert.That(GetPublicProperty(result, "IsOccupied"), Is.EqualTo(testCase.expectedIsOccupied), testCase.name);
+                    Assert.That(GetPublicProperty(result, "IsMandatory"), Is.EqualTo(testCase.expectedIsMandatory), testCase.name);
+                    Assert.That(GetPublicProperty(result, "CanCommit"), Is.EqualTo(testCase.expectedCanCommit), testCase.name);
+                    Assert.That(GetEquipmentId(GetPublicProperty(result, "Current")), Is.EqualTo(NullIfEmpty(testCase.expectedCurrentId)), testCase.name);
+                    Assert.That(JsonUtility.ToJson(player), Is.EqualTo(before), testCase.name);
+                }
+            }
+            finally
+            {
+                equipmentCatalogScope.Dispose();
+                equipmentCatalogScope = null;
+            }
+
+            Assert.That(GetCatalogCount(catalogType), Is.EqualTo(2));
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_EquipmentCatalogFixtureRepeatedInstallRestoresProductionDefinitions()
+        {
+            yield return null;
+            var fixture = LoadEquipmentComparisonFixture();
+            var catalogType = FindType("ToilRelic.Unity.Core.EquipmentCatalog");
+            var definitionType = FindType("ToilRelic.Unity.Core.EquipmentDefinition");
+            var categoryType = FindType("ToilRelic.Unity.Core.EquipmentCategory");
+            Assert.That(GetCatalogCount(catalogType), Is.EqualTo(2));
+
+            for (var iteration = 0; iteration < 2; iteration++)
+            {
+                equipmentCatalogScope = CatalogFixtureScope.Install(
+                    catalogType, definitionType, categoryType, fixture.definitions);
+                Assert.That(GetCatalogCount(catalogType), Is.EqualTo(2 + fixture.definitions.Length));
+                equipmentCatalogScope.Dispose();
+                equipmentCatalogScope = null;
+                Assert.That(GetCatalogCount(catalogType), Is.EqualTo(2));
+            }
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_EquipmentCommandsApplyOrRejectWithExactEventAndSaveBoundaries()
+        {
+            yield return null;
+            var gameManager = RequireComponent(GameManagerTypeName);
+            EnterCampState(gameManager);
+            var player = GetPrivateField(gameManager, "player");
+            Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(player, new object[] { "reward-weapon" }), Is.True);
+            var slotType = FindType("ToilRelic.Unity.Core.EquipmentSlot");
+            var primaryWeapon = Enum.Parse(slotType, "PrimaryWeapon");
+            var eventsType = FindType(GameEventsTypeName);
+            var order = new List<string>();
+            using var playerChanged = new ReflectedEventRecorder(eventsType, "PlayerChanged", order);
+            using var stateChanged = new ReflectedEventRecorder(eventsType, "StateChanged", order);
+            using var battleLog = new ReflectedEventRecorder(eventsType, "BattleLog", order);
+            using var saveStatus = new ReflectedEventRecorder(eventsType, "SaveStatusChanged", order);
+
+            var equip = gameManager.GetType().GetMethod("EquipEquipment", new[] { slotType, typeof(string) });
+            Assert.That(equip, Is.Not.Null, "GameManager must expose the typed equipment command.");
+            var applied = equip.Invoke(gameManager, new[] { primaryWeapon, "reward-weapon" });
+
+            Assert.That(GetPublicProperty(applied, "Applied"), Is.True);
+            Assert.That(GetPublicProperty(applied, "ComparisonReason").ToString(), Is.EqualTo("None"));
+            Assert.That(order, Is.EqualTo(new[] { "PlayerChanged", "BattleLog", "SaveStatusChanged" }));
+            Assert.That(stateChanged.Values, Is.Empty);
+            Assert.That(saveStatus.Values.Single().ToString(), Is.EqualTo("Succeeded"));
+            Assert.That(File.Exists(fixtureSavePath), Is.True);
+
+            var savedBytes = File.ReadAllText(fixtureSavePath);
+            order.Clear();
+            playerChanged.Values.Clear();
+            battleLog.Values.Clear();
+            saveStatus.Values.Clear();
+            var rejected = equip.Invoke(gameManager, new[] { primaryWeapon, "reward-weapon" });
+
+            Assert.That(GetPublicProperty(rejected, "Applied"), Is.False);
+            Assert.That(GetPublicProperty(rejected, "ComparisonReason").ToString(), Is.EqualTo("SameItem"));
+            Assert.That(order, Is.Empty, "Rejected commands must emit no game events.");
+            Assert.That(File.ReadAllText(fixtureSavePath), Is.EqualTo(savedBytes), "Rejected commands must not save.");
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_EquipmentCommandSaveFailureKeepsMutationAndSaveStatusLast()
+        {
+            yield return null;
+            var gameManager = RequireComponent(GameManagerTypeName);
+            EnterCampState(gameManager);
+            var player = GetPrivateField(gameManager, "player");
+            Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(player, new object[] { "reward-weapon" }), Is.True);
+            var slotType = FindType("ToilRelic.Unity.Core.EquipmentSlot");
+            var primaryWeapon = Enum.Parse(slotType, "PrimaryWeapon");
+            var eventsType = FindType(GameEventsTypeName);
+            var order = new List<string>();
+            using var playerChanged = new ReflectedEventRecorder(eventsType, "PlayerChanged", order);
+            using var stateChanged = new ReflectedEventRecorder(eventsType, "StateChanged", order);
+            using var battleLog = new ReflectedEventRecorder(eventsType, "BattleLog", order);
+            using var saveStatus = new ReflectedEventRecorder(eventsType, "SaveStatusChanged", order);
+            var originalSavePath = GetPrivateStaticField(fixtureSaveServiceType, "savePathOverride");
+            object outcome;
+
+            try
+            {
+                var invalidSavePath = Path.Combine(Application.temporaryCachePath, Guid.NewGuid().ToString(), "toil_relic_save.json");
+                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", invalidSavePath);
+                LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
+                outcome = gameManager.GetType().GetMethod("EquipEquipment", new[] { slotType, typeof(string) })
+                    .Invoke(gameManager, new[] { primaryWeapon, "reward-weapon" });
+            }
+            finally
+            {
+                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", originalSavePath);
+            }
+
+            Assert.That(GetPublicProperty(outcome, "Applied"), Is.True);
+            Assert.That(order, Is.EqualTo(new[] { "PlayerChanged", "BattleLog", "SaveStatusChanged" }));
+            Assert.That(stateChanged.Values, Is.Empty);
+            Assert.That(saveStatus.Values.Single().ToString(), Is.EqualTo("Failed"));
+            var equipped = new object[] { primaryWeapon, null };
+            Assert.That((bool)player.GetType().GetMethod("TryGetEquippedEquipment").Invoke(player, equipped), Is.True);
+            Assert.That(GetPublicProperty(equipped[1], "Id"), Is.EqualTo("reward-weapon"),
+                "A failed save must not roll back the applied equipment mutation.");
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_UnequipCommandPersistsOptionalRemovalWithExactEventOrder()
+        {
+            yield return null;
+            var fixture = LoadEquipmentComparisonFixture();
+            equipmentCatalogScope = CatalogFixtureScope.Install(
+                FindType("ToilRelic.Unity.Core.EquipmentCatalog"),
+                FindType("ToilRelic.Unity.Core.EquipmentDefinition"),
+                FindType("ToilRelic.Unity.Core.EquipmentCategory"),
+                fixture.definitions);
+            var gameManager = RequireComponent(GameManagerTypeName);
+            EnterCampState(gameManager);
+            var player = GetPrivateField(gameManager, "player");
+            var slotType = FindType("ToilRelic.Unity.Core.EquipmentSlot");
+            var ring1 = Enum.Parse(slotType, "Ring1");
+            Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(
+                player, new object[] { "current-ring" }), Is.True);
+            Assert.That((bool)player.GetType().GetMethod("Equip").Invoke(
+                player, new[] { ring1, "current-ring" }), Is.True);
+            var eventsType = FindType(GameEventsTypeName);
+            var order = new List<string>();
+            using var playerChanged = new ReflectedEventRecorder(eventsType, "PlayerChanged", order);
+            using var stateChanged = new ReflectedEventRecorder(eventsType, "StateChanged", order);
+            using var battleLog = new ReflectedEventRecorder(eventsType, "BattleLog", order);
+            using var saveStatus = new ReflectedEventRecorder(eventsType, "SaveStatusChanged", order);
+
+            var outcome = gameManager.GetType().GetMethod("UnequipEquipment", new[] { slotType })
+                .Invoke(gameManager, new[] { ring1 });
+
+            Assert.That(GetPublicProperty(outcome, "Applied"), Is.True);
+            Assert.That(GetPublicProperty(outcome, "UnequipStatus").ToString(), Is.EqualTo("OccupiedOptional"));
+            Assert.That(order, Is.EqualTo(new[] { "PlayerChanged", "BattleLog", "SaveStatusChanged" }));
+            Assert.That(stateChanged.Values, Is.Empty);
+            Assert.That(battleLog.Values.Single().ToString(), Is.EqualTo("Unequipped Current Ring."));
+            Assert.That(saveStatus.Values.Single().ToString(), Is.EqualTo("Succeeded"));
+            Assert.That(File.Exists(fixtureSavePath), Is.True);
+            var equipped = new object[] { ring1, null };
+            Assert.That((bool)player.GetType().GetMethod("TryGetEquippedEquipment").Invoke(player, equipped), Is.False);
+
+            var loadResult = fixtureSaveServiceType.GetMethod("Load").Invoke(null, null);
+            Assert.That(GetPublicProperty(loadResult, "Status").ToString(), Is.EqualTo("Loaded"));
+            var loadedPlayer = GetPublicProperty(loadResult, "Player");
+            var loadedEquipped = new object[] { ring1, null };
+            Assert.That((bool)loadedPlayer.GetType().GetMethod("TryGetEquippedEquipment")
+                .Invoke(loadedPlayer, loadedEquipped), Is.False,
+                "A successful optional unequip must remain empty after reload.");
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_UnequipCommandRejectsPrimaryAndEmptySlotsWithoutEventsOrSave()
+        {
+            yield return null;
+            var gameManager = RequireComponent(GameManagerTypeName);
+            EnterCampState(gameManager);
+            var slotType = FindType("ToilRelic.Unity.Core.EquipmentSlot");
+            var primaryWeapon = Enum.Parse(slotType, "PrimaryWeapon");
+            var ring1 = Enum.Parse(slotType, "Ring1");
+            var eventsType = FindType(GameEventsTypeName);
+            var order = new List<string>();
+            using var playerChanged = new ReflectedEventRecorder(eventsType, "PlayerChanged", order);
+            using var stateChanged = new ReflectedEventRecorder(eventsType, "StateChanged", order);
+            using var battleLog = new ReflectedEventRecorder(eventsType, "BattleLog", order);
+            using var saveStatus = new ReflectedEventRecorder(eventsType, "SaveStatusChanged", order);
+            var unequip = gameManager.GetType().GetMethod("UnequipEquipment", new[] { slotType });
+
+            var primaryOutcome = unequip.Invoke(gameManager, new[] { primaryWeapon });
+            var emptyOutcome = unequip.Invoke(gameManager, new[] { ring1 });
+
+            Assert.That(GetPublicProperty(primaryOutcome, "Applied"), Is.False);
+            Assert.That(GetPublicProperty(primaryOutcome, "UnequipStatus").ToString(),
+                Is.EqualTo("MandatoryPrimaryWeapon"));
+            Assert.That(GetPublicProperty(emptyOutcome, "Applied"), Is.False);
+            Assert.That(GetPublicProperty(emptyOutcome, "UnequipStatus").ToString(), Is.EqualTo("EmptySlot"));
+            Assert.That(order, Is.Empty, "Rejected unequip commands must emit no game events.");
+            Assert.That(playerChanged.Values, Is.Empty);
+            Assert.That(stateChanged.Values, Is.Empty);
+            Assert.That(battleLog.Values, Is.Empty);
+            Assert.That(saveStatus.Values, Is.Empty);
+            Assert.That(File.Exists(fixtureSavePath), Is.False,
+                "Rejected unequip commands must not create a save file.");
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_UnequipSaveFailureKeepsRemovalAndSaveStatusLast()
+        {
+            yield return null;
+            var fixture = LoadEquipmentComparisonFixture();
+            equipmentCatalogScope = CatalogFixtureScope.Install(
+                FindType("ToilRelic.Unity.Core.EquipmentCatalog"),
+                FindType("ToilRelic.Unity.Core.EquipmentDefinition"),
+                FindType("ToilRelic.Unity.Core.EquipmentCategory"),
+                fixture.definitions);
+            var gameManager = RequireComponent(GameManagerTypeName);
+            EnterCampState(gameManager);
+            var player = GetPrivateField(gameManager, "player");
+            var slotType = FindType("ToilRelic.Unity.Core.EquipmentSlot");
+            var ring1 = Enum.Parse(slotType, "Ring1");
+            Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(
+                player, new object[] { "current-ring" }), Is.True);
+            Assert.That((bool)player.GetType().GetMethod("Equip").Invoke(
+                player, new[] { ring1, "current-ring" }), Is.True);
+            var eventsType = FindType(GameEventsTypeName);
+            var order = new List<string>();
+            using var playerChanged = new ReflectedEventRecorder(eventsType, "PlayerChanged", order);
+            using var stateChanged = new ReflectedEventRecorder(eventsType, "StateChanged", order);
+            using var battleLog = new ReflectedEventRecorder(eventsType, "BattleLog", order);
+            using var saveStatus = new ReflectedEventRecorder(eventsType, "SaveStatusChanged", order);
+            var originalSavePath = GetPrivateStaticField(fixtureSaveServiceType, "savePathOverride");
+            object outcome;
+
+            try
+            {
+                var invalidSavePath = Path.Combine(Application.temporaryCachePath, Guid.NewGuid().ToString(), "toil_relic_save.json");
+                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", invalidSavePath);
+                LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
+                outcome = gameManager.GetType().GetMethod("UnequipEquipment", new[] { slotType })
+                    .Invoke(gameManager, new[] { ring1 });
+            }
+            finally
+            {
+                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", originalSavePath);
+            }
+
+            Assert.That(GetPublicProperty(outcome, "Applied"), Is.True);
+            Assert.That(order, Is.EqualTo(new[] { "PlayerChanged", "BattleLog", "SaveStatusChanged" }));
+            Assert.That(stateChanged.Values, Is.Empty);
+            Assert.That(battleLog.Values.Single().ToString(), Is.EqualTo("Unequipped Current Ring."));
+            Assert.That(saveStatus.Values.Single().ToString(), Is.EqualTo("Failed"));
+            var equipped = new object[] { ring1, null };
+            Assert.That((bool)player.GetType().GetMethod("TryGetEquippedEquipment").Invoke(player, equipped), Is.False,
+                "A failed save must not roll back the optional equipment removal.");
+            Assert.That(File.Exists(fixtureSavePath), Is.False);
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_EquipmentPanelPreviewActionsFocusAndLifecycleStayLocal()
+        {
+            yield return null;
+            var gameManager = RequireComponent(GameManagerTypeName);
+            EnterCampState(gameManager);
+            var player = GetPrivateField(gameManager, "player");
+            Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(player, new object[] { "reward-weapon" }), Is.True);
+            var controller = CreateEquipmentPanelController(gameManager);
+            var campMenu = (GameObject)GetPrivateField(controller, "campMenuPanel");
+            var equipmentPanel = (GameObject)GetPrivateField(controller, "equipmentPanel");
+            var equipButton = (Button)GetPrivateField(controller, "equipButton");
+            var unequipButton = (Button)GetPrivateField(controller, "unequipButton");
+            var backButton = (Button)GetPrivateField(controller, "backButton");
+            var validationText = (Text)GetPrivateField(controller, "validationText");
+            var comparisonText = (Text)GetPrivateField(controller, "comparisonText");
+            var order = new List<string>();
+            var eventsType = FindType(GameEventsTypeName);
+            using var playerChanged = new ReflectedEventRecorder(eventsType, "PlayerChanged", order);
+            using var stateChanged = new ReflectedEventRecorder(eventsType, "StateChanged", order);
+            using var battleLog = new ReflectedEventRecorder(eventsType, "BattleLog", order);
+            using var saveStatus = new ReflectedEventRecorder(eventsType, "SaveStatusChanged", order);
+
+            controller.GetType().GetMethod("OpenEquipment").Invoke(controller, null);
+            yield return null;
+
+            Assert.That(GetPublicProperty(controller, "IsOpen"), Is.True);
+            Assert.That(campMenu.activeSelf, Is.False);
+            Assert.That(equipmentPanel.activeSelf, Is.True);
+            var slotButtons = ((IEnumerable)GetPublicProperty(controller, "SlotButtons")).Cast<Button>().ToArray();
+            Assert.That(slotButtons, Has.Length.EqualTo(12));
+            Assert.That(slotButtons.Select(GetButtonLabel), Is.EqualTo(new[]
+            {
+                "Primary Weapon", "Secondary Weapon", "Hat", "Armor", "Gloves", "Shoes",
+                "Necklace", "Belt", "Ring 1", "Ring 2", "Earring 1", "Earring 2"
+            }));
+            Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(slotButtons[0].gameObject));
+            Assert.That(backButton.gameObject.activeSelf, Is.True);
+            Assert.That(backButton.interactable, Is.True);
+            Assert.That(equipButton.gameObject.activeSelf, Is.True);
+            Assert.That(unequipButton.gameObject.activeSelf, Is.True);
+
+            var slotType = FindType("ToilRelic.Unity.Core.EquipmentSlot");
+            controller.GetType().GetMethod("SelectSlot").Invoke(controller, new[] { Enum.Parse(slotType, "PrimaryWeapon") });
+            yield return null;
+            var candidates = ((IEnumerable)GetPublicProperty(controller, "CandidateButtons")).Cast<Button>().ToArray();
+            Assert.That(candidates.Select(GetButtonLabel), Is.EqualTo(new[] { "Reward Weapon", "Starter Weapon" }));
+            Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(candidates[0].gameObject));
+
+            controller.GetType().GetMethod("SelectCandidate").Invoke(controller, new object[] { "reward-weapon" });
+            Assert.That(equipButton.interactable, Is.True);
+            Assert.That(unequipButton.interactable, Is.False);
+            Assert.That(comparisonText.text, Does.Contain("Reward Weapon"));
+            controller.GetType().GetMethod("SelectCandidate").Invoke(controller, new object[] { "starter-weapon" });
+            Assert.That(equipButton.interactable, Is.False, "A same-item preview must not be committable.");
+
+            controller.GetType().GetMethod("SelectSlot").Invoke(controller, new[] { Enum.Parse(slotType, "Hat") });
+            Assert.That(((IEnumerable)GetPublicProperty(controller, "CandidateButtons")).Cast<object>(), Is.Empty);
+            Assert.That(comparisonText.text, Does.Contain("No compatible owned equipment"));
+            Assert.That(equipButton.interactable, Is.False);
+            Assert.That(unequipButton.interactable, Is.False,
+                "An empty optional slot must keep Unequip visible but disabled.");
+            Assert.That(validationText.text, Is.Empty);
+            Assert.That(order, Is.Empty, "Open, slot selection, and preview must emit no game events.");
+            Assert.That(File.Exists(fixtureSavePath), Is.False, "Preview-only interaction must not save.");
+
+            controller.GetType().GetMethod("BackToCamp").Invoke(controller, null);
+            yield return null;
+            Assert.That(GetPublicProperty(controller, "IsOpen"), Is.False);
+            Assert.That(campMenu.activeSelf, Is.True);
+            Assert.That(equipmentPanel.activeSelf, Is.False);
+            Assert.That(EventSystem.current.currentSelectedGameObject,
+                Is.EqualTo(((Button)GetPrivateField(controller, "equipmentEntryButton")).gameObject));
+
+            controller.GetType().GetMethod("OpenEquipment").Invoke(controller, null);
+            controller.gameObject.SetActive(false);
+            Assert.That(GetPublicProperty(controller, "IsOpen"), Is.False);
+            Assert.That(GetPublicProperty(controller, "SelectedCandidateId"), Is.Null);
+            Assert.That(order, Is.Empty);
+            Assert.That(File.Exists(fixtureSavePath), Is.False);
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_EquipmentPanelClosesAndClearsWhenCampStateExits()
+        {
+            yield return null;
+            var gameManager = RequireComponent(GameManagerTypeName);
+            EnterCampState(gameManager);
+            var player = GetPrivateField(gameManager, "player");
+            Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(
+                player, new object[] { "reward-weapon" }), Is.True);
+            var controller = CreateEquipmentPanelController(gameManager);
+            var slotType = FindType("ToilRelic.Unity.Core.EquipmentSlot");
+            var primaryWeapon = Enum.Parse(slotType, "PrimaryWeapon");
+            var equipmentPanel = (GameObject)GetPrivateField(controller, "equipmentPanel");
+            var comparisonText = (Text)GetPrivateField(controller, "comparisonText");
+            var totalsText = (Text)GetPrivateField(controller, "totalsText");
+            var validationText = (Text)GetPrivateField(controller, "validationText");
+            var order = new List<string>();
+            var eventsType = FindType(GameEventsTypeName);
+            using var playerChanged = new ReflectedEventRecorder(eventsType, "PlayerChanged", order);
+            using var stateChanged = new ReflectedEventRecorder(eventsType, "StateChanged", order);
+            using var battleLog = new ReflectedEventRecorder(eventsType, "BattleLog", order);
+            using var saveStatus = new ReflectedEventRecorder(eventsType, "SaveStatusChanged", order);
+
+            controller.GetType().GetMethod("OpenEquipment").Invoke(controller, null);
+            controller.GetType().GetMethod("SelectSlot").Invoke(controller, new[] { primaryWeapon });
+            controller.GetType().GetMethod("SelectCandidate").Invoke(
+                controller, new object[] { "reward-weapon" });
+            Assert.That(GetPublicProperty(controller, "IsOpen"), Is.True);
+            Assert.That(GetPublicProperty(controller, "SelectedSlot").ToString(), Is.EqualTo("PrimaryWeapon"));
+            Assert.That(GetPublicProperty(controller, "SelectedCandidateId"), Is.EqualTo("reward-weapon"));
+            Assert.That(order, Is.Empty, "Opening and previewing equipment must emit no game events.");
+
+            var sentinelSaveBytes = new byte[] { 0x54, 0x52, 0x43, 0x31 };
+            File.WriteAllBytes(fixtureSavePath, sentinelSaveBytes);
+            gameManager.GetType().GetMethod("StartHunt").Invoke(gameManager, null);
+            yield return null;
+
+            Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Battle"));
+            Assert.That(GetPublicProperty(controller, "IsOpen"), Is.False);
+            Assert.That(GetPublicProperty(controller, "SelectedSlot"), Is.Null);
+            Assert.That(GetPublicProperty(controller, "SelectedCandidateId"), Is.Null);
+            Assert.That(GetPublicProperty(controller, "CurrentComparison"), Is.Null);
+            Assert.That(GetPublicProperty(controller, "CurrentUnequipEligibility"), Is.Null);
+            Assert.That(((IEnumerable)GetPublicProperty(controller, "SlotButtons")).Cast<object>(), Is.Empty);
+            Assert.That(((IEnumerable)GetPublicProperty(controller, "CandidateButtons")).Cast<object>(), Is.Empty);
+            Assert.That(equipmentPanel.activeSelf, Is.False);
+            Assert.That(comparisonText.text, Is.Empty);
+            Assert.That(totalsText.text, Is.Empty);
+            Assert.That(validationText.text, Is.Empty);
+            Assert.That(File.ReadAllBytes(fixtureSavePath), Is.EqualTo(sentinelSaveBytes),
+                "Leaving Camp must not save or rewrite existing bytes.");
+            Assert.That(order, Is.EqualTo(new[] { "StateChanged", "BattleLog" }),
+                "The equipment controller must not add gameplay or save events to the normal hunt transition.");
+            Assert.That(stateChanged.Values.Single().ToString(), Is.EqualTo("Battle"));
+            Assert.That(playerChanged.Values, Is.Empty);
+            Assert.That(saveStatus.Values, Is.Empty);
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_EquipmentPanelShowsNegativeDeltaForCanonicalRewardDowngrade()
+        {
+            yield return null;
+            var gameManager = RequireComponent(GameManagerTypeName);
+            EnterCampState(gameManager);
+            var player = GetPrivateField(gameManager, "player");
+            Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(
+                player, new object[] { "reward-weapon" }), Is.True);
+            var slotType = FindType("ToilRelic.Unity.Core.EquipmentSlot");
+            var primaryWeapon = Enum.Parse(slotType, "PrimaryWeapon");
+            Assert.That((bool)player.GetType().GetMethod("Equip").Invoke(
+                player, new[] { primaryWeapon, "reward-weapon" }), Is.True);
+            var controller = CreateEquipmentPanelController(gameManager);
+
+            controller.GetType().GetMethod("OpenEquipment").Invoke(controller, null);
+            controller.GetType().GetMethod("SelectSlot").Invoke(controller, new[] { primaryWeapon });
+            controller.GetType().GetMethod("SelectCandidate").Invoke(
+                controller, new object[] { "starter-weapon" });
+
+            var comparisonText = (Text)GetPrivateField(controller, "comparisonText");
+            var totalsText = (Text)GetPrivateField(controller, "totalsText");
+            Assert.That(comparisonText.text, Does.Contain("Current: Reward Weapon"));
+            Assert.That(comparisonText.text, Does.Contain("Candidate: Starter Weapon"));
+            Assert.That(comparisonText.text, Does.Contain("ATK 2 -> 0 (-2)"));
+            Assert.That(totalsText.text, Does.Contain("Result: ATK +0"));
+            Assert.That(((Button)GetPrivateField(controller, "equipButton")).interactable, Is.True);
+            Assert.That(File.Exists(fixtureSavePath), Is.False,
+                "A negative-delta preview must remain read-only until confirmation.");
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_EquipmentPanelFiltersOtherSlotCandidatesAndShowsZeroStatEqualityFallback()
+        {
+            yield return null;
+            var fixture = LoadEquipmentComparisonFixture();
+            equipmentCatalogScope = CatalogFixtureScope.Install(
+                FindType("ToilRelic.Unity.Core.EquipmentCatalog"),
+                FindType("ToilRelic.Unity.Core.EquipmentDefinition"),
+                FindType("ToilRelic.Unity.Core.EquipmentCategory"),
+                fixture.definitions);
+            var gameManager = RequireComponent(GameManagerTypeName);
+            EnterCampState(gameManager);
+            var player = GetPrivateField(gameManager, "player");
+            Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(
+                player, new object[] { "current-ring" }), Is.True);
+            Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(
+                player, new object[] { "all-stat-ring" }), Is.True);
+            var slotType = FindType("ToilRelic.Unity.Core.EquipmentSlot");
+            var ring1 = Enum.Parse(slotType, "Ring1");
+            var ring2 = Enum.Parse(slotType, "Ring2");
+            var primaryWeapon = Enum.Parse(slotType, "PrimaryWeapon");
+            Assert.That((bool)player.GetType().GetMethod("Equip").Invoke(
+                player, new[] { ring1, "current-ring" }), Is.True);
+            var controller = RequireComponent(EquipmentPanelControllerTypeName);
+            controller.GetType().GetMethod("OpenEquipment").Invoke(controller, null);
+
+            controller.GetType().GetMethod("SelectSlot").Invoke(controller, new[] { ring1 });
+            var ringOneCandidates = ((IEnumerable)GetPublicProperty(controller, "CandidateButtons"))
+                .Cast<Button>()
+                .Select(GetButtonLabel)
+                .ToArray();
+            Assert.That(ringOneCandidates, Does.Contain("Current Ring"),
+                "The item in the selected physical slot must remain comparable.");
+            Assert.That(ringOneCandidates, Does.Contain("All-Stat Ring With A Deliberately Long Fixture Name"));
+
+            controller.GetType().GetMethod("SelectSlot").Invoke(controller, new[] { ring2 });
+            var ringTwoCandidates = ((IEnumerable)GetPublicProperty(controller, "CandidateButtons"))
+                .Cast<Button>()
+                .Select(GetButtonLabel)
+                .ToArray();
+            Assert.That(ringTwoCandidates, Does.Not.Contain("Current Ring"),
+                "An ID equipped in Ring 1 must not be offered for Ring 2.");
+            Assert.That(ringTwoCandidates, Does.Contain("All-Stat Ring With A Deliberately Long Fixture Name"));
+
+            controller.GetType().GetMethod("SelectSlot").Invoke(controller, new[] { primaryWeapon });
+            controller.GetType().GetMethod("SelectCandidate").Invoke(controller, new object[] { "starter-weapon" });
+            var comparisonText = (Text)GetPrivateField(controller, "comparisonText");
+            Assert.That(comparisonText.text, Does.Contain("No equipment stat change (±0)"));
+            Assert.That(((Button)GetPrivateField(controller, "equipButton")).interactable, Is.False);
+            Assert.That(File.Exists(fixtureSavePath), Is.False,
+                "Candidate filtering and equality preview must remain read-only.");
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_EquipmentPanelShowsLocalRejectionThenRefreshesInPlaceAfterSuccess()
+        {
+            yield return null;
+            var gameManager = RequireComponent(GameManagerTypeName);
+            EnterCampState(gameManager);
+            var player = GetPrivateField(gameManager, "player");
+            Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(player, new object[] { "reward-weapon" }), Is.True);
+            var controller = CreateEquipmentPanelController(gameManager);
+            var slotType = FindType("ToilRelic.Unity.Core.EquipmentSlot");
+            var primaryWeapon = Enum.Parse(slotType, "PrimaryWeapon");
+            var order = new List<string>();
+            var eventsType = FindType(GameEventsTypeName);
+            using var playerChanged = new ReflectedEventRecorder(eventsType, "PlayerChanged", order);
+            using var stateChanged = new ReflectedEventRecorder(eventsType, "StateChanged", order);
+            using var battleLog = new ReflectedEventRecorder(eventsType, "BattleLog", order);
+            using var saveStatus = new ReflectedEventRecorder(eventsType, "SaveStatusChanged", order);
+
+            controller.GetType().GetMethod("OpenEquipment").Invoke(controller, null);
+            controller.GetType().GetMethod("SelectCandidate").Invoke(controller, new object[] { "reward-weapon" });
+            ((IList)GetPrivateField(player, "ownedEquipmentIds")).Remove("reward-weapon");
+            controller.GetType().GetMethod("EquipSelected").Invoke(controller, null);
+
+            var validationText = (Text)GetPrivateField(controller, "validationText");
+            Assert.That(validationText.text, Is.EqualTo("That equipment is not owned."));
+            Assert.That(GetPublicProperty(controller, "SelectedCandidateId"), Is.Null,
+                "A rejected stale selection must be cleared during refresh.");
+            Assert.That(order, Is.Empty, "A locally displayed command rejection must emit no game events.");
+            Assert.That(File.Exists(fixtureSavePath), Is.False);
+
+            controller.GetType().GetMethod("SelectSlot").Invoke(controller, new[] { primaryWeapon });
+            Assert.That(validationText.text, Is.Empty, "The next selection must clear local rejection text.");
+            Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(player, new object[] { "reward-weapon" }), Is.True);
+            controller.GetType().GetMethod("Refresh").Invoke(controller, null);
+            controller.GetType().GetMethod("SelectCandidate").Invoke(controller, new object[] { "reward-weapon" });
+            controller.GetType().GetMethod("EquipSelected").Invoke(controller, null);
+            yield return null;
+
+            Assert.That(GetPublicProperty(controller, "IsOpen"), Is.True, "Successful commands keep the equipment screen open.");
+            Assert.That(order, Is.EqualTo(new[] { "PlayerChanged", "BattleLog", "SaveStatusChanged" }));
+            Assert.That(stateChanged.Values, Is.Empty);
+            Assert.That(File.Exists(fixtureSavePath), Is.True);
+            var equipped = new object[] { primaryWeapon, null };
+            Assert.That((bool)player.GetType().GetMethod("TryGetEquippedEquipment").Invoke(player, equipped), Is.True);
+            Assert.That(GetPublicProperty(equipped[1], "Id"), Is.EqualTo("reward-weapon"));
+            Assert.That(((Button)GetPrivateField(controller, "equipButton")).interactable, Is.False,
+                "The refreshed same-item preview must not allow another commit.");
+
+            var savedBytes = File.ReadAllText(fixtureSavePath);
+            controller.gameObject.SetActive(false);
+            Assert.That(File.ReadAllText(fixtureSavePath), Is.EqualTo(savedBytes), "Disable cleanup must not save.");
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_EquipmentSceneWiresDedicatedCampLocalPanelAndFixedActions()
+        {
+            yield return null;
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var stateController = RequireComponent(StatePanelControllerTypeName);
+            var controller = RequireComponent(EquipmentPanelControllerTypeName);
+            var campRoot = RequireRectTransform("CampPanel");
+            var campMenu = RequireRectTransform("CampActionMenu");
+            var equipmentPanel = RequireRectTransform("EquipmentPanel");
+
+            Assert.That(controller.transform, Is.EqualTo(campRoot),
+                "EquipmentPanelController must live on the Camp state root.");
+            Assert.That(GetPrivateField(stateController, "campPanel"), Is.EqualTo(campRoot.gameObject),
+                "StatePanelController must toggle the Camp root, not either Camp-local child panel.");
+            Assert.That(GetPrivateField(controller, "gameManager"), Is.EqualTo(gameManager));
+            Assert.That(GetPrivateField(controller, "campMenuPanel"), Is.EqualTo(campMenu.gameObject));
+            Assert.That(GetPrivateField(controller, "equipmentPanel"), Is.EqualTo(equipmentPanel.gameObject));
+            Assert.That(campMenu.parent, Is.EqualTo(campRoot));
+            Assert.That(equipmentPanel.parent, Is.EqualTo(campRoot));
+
+            var equipmentEntry = RequireRectTransform("EquipmentButton").GetComponent<Button>();
+            var back = RequireRectTransform("BackButton").GetComponent<Button>();
+            var equip = RequireRectTransform("EquipButton").GetComponent<Button>();
+            var unequip = RequireRectTransform("UnequipButton").GetComponent<Button>();
+            Assert.That(GetPrivateField(controller, "equipmentEntryButton"), Is.EqualTo(equipmentEntry));
+            Assert.That(GetPrivateField(controller, "backButton"), Is.EqualTo(back));
+            Assert.That(GetPrivateField(controller, "equipButton"), Is.EqualTo(equip));
+            Assert.That(GetPrivateField(controller, "unequipButton"), Is.EqualTo(unequip));
+            Assert.That(GetPrivateField(controller, "slotRowsContainer"),
+                Is.EqualTo(RequireRectTransform("SlotRowsContainer")));
+            Assert.That(GetPrivateField(controller, "candidateRowsContainer"),
+                Is.EqualTo(RequireRectTransform("CandidateRowsContainer")));
+            Assert.That(GetPrivateField(controller, "comparisonText"),
+                Is.EqualTo(RequireRectTransform("ComparisonText").GetComponent<Text>()));
+            Assert.That(GetPrivateField(controller, "totalsText"),
+                Is.EqualTo(RequireRectTransform("TotalsText").GetComponent<Text>()));
+            Assert.That(GetPrivateField(controller, "validationText"),
+                Is.EqualTo(RequireRectTransform("ValidationText").GetComponent<Text>()));
+
+            AssertPersistentAction(equipmentEntry, EquipmentPanelControllerTypeName, "OpenEquipment");
+            AssertPersistentAction(back, EquipmentPanelControllerTypeName, "BackToCamp");
+            AssertPersistentAction(equip, EquipmentPanelControllerTypeName, "EquipSelected");
+            AssertPersistentAction(unequip, EquipmentPanelControllerTypeName, "UnequipSelected");
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_EquipmentPointerFlowOpensPreviewsConfirmsUnequipsAndReturnsControl()
+        {
+            yield return null;
+            var fixture = LoadEquipmentComparisonFixture();
+            var catalogType = FindType("ToilRelic.Unity.Core.EquipmentCatalog");
+            equipmentCatalogScope = CatalogFixtureScope.Install(
+                catalogType,
+                FindType("ToilRelic.Unity.Core.EquipmentDefinition"),
+                FindType("ToilRelic.Unity.Core.EquipmentCategory"),
+                fixture.definitions);
+
+            try
+            {
+                var gameManager = RequireComponent(GameManagerTypeName);
+                EnterCampState(gameManager);
+                yield return null;
+                var player = GetPrivateField(gameManager, "player");
+                Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(
+                    player, new object[] { "current-ring" }), Is.True);
+                var controller = RequireComponent(EquipmentPanelControllerTypeName);
+                var equipmentEntry = RequireRectTransform("EquipmentButton").GetComponent<Button>();
+                Canvas.ForceUpdateCanvases();
+
+                AssertTopRaycastReaches(equipmentEntry);
+                ExecutePointerClick(equipmentEntry);
+                yield return null;
+
+                Assert.That(GetPublicProperty(controller, "IsOpen"), Is.True);
+                Assert.That(((GameObject)GetPrivateField(controller, "campMenuPanel")).activeSelf, Is.False);
+                Assert.That(((GameObject)GetPrivateField(controller, "equipmentPanel")).activeSelf, Is.True);
+                var slots = ((IEnumerable)GetPublicProperty(controller, "SlotButtons")).Cast<Button>().ToArray();
+                ExecutePointerClick(slots[8]);
+                yield return null;
+
+                var candidates = ((IEnumerable)GetPublicProperty(controller, "CandidateButtons")).Cast<Button>().ToArray();
+                var ring = candidates.Single(candidate => GetButtonLabel(candidate) == "Current Ring");
+                ExecutePointerClick(ring);
+                var comparisonText = (Text)GetPrivateField(controller, "comparisonText");
+                Assert.That(comparisonText.text, Does.Contain("Current Ring"),
+                    "A real candidate-row pointer click must update the preview before confirmation.");
+
+                var equip = (Button)GetPrivateField(controller, "equipButton");
+                Assert.That(equip.interactable, Is.True);
+                ExecutePointerClick(equip);
+                yield return null;
+
+                var slotType = FindType("ToilRelic.Unity.Core.EquipmentSlot");
+                var ring1 = Enum.Parse(slotType, "Ring1");
+                var equipped = new object[] { ring1, null };
+                Assert.That((bool)player.GetType().GetMethod("TryGetEquippedEquipment").Invoke(player, equipped), Is.True);
+                Assert.That(GetEquipmentId(equipped[1]), Is.EqualTo("current-ring"));
+
+                var unequip = (Button)GetPrivateField(controller, "unequipButton");
+                Assert.That(unequip.interactable, Is.True);
+                ExecutePointerClick(unequip);
+                yield return null;
+                equipped[1] = null;
+                Assert.That((bool)player.GetType().GetMethod("TryGetEquippedEquipment").Invoke(player, equipped), Is.False);
+
+                var back = (Button)GetPrivateField(controller, "backButton");
+                ExecutePointerClick(back);
+                yield return null;
+                Assert.That(GetPublicProperty(controller, "IsOpen"), Is.False);
+                Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(equipmentEntry.gameObject),
+                    "Back must return non-pointer control to the Camp Equipment entry.");
+            }
+            finally
+            {
+                equipmentCatalogScope.Dispose();
+                equipmentCatalogScope = null;
+            }
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_EquipmentNavigationUsesExplicitCampSlotCandidateActionOrder()
+        {
+            yield return null;
+            var gameManager = RequireComponent(GameManagerTypeName);
+            EnterCampState(gameManager);
+            var player = GetPrivateField(gameManager, "player");
+            Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(
+                player, new object[] { "reward-weapon" }), Is.True);
+
+            var campButtons = new[]
+            {
+                RequireRectTransform("HuntButton").GetComponent<Button>(),
+                RequireRectTransform("RestButton").GetComponent<Button>(),
+                RequireRectTransform("Craft TreasureButton").GetComponent<Button>(),
+                RequireRectTransform("EquipmentButton").GetComponent<Button>()
+            };
+            AssertExplicitVerticalCycle(campButtons);
+
+            var controller = RequireComponent(EquipmentPanelControllerTypeName);
+            controller.GetType().GetMethod("OpenEquipment").Invoke(controller, null);
+            controller.GetType().GetMethod("SelectCandidate").Invoke(controller, new object[] { "reward-weapon" });
+            yield return null;
+
+            var slots = ((IEnumerable)GetPublicProperty(controller, "SlotButtons")).Cast<Button>().ToArray();
+            var candidates = ((IEnumerable)GetPublicProperty(controller, "CandidateButtons")).Cast<Button>().ToArray();
+            var back = (Button)GetPrivateField(controller, "backButton");
+            var equip = (Button)GetPrivateField(controller, "equipButton");
+            var unequip = (Button)GetPrivateField(controller, "unequipButton");
+            Assert.That(slots, Has.Length.EqualTo(12));
+            for (var index = 0; index < slots.Length; index++)
+            {
+                var navigation = slots[index].navigation;
+                Assert.That(navigation.mode, Is.EqualTo(Navigation.Mode.Explicit));
+                Assert.That(navigation.selectOnUp, Is.EqualTo(slots[(index - 1 + slots.Length) % slots.Length]));
+                Assert.That(navigation.selectOnDown, Is.EqualTo(slots[(index + 1) % slots.Length]));
+                Assert.That(navigation.selectOnLeft, Is.EqualTo(back));
+                Assert.That(navigation.selectOnRight, Is.EqualTo(candidates[0]));
+            }
+
+            for (var index = 0; index < candidates.Length; index++)
+            {
+                var navigation = candidates[index].navigation;
+                Assert.That(navigation.mode, Is.EqualTo(Navigation.Mode.Explicit));
+                Assert.That(navigation.selectOnUp, Is.EqualTo(candidates[(index - 1 + candidates.Length) % candidates.Length]));
+                Assert.That(navigation.selectOnDown, Is.EqualTo(candidates[(index + 1) % candidates.Length]));
+                Assert.That(navigation.selectOnLeft, Is.EqualTo(slots[0]));
+                Assert.That(navigation.selectOnRight, Is.EqualTo(equip));
+            }
+
+            Assert.That(equip.navigation.selectOnDown, Is.EqualTo(unequip));
+            Assert.That(unequip.navigation.selectOnDown, Is.EqualTo(back));
+            Assert.That(back.navigation.selectOnDown, Is.EqualTo(slots[0]));
+            Assert.That(back.navigation.selectOnRight, Is.EqualTo(slots[0]));
+        }
+
+        [UnityTest]
+        [Category(PlayModeActionContractsCategory)]
+        public IEnumerator P0_EquipmentSlotNavigationKeepsFinalRowVisibleAndReopenResetsScroll()
+        {
+            yield return null;
+            var gameManager = RequireComponent(GameManagerTypeName);
+            EnterCampState(gameManager);
+            var controller = RequireComponent(EquipmentPanelControllerTypeName);
+            controller.GetType().GetMethod("OpenEquipment").Invoke(controller, null);
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+
+            var slots = ((IEnumerable)GetPublicProperty(controller, "SlotButtons")).Cast<Button>().ToArray();
+            var slotRows = (Transform)GetPrivateField(controller, "slotRowsContainer");
+            var scrollRect = slotRows.GetComponentInParent<ScrollRect>();
+            Assert.That(slots, Has.Length.EqualTo(12));
+            Assert.That(scrollRect, Is.Not.Null);
+            Assert.That(scrollRect.verticalNormalizedPosition, Is.EqualTo(1f).Within(0.001f),
+                "Opening equipment must start the slot viewport at the first row.");
+
+            EventSystem.current.SetSelectedGameObject(slots[0].gameObject);
+            for (var index = 1; index < slots.Length; index++)
+            {
+                var move = new AxisEventData(EventSystem.current) { moveDir = MoveDirection.Down };
+                ExecuteEvents.Execute(
+                    EventSystem.current.currentSelectedGameObject,
+                    move,
+                    ExecuteEvents.moveHandler);
+                yield return null;
+            }
+
+            Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(slots[^1].gameObject));
+            Canvas.ForceUpdateCanvases();
+            AssertRectFullyInsideViewport(scrollRect.viewport, slots[^1].GetComponent<RectTransform>());
+            Assert.That(scrollRect.verticalNormalizedPosition, Is.LessThan(1f),
+                "Selecting the final slot row must move the viewport away from the initial top position.");
+
+            controller.GetType().GetMethod("BackToCamp").Invoke(controller, null);
+            controller.GetType().GetMethod("OpenEquipment").Invoke(controller, null);
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+
+            var reopenedSlots = ((IEnumerable)GetPublicProperty(controller, "SlotButtons")).Cast<Button>().ToArray();
+            Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(reopenedSlots[0].gameObject));
+            Assert.That(scrollRect.verticalNormalizedPosition, Is.EqualTo(1f).Within(0.001f),
+                "Reopening equipment must reset the slot viewport to the first row.");
+            AssertRectFullyInsideViewport(scrollRect.viewport, reopenedSlots[0].GetComponent<RectTransform>());
         }
 
         [UnityTest]
@@ -895,21 +1926,21 @@ namespace ToilRelic.PlayModeTests
         }
 
         [UnityTest]
-        public IEnumerator P0_TitleAndCampLayoutsFitBelowTopRegionsAtWidescreenFloor()
+        public IEnumerator P0_TitleAndCampLayoutsUseDistinctActionGeometryBelowTopRegions()
         {
             yield return null;
             var hudRect = RequireRectTransform("Hud");
             var statusRect = RequireRectTransform("GameStatus");
             var titleRect = RequireRectTransform("TitlePanel");
-            var campRect = RequireRectTransform("CampPanel");
+            var campRect = RequireRectTransform("CampActionMenu");
             var topRegionBottom = Mathf.Min(
                 CalculateVirtualRect(hudRect, WidescreenVirtualSize).yMin,
                 CalculateVirtualRect(statusRect, WidescreenVirtualSize).yMin);
 
             AssertPanelFitsBelowTopRegion(titleRect, topRegionBottom);
             AssertPanelFitsBelowTopRegion(campRect, topRegionBottom);
-            Assert.That(titleRect.sizeDelta, Is.EqualTo(campRect.sizeDelta),
-                "TitlePanel and CampPanel must share the same compact three-action geometry.");
+            Assert.That(campRect.sizeDelta.y, Is.GreaterThan(titleRect.sizeDelta.y),
+                "The four-action Camp menu must use geometry distinct from the three-action title menu.");
         }
 
         [UnityTest]
@@ -933,14 +1964,158 @@ namespace ToilRelic.PlayModeTests
             yield return null;
             AssertPanelButtons(
                 "TitlePanel",
-                ("ContinueButton", "ContinueGame"),
-                ("New GameButton", "StartNewGame"),
-                ("QuitButton", "Quit"));
+                ("ContinueButton", GameActionBridgeTypeName, "ContinueGame"),
+                ("New GameButton", GameActionBridgeTypeName, "StartNewGame"),
+                ("QuitButton", GameActionBridgeTypeName, "Quit"));
             AssertPanelButtons(
-                "CampPanel",
-                ("HuntButton", "StartHunt"),
-                ("RestButton", "Rest"),
-                ("Craft TreasureButton", "CraftTreasure"));
+                "CampActionMenu",
+                ("HuntButton", GameActionBridgeTypeName, "StartHunt"),
+                ("RestButton", GameActionBridgeTypeName, "Rest"),
+                ("Craft TreasureButton", GameActionBridgeTypeName, "CraftTreasure"),
+                ("EquipmentButton", EquipmentPanelControllerTypeName, "OpenEquipment"));
+        }
+
+        [UnityTest]
+        public IEnumerator P0_EquipmentLayoutMeetsViewportTypographyGapAndBoundedRowContracts()
+        {
+            yield return null;
+            var fixture = LoadEquipmentComparisonFixture();
+            equipmentCatalogScope = CatalogFixtureScope.Install(
+                FindType("ToilRelic.Unity.Core.EquipmentCatalog"),
+                FindType("ToilRelic.Unity.Core.EquipmentDefinition"),
+                FindType("ToilRelic.Unity.Core.EquipmentCategory"),
+                fixture.definitions);
+
+            try
+            {
+                var gameManager = RequireComponent(GameManagerTypeName);
+                EnterCampState(gameManager);
+                var player = GetPrivateField(gameManager, "player");
+                Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(
+                    player, new object[] { "long-name-armor" }), Is.True);
+                var controller = RequireComponent(EquipmentPanelControllerTypeName);
+                controller.GetType().GetMethod("OpenEquipment").Invoke(controller, null);
+                var slotType = FindType("ToilRelic.Unity.Core.EquipmentSlot");
+                controller.GetType().GetMethod("SelectSlot").Invoke(controller, new[] { Enum.Parse(slotType, "Armor") });
+                yield return null;
+                Canvas.ForceUpdateCanvases();
+
+                var equipmentRect = RequireRectTransform("EquipmentPanel");
+                var hudRect = RequireRectTransform("Hud");
+                var statusRect = RequireRectTransform("GameStatus");
+                foreach (var viewport in new[] { new Vector2(800f, 600f), WidescreenVirtualSize })
+                {
+                    var bounds = CalculateVirtualRect(equipmentRect, viewport);
+                    var topRegionBottom = Mathf.Min(
+                        CalculateVirtualRect(hudRect, viewport).yMin,
+                        CalculateVirtualRect(statusRect, viewport).yMin);
+                    Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(16f));
+                    Assert.That(viewport.x - bounds.xMax, Is.GreaterThanOrEqualTo(16f));
+                    Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(16f));
+                    Assert.That(topRegionBottom - bounds.yMax, Is.GreaterThanOrEqualTo(MinimumTopRegionGap),
+                        $"EquipmentPanel must remain separate from HUD/status at virtual {viewport.x}x{viewport.y}.");
+                }
+
+                var slotScroll = RequireRectTransform("SlotScrollView");
+                var candidateScroll = RequireRectTransform("CandidateScrollView");
+                var detailPanel = RequireRectTransform("EquipmentDetailPanel");
+                AssertPositiveHorizontalGap(slotScroll, candidateScroll);
+                AssertPositiveHorizontalGap(candidateScroll, detailPanel);
+
+                var back = RequireRectTransform("BackButton");
+                var equip = RequireRectTransform("EquipButton");
+                var unequip = RequireRectTransform("UnequipButton");
+                AssertPositiveHorizontalGap(back, equip);
+                AssertPositiveHorizontalGap(equip, unequip);
+
+                var slotRows = (Transform)GetPrivateField(controller, "slotRowsContainer");
+                var candidateRows = (Transform)GetPrivateField(controller, "candidateRowsContainer");
+                var grid = slotRows.GetComponent<GridLayoutGroup>();
+                var vertical = candidateRows.GetComponent<VerticalLayoutGroup>();
+                Assert.That(grid, Is.Not.Null);
+                Assert.That(grid.constraint, Is.EqualTo(GridLayoutGroup.Constraint.FixedColumnCount));
+                Assert.That(grid.constraintCount, Is.EqualTo(2));
+                Assert.That(grid.cellSize.y, Is.GreaterThanOrEqualTo(44f));
+                Assert.That(grid.spacing.x, Is.GreaterThan(0f));
+                Assert.That(grid.spacing.y, Is.GreaterThan(0f));
+                Assert.That(vertical, Is.Not.Null);
+                Assert.That(vertical.spacing, Is.GreaterThan(0f));
+                Assert.That(slotRows.GetComponent<ContentSizeFitter>(), Is.Not.Null);
+                Assert.That(candidateRows.GetComponent<ContentSizeFitter>(), Is.Not.Null);
+                Assert.That(slotRows.parent.GetComponent<Mask>(), Is.Not.Null);
+                Assert.That(candidateRows.parent.GetComponent<Mask>(), Is.Not.Null);
+                Assert.That(slotRows.parent.parent.GetComponent<ScrollRect>(), Is.Not.Null);
+                Assert.That(candidateRows.parent.parent.GetComponent<ScrollRect>(), Is.Not.Null);
+
+                var runtimeButtons = ((IEnumerable)GetPublicProperty(controller, "SlotButtons")).Cast<Button>()
+                    .Concat(((IEnumerable)GetPublicProperty(controller, "CandidateButtons")).Cast<Button>())
+                    .ToArray();
+                Assert.That(runtimeButtons.Take(12), Has.Count.EqualTo(12));
+                foreach (var button in runtimeButtons)
+                {
+                    Assert.That(button.GetComponent<RectTransform>().rect.height, Is.GreaterThanOrEqualTo(44f),
+                        $"{button.name} must retain a 44 virtual-pixel pointer target.");
+                }
+
+                foreach (var fixedButton in new[] { back, equip, unequip })
+                {
+                    Assert.That(fixedButton.sizeDelta.y, Is.GreaterThanOrEqualTo(44f));
+                }
+
+                var longCandidate = ((IEnumerable)GetPublicProperty(controller, "CandidateButtons")).Cast<Button>().Single();
+                var longLabel = longCandidate.GetComponentInChildren<Text>();
+                Assert.That(longLabel.horizontalOverflow, Is.EqualTo(HorizontalWrapMode.Wrap));
+                Assert.That(longLabel.verticalOverflow, Is.EqualTo(VerticalWrapMode.Truncate));
+                Assert.That(longLabel.rectTransform.rect.width,
+                    Is.LessThanOrEqualTo(candidateRows.GetComponent<RectTransform>().rect.width));
+                AssertTextTypography(equipmentRect.GetComponentsInChildren<Text>(true));
+            }
+            finally
+            {
+                equipmentCatalogScope.Dispose();
+                equipmentCatalogScope = null;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator P0_BootstrapAndCommittedSceneShareEquipmentObjectAndBindingContract()
+        {
+            yield return null;
+            var bootstrapPath = Path.Combine(Application.dataPath, "Editor", "ToilRelicSceneBootstrap.cs");
+            Assert.That(File.Exists(bootstrapPath), Is.True);
+            var source = File.ReadAllText(bootstrapPath);
+            var requiredSourceTokens = new[]
+            {
+                "RegenerateSceneAtPath(ScenePath)",
+                "CreateStretchRoot(\"CampPanel\"",
+                "CreatePanel(\"CampActionMenu\"",
+                "CreatePanel(\"EquipmentPanel\"",
+                "\"SlotRowsContainer\"",
+                "\"CandidateRowsContainer\"",
+                "FindProperty(\"equipmentEntryButton\")",
+                "FindProperty(\"comparisonText\")",
+                "equipmentController.OpenEquipment",
+                "equipmentController.BackToCamp",
+                "equipmentController.EquipSelected",
+                "equipmentController.UnequipSelected"
+            };
+            foreach (var token in requiredSourceTokens)
+            {
+                Assert.That(source, Does.Contain(token), $"Bootstrap source is missing scene-contract token: {token}");
+            }
+
+            var controller = RequireComponent(EquipmentPanelControllerTypeName);
+            Assert.That(controller.transform, Is.EqualTo(RequireRectTransform("CampPanel")));
+            Assert.That(((GameObject)GetPrivateField(controller, "campMenuPanel")).name, Is.EqualTo("CampActionMenu"));
+            Assert.That(((GameObject)GetPrivateField(controller, "equipmentPanel")).name, Is.EqualTo("EquipmentPanel"));
+            AssertPersistentAction((Button)GetPrivateField(controller, "equipmentEntryButton"),
+                EquipmentPanelControllerTypeName, "OpenEquipment");
+            AssertPersistentAction((Button)GetPrivateField(controller, "backButton"),
+                EquipmentPanelControllerTypeName, "BackToCamp");
+            AssertPersistentAction((Button)GetPrivateField(controller, "equipButton"),
+                EquipmentPanelControllerTypeName, "EquipSelected");
+            AssertPersistentAction((Button)GetPrivateField(controller, "unequipButton"),
+                EquipmentPanelControllerTypeName, "UnequipSelected");
         }
 
         [UnityTest]
@@ -1114,6 +2289,106 @@ namespace ToilRelic.PlayModeTests
             yield return CaptureStableScreenshot(evidenceDirectory, "camp-failure-1280x720.png", 1280, 720);
             yield return CaptureStableScreenshot(evidenceDirectory, "camp-failure-800x600.png", 800, 600);
 
+            var fixture = LoadEquipmentComparisonFixture();
+            equipmentCatalogScope = CatalogFixtureScope.Install(
+                FindType("ToilRelic.Unity.Core.EquipmentCatalog"),
+                FindType("ToilRelic.Unity.Core.EquipmentDefinition"),
+                FindType("ToilRelic.Unity.Core.EquipmentCategory"),
+                fixture.definitions);
+            var equipmentController = RequireComponent(EquipmentPanelControllerTypeName);
+            try
+            {
+                var player = GetPrivateField(gameManager, "player");
+                var grantEquipment = player.GetType().GetMethod("GrantEquipment");
+                Assert.That((bool)grantEquipment.Invoke(player, new object[] { "current-ring" }), Is.True);
+                Assert.That((bool)grantEquipment.Invoke(player, new object[] { "all-stat-ring" }), Is.True);
+                Assert.That((bool)grantEquipment.Invoke(player, new object[] { "long-name-armor" }), Is.True);
+                var slotType = FindType("ToilRelic.Unity.Core.EquipmentSlot");
+                equipmentController.GetType().GetMethod("OpenEquipment").Invoke(equipmentController, null);
+
+                var slotButtons = ((IEnumerable)GetPublicProperty(equipmentController, "SlotButtons"))
+                    .Cast<Button>()
+                    .ToArray();
+                EventSystem.current.SetSelectedGameObject(slotButtons[0].gameObject);
+                for (var index = 1; index < slotButtons.Length; index++)
+                {
+                    var move = new AxisEventData(EventSystem.current) { moveDir = MoveDirection.Down };
+                    ExecuteEvents.Execute(
+                        EventSystem.current.currentSelectedGameObject,
+                        move,
+                        ExecuteEvents.moveHandler);
+                    yield return null;
+                }
+
+                var slotRows = (Transform)GetPrivateField(equipmentController, "slotRowsContainer");
+                var slotScrollRect = slotRows.GetComponentInParent<ScrollRect>();
+                Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(slotButtons[^1].gameObject));
+                Canvas.ForceUpdateCanvases();
+                AssertRectFullyInsideViewport(slotScrollRect.viewport, slotButtons[^1].GetComponent<RectTransform>());
+                yield return CaptureStableScreenshot(
+                    evidenceDirectory, "equipment-final-slot-focus-1280x720.png", 1280, 720);
+                yield return CaptureStableScreenshot(
+                    evidenceDirectory, "equipment-final-slot-focus-800x600.png", 800, 600);
+
+                equipmentController.GetType().GetMethod("BackToCamp").Invoke(equipmentController, null);
+                equipmentController.GetType().GetMethod("OpenEquipment").Invoke(equipmentController, null);
+                yield return null;
+
+                equipmentController.GetType().GetMethod("SelectSlot").Invoke(
+                    equipmentController, new[] { Enum.Parse(slotType, "PrimaryWeapon") });
+                equipmentController.GetType().GetMethod("SelectCandidate").Invoke(
+                    equipmentController, new object[] { "starter-weapon" });
+                yield return CaptureStableScreenshot(
+                    evidenceDirectory, "equipment-zero-stat-same-item-1280x720.png", 1280, 720);
+                yield return CaptureStableScreenshot(
+                    evidenceDirectory, "equipment-zero-stat-same-item-800x600.png", 800, 600);
+
+                equipmentController.GetType().GetMethod("SelectSlot").Invoke(
+                    equipmentController, new[] { Enum.Parse(slotType, "Hat") });
+                yield return CaptureStableScreenshot(
+                    evidenceDirectory, "equipment-empty-1280x720.png", 1280, 720);
+                yield return CaptureStableScreenshot(
+                    evidenceDirectory, "equipment-empty-800x600.png", 800, 600);
+
+                equipmentController.GetType().GetMethod("SelectSlot").Invoke(
+                    equipmentController, new[] { Enum.Parse(slotType, "Armor") });
+                equipmentController.GetType().GetMethod("SelectCandidate").Invoke(
+                    equipmentController, new object[] { "long-name-armor" });
+                yield return CaptureStableScreenshot(
+                    evidenceDirectory, "equipment-long-name-preview-1280x720.png", 1280, 720);
+                yield return CaptureStableScreenshot(
+                    evidenceDirectory, "equipment-long-name-preview-800x600.png", 800, 600);
+
+                equipmentController.GetType().GetMethod("SelectSlot").Invoke(
+                    equipmentController, new[] { Enum.Parse(slotType, "Ring1") });
+                equipmentController.GetType().GetMethod("SelectCandidate").Invoke(
+                    equipmentController, new object[] { "current-ring" });
+                equipmentController.GetType().GetMethod("EquipSelected").Invoke(equipmentController, null);
+                yield return CaptureStableScreenshot(
+                    evidenceDirectory, "equipment-success-1280x720.png", 1280, 720);
+                yield return CaptureStableScreenshot(
+                    evidenceDirectory, "equipment-success-800x600.png", 800, 600);
+
+                var invalidSavePath = Path.Combine(
+                    Application.temporaryCachePath, Guid.NewGuid().ToString("N"), "toil_relic_save.json");
+                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", invalidSavePath);
+                equipmentController.GetType().GetMethod("SelectCandidate").Invoke(
+                    equipmentController, new object[] { "all-stat-ring" });
+                LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
+                equipmentController.GetType().GetMethod("EquipSelected").Invoke(equipmentController, null);
+                yield return CaptureStableScreenshot(
+                    evidenceDirectory, "equipment-save-failure-1280x720.png", 1280, 720);
+                yield return CaptureStableScreenshot(
+                    evidenceDirectory, "equipment-save-failure-800x600.png", 800, 600);
+            }
+            finally
+            {
+                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", fixtureSavePath);
+                equipmentController.GetType().GetMethod("BackToCamp").Invoke(equipmentController, null);
+                equipmentCatalogScope.Dispose();
+                equipmentCatalogScope = null;
+            }
+
             changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Battle") });
             gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "A wild Mine Vermin appears." });
             yield return CaptureStableScreenshot(evidenceDirectory, "battle-failure-1280x720.png", 1280, 720);
@@ -1260,12 +2535,14 @@ namespace ToilRelic.PlayModeTests
             var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
 
             changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
+            var player = GetPrivateField(gameManager, "player");
+            Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(player, new object[] { "reward-weapon" }), Is.True);
             try
             {
                 var invalidSavePath = Path.Combine(Application.temporaryCachePath, Guid.NewGuid().ToString(), "toil_relic_save.json");
                 SetPrivateStaticField(saveServiceType, "savePathOverride", invalidSavePath);
                 LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
-                gameManager.GetType().GetMethod("EquipStarterWeapon").Invoke(gameManager, null);
+                gameManager.GetType().GetMethod("EquipRewardWeapon").Invoke(gameManager, null);
             }
             finally
             {
@@ -1274,7 +2551,7 @@ namespace ToilRelic.PlayModeTests
             yield return null;
 
             Assert.That(messageText.text, Is.EqualTo(
-                "Equipped Starter Weapon.\nSave failed. Progress may not be saved."));
+                "Equipped Reward Weapon.\nSave failed. Progress may not be saved."));
         }
 
         [UnityTest]
@@ -1353,9 +2630,56 @@ namespace ToilRelic.PlayModeTests
                 $"{panelRect.name} must remain at least {MinimumTopRegionGap} virtual pixels below the HUD and status regions.");
         }
 
+        private static void AssertPersistentAction(Button button, string targetTypeName, string methodName)
+        {
+            Assert.That(button, Is.Not.Null);
+            Assert.That(button.onClick.GetPersistentEventCount(), Is.EqualTo(1),
+                $"{button.name} must retain exactly one persistent action.");
+            var target = button.onClick.GetPersistentTarget(0);
+            Assert.That(target, Is.Not.Null, $"{button.name} must retain a persistent target.");
+            Assert.That(target.GetType().FullName, Is.EqualTo(targetTypeName),
+                $"{button.name} must target {targetTypeName}.");
+            Assert.That(button.onClick.GetPersistentMethodName(0), Is.EqualTo(methodName),
+                $"{button.name} must remain bound to {methodName}.");
+        }
+
+        private static void AssertExplicitVerticalCycle(IReadOnlyList<Button> buttons)
+        {
+            for (var index = 0; index < buttons.Count; index++)
+            {
+                var navigation = buttons[index].navigation;
+                Assert.That(navigation.mode, Is.EqualTo(Navigation.Mode.Explicit));
+                Assert.That(navigation.selectOnUp,
+                    Is.EqualTo(buttons[(index - 1 + buttons.Count) % buttons.Count]));
+                Assert.That(navigation.selectOnDown, Is.EqualTo(buttons[(index + 1) % buttons.Count]));
+            }
+        }
+
+        private static void AssertPositiveHorizontalGap(RectTransform left, RectTransform right)
+        {
+            Assert.That(left.parent, Is.EqualTo(right.parent),
+                $"{left.name} and {right.name} must share a parent for local gap verification.");
+            var leftEdge = left.anchoredPosition.x + (left.sizeDelta.x * (1f - left.pivot.x));
+            var rightEdge = right.anchoredPosition.x - (right.sizeDelta.x * right.pivot.x);
+            Assert.That(rightEdge - leftEdge, Is.GreaterThan(0f),
+                $"{left.name} and {right.name} must retain a positive visible gap.");
+        }
+
+        private static void AssertRectFullyInsideViewport(RectTransform viewport, RectTransform target)
+        {
+            Assert.That(viewport, Is.Not.Null);
+            Assert.That(target, Is.Not.Null);
+            var targetBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(viewport, target);
+            const float tolerance = 0.5f;
+            Assert.That(targetBounds.min.y, Is.GreaterThanOrEqualTo(viewport.rect.yMin - tolerance),
+                $"{target.name} must remain fully above the viewport's lower edge.");
+            Assert.That(targetBounds.max.y, Is.LessThanOrEqualTo(viewport.rect.yMax + tolerance),
+                $"{target.name} must remain fully below the viewport's upper edge.");
+        }
+
         private static void AssertPanelButtons(
             string panelName,
-            params (string ButtonName, string MethodName)[] expectedButtons)
+            params (string ButtonName, string TargetTypeName, string MethodName)[] expectedButtons)
         {
             var panel = RequireRectTransform(panelName);
             var buttons = expectedButtons
@@ -1369,10 +2693,10 @@ namespace ToilRelic.PlayModeTests
                 var rect = button.GetComponent<RectTransform>();
                 Assert.That(rect.sizeDelta.y, Is.GreaterThanOrEqualTo(44f),
                     $"{button.name} must remain at least 44 pixels high.");
-                Assert.That(button.onClick.GetPersistentEventCount(), Is.EqualTo(1),
-                    $"{button.name} must retain exactly one persistent action.");
-                Assert.That(button.onClick.GetPersistentMethodName(0), Is.EqualTo(expectedButtons[index].MethodName),
-                    $"{button.name} must remain bound to {expectedButtons[index].MethodName}.");
+                AssertPersistentAction(
+                    button,
+                    expectedButtons[index].TargetTypeName,
+                    expectedButtons[index].MethodName);
             }
 
             var ordered = buttons
@@ -1474,11 +2798,157 @@ namespace ToilRelic.PlayModeTests
             if (File.ReadAllText(fixtureSavePath) != original) failures.Add($"{caseName} mutated source bytes");
         }
 
+        private static void EnterCampState(Component gameManager)
+        {
+            var stateType = GetPrivateField(gameManager, "state").GetType();
+            var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(changeState, Is.Not.Null);
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
+        }
+
+        private Component CreateEquipmentPanelController(Component gameManager)
+        {
+            var controllerType = FindType(EquipmentPanelControllerTypeName);
+            Assert.That(controllerType, Is.Not.Null, "EquipmentPanelController must exist for the Camp-local equipment mode.");
+            var root = new GameObject("EquipmentPanelControllerFixture", typeof(RectTransform));
+            fixtureObjects.Add(root);
+            root.SetActive(false);
+
+            var campMenu = new GameObject("CampMenuFixture", typeof(RectTransform));
+            campMenu.transform.SetParent(root.transform, false);
+            var equipmentPanel = new GameObject("EquipmentPanelFixture", typeof(RectTransform));
+            equipmentPanel.transform.SetParent(root.transform, false);
+            var entryButton = CreateUiButton(campMenu.transform, "EquipmentEntry", "Equipment");
+            var backButton = CreateUiButton(equipmentPanel.transform, "Back", "Back");
+            var equipButton = CreateUiButton(equipmentPanel.transform, "Equip", "Equip");
+            var unequipButton = CreateUiButton(equipmentPanel.transform, "Unequip", "Unequip");
+            var slotRows = new GameObject("SlotRows", typeof(RectTransform)).transform;
+            slotRows.SetParent(equipmentPanel.transform, false);
+            var candidateRows = new GameObject("CandidateRows", typeof(RectTransform)).transform;
+            candidateRows.SetParent(equipmentPanel.transform, false);
+            var comparisonText = CreateUiText(equipmentPanel.transform, "ComparisonText");
+            var totalsText = CreateUiText(equipmentPanel.transform, "TotalsText");
+            var validationText = CreateUiText(equipmentPanel.transform, "ValidationText");
+
+            equipmentPanel.SetActive(false);
+            var controller = root.AddComponent(controllerType);
+            SetPrivateField(controller, "gameManager", gameManager);
+            SetPrivateField(controller, "campMenuPanel", campMenu);
+            SetPrivateField(controller, "equipmentPanel", equipmentPanel);
+            SetPrivateField(controller, "equipmentEntryButton", entryButton);
+            SetPrivateField(controller, "backButton", backButton);
+            SetPrivateField(controller, "equipButton", equipButton);
+            SetPrivateField(controller, "unequipButton", unequipButton);
+            SetPrivateField(controller, "slotRowsContainer", slotRows);
+            SetPrivateField(controller, "candidateRowsContainer", candidateRows);
+            SetPrivateField(controller, "comparisonText", comparisonText);
+            SetPrivateField(controller, "totalsText", totalsText);
+            SetPrivateField(controller, "validationText", validationText);
+            root.SetActive(true);
+            return controller;
+        }
+
+        private static Button CreateUiButton(Transform parent, string name, string label)
+        {
+            var buttonObject = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+            buttonObject.transform.SetParent(parent, false);
+            var text = CreateUiText(buttonObject.transform, "Label");
+            text.text = label;
+            return buttonObject.GetComponent<Button>();
+        }
+
+        private static Text CreateUiText(Transform parent, string name)
+        {
+            var textObject = new GameObject(name, typeof(RectTransform), typeof(Text));
+            textObject.transform.SetParent(parent, false);
+            var text = textObject.GetComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            return text;
+        }
+
+        private static string GetButtonLabel(Button button)
+        {
+            var label = button.GetComponentInChildren<Text>();
+            Assert.That(label, Is.Not.Null, $"Button '{button.name}' must expose a uGUI Text label.");
+            return label.text;
+        }
+
         private static Type FindType(string typeName)
         {
             return AppDomain.CurrentDomain.GetAssemblies()
                 .Select(assembly => assembly.GetType(typeName, throwOnError: false))
                 .FirstOrDefault(type => type != null);
+        }
+
+        private static EquipmentComparisonContractFixture LoadEquipmentComparisonFixture()
+        {
+            var path = Path.Combine(Application.dataPath, "Tests", "Fixtures", "EquipmentComparisonContracts.json");
+            Assert.That(File.Exists(path), Is.True, $"Canonical comparison fixture is missing: {path}");
+            var fixture = JsonUtility.FromJson<EquipmentComparisonContractFixture>(File.ReadAllText(path));
+            Assert.That(fixture, Is.Not.Null, "Canonical comparison fixture could not be parsed.");
+            return fixture;
+        }
+
+        private static object CreateEquipmentFixturePlayer(
+            Type playerType,
+            Type slotType,
+            IEnumerable<string> ownedIds,
+            IEnumerable<EquippedFixtureEntry> equipped)
+        {
+            var player = Activator.CreateInstance(playerType);
+            playerType.GetMethod("InitDefaults").Invoke(player, null);
+            var owned = (IEnumerable)GetPublicProperty(player, "OwnedEquipmentIds");
+            var ownedSet = new HashSet<string>(owned.Cast<string>(), StringComparer.Ordinal);
+            var grant = playerType.GetMethod("GrantEquipment");
+            var equip = playerType.GetMethod("Equip");
+
+            foreach (var id in ownedIds)
+            {
+                if (ownedSet.Add(id))
+                {
+                    Assert.That(grant.Invoke(player, new object[] { id }), Is.EqualTo(true),
+                        $"Fixture equipment should be grantable: {id}");
+                }
+            }
+
+            foreach (var entry in equipped)
+            {
+                Assert.That(equip.Invoke(player, new[] { Enum.Parse(slotType, entry.slot), entry.equipmentId }), Is.EqualTo(true),
+                    $"Fixture equipment should be equippable: {entry.equipmentId} -> {entry.slot}");
+            }
+
+            return player;
+        }
+
+        private static object GetPublicProperty(object instance, string name)
+        {
+            Assert.That(instance, Is.Not.Null, $"Instance is required to read public property '{name}'.");
+            var property = instance.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public);
+            Assert.That(property, Is.Not.Null, $"Expected public property '{name}' was not found on {instance.GetType().FullName}.");
+            return property.GetValue(instance);
+        }
+
+        private static string GetEquipmentId(object equipment)
+        {
+            return equipment == null ? null : (string)GetPublicProperty(equipment, "Id");
+        }
+
+        private static string NullIfEmpty(string value)
+        {
+            return string.IsNullOrEmpty(value) ? null : value;
+        }
+
+        private static string FormatDelta(object delta)
+        {
+            return $"{GetPublicProperty(delta, "Stat")}:{GetPublicProperty(delta, "CurrentValue")}:{GetPublicProperty(delta, "CandidateValue")}:{GetPublicProperty(delta, "Delta")}";
+        }
+
+        private static int GetCatalogCount(Type catalogType)
+        {
+            Assert.That(catalogType, Is.Not.Null, "EquipmentCatalog type is required.");
+            var all = catalogType.GetProperty("All", BindingFlags.Static | BindingFlags.Public)?.GetValue(null) as IEnumerable;
+            Assert.That(all, Is.Not.Null, "EquipmentCatalog.All must expose read-only enumeration.");
+            return all.Cast<object>().Count();
         }
 
         private static Text RequireSaveStatusText(Component status)
@@ -1555,6 +3025,54 @@ namespace ToilRelic.PlayModeTests
             Assert.That(button.onClick.GetPersistentMethodName(0), Is.EqualTo(expectedMethodName),
                 $"{buttonName} must remain bound to {expectedMethodName}.");
             return button;
+        }
+
+        private static void AssertTopRaycastReaches(Button button)
+        {
+            Assert.That(button.gameObject.activeInHierarchy, Is.True);
+            Assert.That(button.interactable, Is.True);
+            var eventSystem = EventSystem.current;
+            Assert.That(eventSystem, Is.Not.Null);
+            var canvas = button.GetComponentInParent<Canvas>();
+            var raycaster = canvas.GetComponent<GraphicRaycaster>();
+            Assert.That(raycaster, Is.Not.Null);
+            var position = RectTransformUtility.WorldToScreenPoint(
+                canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera,
+                button.GetComponent<RectTransform>().TransformPoint(button.GetComponent<RectTransform>().rect.center));
+            var eventData = new PointerEventData(eventSystem) { position = position };
+            var results = new List<RaycastResult>();
+            raycaster.Raycast(eventData, results);
+            var rect = button.GetComponent<RectTransform>();
+            Assert.That(
+                results,
+                Is.Not.Empty,
+                $"{button.name} must be reachable by the scene GraphicRaycaster. " +
+                $"screen={Screen.width}x{Screen.height}, position={position}, rect={rect.rect}, " +
+                $"canvasRect={canvas.GetComponent<RectTransform>().rect}, " +
+                $"graphicRaycast={button.targetGraphic != null && button.targetGraphic.raycastTarget}.");
+            Assert.That(
+                results[0].gameObject == button.gameObject || results[0].gameObject.transform.IsChildOf(button.transform),
+                Is.True,
+                $"{button.name} must be the top pointer hit, but {results[0].gameObject.name} was above it.");
+        }
+
+        private static void ExecutePointerClick(Button button)
+        {
+            Assert.That(button.gameObject.activeInHierarchy, Is.True, $"{button.name} must be active before pointer dispatch.");
+            Assert.That(button.interactable, Is.True, $"{button.name} must be interactable before pointer dispatch.");
+            var eventSystem = EventSystem.current;
+            Assert.That(eventSystem, Is.Not.Null);
+            var canvas = button.GetComponentInParent<Canvas>();
+            var rect = button.GetComponent<RectTransform>();
+            var eventData = new PointerEventData(eventSystem)
+            {
+                button = PointerEventData.InputButton.Left,
+                position = RectTransformUtility.WorldToScreenPoint(
+                    canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera,
+                    rect.TransformPoint(rect.rect.center))
+            };
+            var handledBy = ExecuteEvents.ExecuteHierarchy(button.gameObject, eventData, ExecuteEvents.pointerClickHandler);
+            Assert.That(handledBy, Is.Not.Null, $"{button.name} did not handle the pointer-click event.");
         }
 
         private static void ClickVisibleActionButton(string buttonName, string expectedMethodName)

@@ -5,6 +5,7 @@ using ToilRelic.Systems;
 
 namespace ToilRelic.Tests;
 
+[Collection(ConsoleCollection.Name)]
 public sealed class SaveSystemTests
 {
     public enum InvalidCoreValueCase

@@ -18,4 +18,10 @@
     <ProjectReference Include="..\..\src\ToilRelic\ToilRelic.csproj" />
     <Using Include="Xunit" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\unity\Assets\Tests\Fixtures\EquipmentComparisonContracts.json"
+          Link="Fixtures\EquipmentComparisonContracts.json"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

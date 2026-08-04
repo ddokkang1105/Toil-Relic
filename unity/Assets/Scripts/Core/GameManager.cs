@@ -6,6 +6,71 @@ using System.Collections.Generic;
 
 namespace ToilRelic.Unity.Core
 {
+    public enum EquipmentCommandStatus
+    {
+        Applied,
+        NotInCamp,
+        ComparisonRejected,
+        UnequipRejected,
+        MutationRejected
+    }
+
+    public enum EquipmentCommandKind
+    {
+        Equip,
+        Unequip
+    }
+
+    public sealed class EquipmentCommandOutcome
+    {
+        public EquipmentCommandKind Command { get; }
+        public EquipmentCommandStatus Status { get; }
+        public EquipmentCommandStatus Reason => Status;
+        public bool Applied => Status == EquipmentCommandStatus.Applied;
+        public EquipmentComparisonReason ComparisonReason { get; }
+        public UnequipEligibilityStatus UnequipStatus { get; }
+        public EquipmentComparisonResult Comparison { get; }
+        public UnequipEligibilityResult UnequipEligibility { get; }
+
+        private EquipmentCommandOutcome(
+            EquipmentCommandKind command,
+            EquipmentCommandStatus status,
+            EquipmentComparisonReason comparisonReason,
+            UnequipEligibilityStatus unequipStatus,
+            EquipmentComparisonResult comparison,
+            UnequipEligibilityResult unequipEligibility)
+        {
+            Command = command;
+            Status = status;
+            ComparisonReason = comparisonReason;
+            UnequipStatus = unequipStatus;
+            Comparison = comparison;
+            UnequipEligibility = unequipEligibility;
+        }
+
+        internal static EquipmentCommandOutcome Equip(
+            EquipmentCommandStatus status,
+            EquipmentComparisonResult comparison = null) =>
+            new(
+                EquipmentCommandKind.Equip,
+                status,
+                comparison?.Reason ?? EquipmentComparisonReason.None,
+                default,
+                comparison,
+                null);
+
+        internal static EquipmentCommandOutcome Unequip(
+            EquipmentCommandStatus status,
+            UnequipEligibilityResult eligibility = null) =>
+            new(
+                EquipmentCommandKind.Unequip,
+                status,
+                default,
+                eligibility?.Status ?? default,
+                null,
+                eligibility);
+    }
+
     public sealed class GameManager : MonoBehaviour
     {
         [Header("Data")]
@@ -28,6 +93,7 @@ namespace ToilRelic.Unity.Core
         public GameState CurrentState => state;
         public bool HasSavedGame => saveLoadStatus == SaveLoadStatus.Loaded;
         public SaveLoadStatus CurrentSaveLoadStatus => saveLoadStatus;
+        public PlayerState Player => player;
 
         private void Awake()
         {
@@ -219,14 +285,55 @@ namespace ToilRelic.Unity.Core
             SaveProgress();
         }
 
-        public void EquipStarterWeapon() => Equip(EquipmentSlot.PrimaryWeapon, EquipmentCatalog.StarterWeaponId);
-        public void EquipRewardWeapon() => Equip(EquipmentSlot.PrimaryWeapon, EquipmentCatalog.RewardWeaponId);
-        public void EquipEquipment(EquipmentSlot slot, string equipmentId) => Equip(slot, equipmentId);
-        public void UnequipEquipment(EquipmentSlot slot)
+        public void EquipStarterWeapon() => EquipEquipment(EquipmentSlot.PrimaryWeapon, EquipmentCatalog.StarterWeaponId);
+        public void EquipRewardWeapon() => EquipEquipment(EquipmentSlot.PrimaryWeapon, EquipmentCatalog.RewardWeaponId);
+
+        public EquipmentCommandOutcome EquipEquipment(EquipmentSlot slot, string equipmentId)
         {
-            if (state != GameState.Camp || !player.Unequip(slot)) return;
+            if (state != GameState.Camp)
+            {
+                return EquipmentCommandOutcome.Equip(EquipmentCommandStatus.NotInCamp);
+            }
+
+            var comparison = EquipmentComparisonEvaluator.Compare(player, slot, equipmentId);
+            if (!comparison.CanCommit)
+            {
+                return EquipmentCommandOutcome.Equip(EquipmentCommandStatus.ComparisonRejected, comparison);
+            }
+
+            if (!player.Equip(slot, equipmentId))
+            {
+                return EquipmentCommandOutcome.Equip(EquipmentCommandStatus.MutationRejected, comparison);
+            }
+
             PublishPlayer();
+            GameEvents.RaiseBattleLog($"Equipped {comparison.Candidate.DisplayName}.");
             SaveProgress();
+            return EquipmentCommandOutcome.Equip(EquipmentCommandStatus.Applied, comparison);
+        }
+
+        public EquipmentCommandOutcome UnequipEquipment(EquipmentSlot slot)
+        {
+            if (state != GameState.Camp)
+            {
+                return EquipmentCommandOutcome.Unequip(EquipmentCommandStatus.NotInCamp);
+            }
+
+            var eligibility = EquipmentComparisonEvaluator.EvaluateUnequip(player, slot);
+            if (!eligibility.CanCommit)
+            {
+                return EquipmentCommandOutcome.Unequip(EquipmentCommandStatus.UnequipRejected, eligibility);
+            }
+
+            if (!player.Unequip(slot))
+            {
+                return EquipmentCommandOutcome.Unequip(EquipmentCommandStatus.MutationRejected, eligibility);
+            }
+
+            PublishPlayer();
+            GameEvents.RaiseBattleLog($"Unequipped {eligibility.Current.DisplayName}.");
+            SaveProgress();
+            return EquipmentCommandOutcome.Unequip(EquipmentCommandStatus.Applied, eligibility);
         }
 
         private void ResolveEnemyTurn(bool playerDefending)
@@ -345,24 +452,6 @@ namespace ToilRelic.Unity.Core
             ChangeBattlePhase(BattlePhase.None);
             PublishPlayer();
             GameEvents.RaiseBattleLog(message);
-        }
-
-        private void Equip(EquipmentSlot slot, string equipmentId)
-        {
-            if (state != GameState.Camp)
-            {
-                return;
-            }
-
-            if (!player.Equip(slot, equipmentId) || !EquipmentCatalog.TryGet(equipmentId, out var equipment))
-            {
-                GameEvents.RaiseBattleLog("That weapon is not owned.");
-                return;
-            }
-
-            PublishPlayer();
-            GameEvents.RaiseBattleLog($"Equipped {equipment.DisplayName}.");
-            SaveProgress();
         }
 
         private static string BuildLootLog(int junk, int relicPart, int healingPotion, int expReward, bool rewardWeaponGranted)
