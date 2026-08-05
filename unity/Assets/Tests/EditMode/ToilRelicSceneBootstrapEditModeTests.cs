@@ -169,8 +169,11 @@ namespace ToilRelic.EditModeTests
                 Assert.That(generated.Geometry, Is.EquivalentTo(committed.Geometry));
                 Assert.That(generated.Navigation, Is.EquivalentTo(committed.Navigation));
                 Assert.That(generated.BattleMaxLogLines, Is.EqualTo(committed.BattleMaxLogLines));
+                Assert.That(generated.CanvasScaler, Is.EqualTo(committed.CanvasScaler));
                 Assert.That(committed.BattleMaxLogLines, Is.EqualTo(2),
                     "BattlePanelController must serialize a two-log-line surface contract.");
+                Assert.That(committed.CanvasScaler, Is.EqualTo("ScaleWithScreenSize|800,600|0"),
+                    "The committed scene must retain the width-first 800x600 CanvasScaler contract.");
                 AssertBattleNavigationContract(committed.Navigation);
                 Assert.That(File.ReadAllBytes(sceneFile), Is.EqualTo(committedBytes),
                     "The disposable bootstrap contract must not rewrite SampleScene.unity.");
@@ -252,13 +255,24 @@ namespace ToilRelic.EditModeTests
                 path => path,
                 path => DescribeNavigation(scene, path),
                 StringComparer.Ordinal);
+            var canvasScaler = FindTransform(scene, "Canvas").GetComponent<CanvasScaler>();
+            Assert.That(canvasScaler, Is.Not.Null, "The generated Canvas must retain its CanvasScaler.");
             return new SceneContract(
                 hierarchy,
                 serializedReferences,
                 actions,
                 geometry,
                 navigation,
-                maxLogLines.intValue);
+                maxLogLines.intValue,
+                DescribeCanvasScaler(canvasScaler));
+        }
+
+        private static string DescribeCanvasScaler(CanvasScaler scaler)
+        {
+            return string.Join("|",
+                scaler.uiScaleMode,
+                DescribeVector(scaler.referenceResolution),
+                scaler.matchWidthOrHeight.ToString("R", CultureInfo.InvariantCulture));
         }
 
         private static void AssertBattleNavigationContract(IReadOnlyDictionary<string, string> navigation)
@@ -376,6 +390,7 @@ namespace ToilRelic.EditModeTests
             public IReadOnlyDictionary<string, string> Geometry { get; }
             public IReadOnlyDictionary<string, string> Navigation { get; }
             public int BattleMaxLogLines { get; }
+            public string CanvasScaler { get; }
 
             public SceneContract(
                 string[] hierarchy,
@@ -383,7 +398,8 @@ namespace ToilRelic.EditModeTests
                 IReadOnlyDictionary<string, string> actions,
                 IReadOnlyDictionary<string, string> geometry,
                 IReadOnlyDictionary<string, string> navigation,
-                int battleMaxLogLines)
+                int battleMaxLogLines,
+                string canvasScaler)
             {
                 Hierarchy = hierarchy;
                 SerializedReferences = serializedReferences;
@@ -391,6 +407,7 @@ namespace ToilRelic.EditModeTests
                 Geometry = geometry;
                 Navigation = navigation;
                 BattleMaxLogLines = battleMaxLogLines;
+                CanvasScaler = canvasScaler;
             }
         }
     }

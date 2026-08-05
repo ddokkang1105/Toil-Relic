@@ -2036,17 +2036,18 @@ namespace ToilRelic.PlayModeTests
             var flee = RequireRectTransform("FleeButton").GetComponent<Button>();
             var potion = RequireRectTransform("PotionButton").GetComponent<Button>();
 
-            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "This older line must be discarded." });
-            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "You used a healing potion and recovered 12 HP." });
-            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "Ruin Wraith hits you for 6." });
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[]
+            {
+                "  This older line must be discarded.  \r\n\r\n"
+                + "  You used a healing potion and recovered 12 HP.  \n\t\n"
+                + "  Ruin Wraith hits you for 6.  \r\n"
+            });
             yield return null;
 
             Assert.That((int)GetPrivateField(battlePanel, "maxLogLines"), Is.EqualTo(2));
-            Assert.That(logText.text.Split('\n').Where(line => !string.IsNullOrWhiteSpace(line)), Is.EqualTo(new[]
-            {
-                "You used a healing potion and recovered 12 HP.",
-                "Ruin Wraith hits you for 6."
-            }), "The battle surface must retain the newest two non-empty logical log lines.");
+            Assert.That(logText.text, Is.EqualTo(
+                "You used a healing potion and recovered 12 HP.\nRuin Wraith hits you for 6."),
+                "The battle surface must trim multiline input and retain exactly the newest two non-empty logical lines.");
 
             AssertBattleButtonGeometry(attack, defend, flee, potion);
             AssertPersistentAction(attack, GameActionBridgeTypeName, "Attack");
@@ -2509,8 +2510,18 @@ namespace ToilRelic.PlayModeTests
             var battlePanel = RequireComponent(BattlePanelControllerTypeName);
             var messageText = GetPrivateField(status, "messageText") as Text;
             var saveStatusText = RequireSaveStatusText(status);
+            var enemyText = GetPrivateField(battlePanel, "enemyText") as Text;
             var phaseText = GetPrivateField(battlePanel, "phaseText") as Text;
             var logText = GetPrivateField(battlePanel, "logText") as Text;
+            Action<Canvas, int, int> assertBattleViewport = (canvas, width, height) =>
+                AssertBattleRenderedLayoutAtViewport(
+                    canvas,
+                    width,
+                    height,
+                    messageText,
+                    enemyText,
+                    phaseText,
+                    logText);
 
             yield return EnterBattle();
             gameEventsType.GetMethod("RaiseEnemyChanged").Invoke(null, new object[] { "Ruin Wraith", 18, 18 });
@@ -2527,8 +2538,10 @@ namespace ToilRelic.PlayModeTests
                 "Battle evidence must hide the contextual SaveStatus row.");
             Assert.That(messageText.text, Is.EqualTo(
                 "Ruin Wraith hits you for 6.\nSave failed. Progress may not be saved."));
-            yield return CaptureStableScreenshot(evidenceDirectory, "battle-failure-1280x720.png", 1280, 720);
-            yield return CaptureStableScreenshot(evidenceDirectory, "battle-failure-800x600.png", 800, 600);
+            yield return CaptureStableScreenshot(
+                evidenceDirectory, "battle-failure-1280x720.png", 1280, 720, assertBattleViewport);
+            yield return CaptureStableScreenshot(
+                evidenceDirectory, "battle-failure-800x600.png", 800, 600, assertBattleViewport);
 
             changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
             RaiseSaveStatus(gameEventsType, "Succeeded");
@@ -2546,8 +2559,10 @@ namespace ToilRelic.PlayModeTests
             Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.False,
                 "Battle evidence must hide the contextual SaveStatus row.");
             Assert.That(messageText.text, Is.EqualTo("Ruin Wraith hits you for 6."));
-            yield return CaptureStableScreenshot(evidenceDirectory, "battle-normal-1280x720.png", 1280, 720);
-            yield return CaptureStableScreenshot(evidenceDirectory, "battle-normal-800x600.png", 800, 600);
+            yield return CaptureStableScreenshot(
+                evidenceDirectory, "battle-normal-1280x720.png", 1280, 720, assertBattleViewport);
+            yield return CaptureStableScreenshot(
+                evidenceDirectory, "battle-normal-800x600.png", 800, 600, assertBattleViewport);
         }
 
         [UnityTest]
@@ -2992,6 +3007,41 @@ namespace ToilRelic.PlayModeTests
                 $"{text.name} generated glyphs must stay inside the lower text edge.");
             Assert.That(glyphs.yMax, Is.LessThanOrEqualTo(rect.yMax + tolerance),
                 $"{text.name} generated glyphs must stay inside the upper text edge.");
+        }
+
+        private static void AssertBattleRenderedLayoutAtViewport(
+            Canvas canvas,
+            int width,
+            int height,
+            Text messageText,
+            Text enemyText,
+            Text phaseText,
+            Text logText)
+        {
+            var scaler = canvas.GetComponent<CanvasScaler>();
+            Assert.That(scaler, Is.Not.Null, "The generated Canvas must retain its CanvasScaler.");
+            Assert.That(scaler.uiScaleMode, Is.EqualTo(CanvasScaler.ScaleMode.ScaleWithScreenSize));
+            Assert.That(scaler.referenceResolution, Is.EqualTo(StandardVirtualSize));
+            Assert.That(scaler.matchWidthOrHeight, Is.EqualTo(0f).Within(0.001f),
+                "The generated Canvas must remain width-first.");
+
+            var canvasRect = canvas.GetComponent<RectTransform>();
+            var expectedVirtualSize = new Vector2(
+                StandardVirtualSize.x,
+                height * StandardVirtualSize.x / width);
+            Assert.That(canvasRect.rect.width, Is.EqualTo(expectedVirtualSize.x).Within(0.01f),
+                $"The {width}x{height} render must expose {expectedVirtualSize.x} virtual pixels horizontally.");
+            Assert.That(canvasRect.rect.height, Is.EqualTo(expectedVirtualSize.y).Within(0.01f),
+                $"The {width}x{height} render must expose {expectedVirtualSize.y} virtual pixels vertically.");
+
+            var enemyGlyphs = CalculateGeneratedGlyphBounds(enemyText, canvasRect);
+            var messageGlyphs = CalculateGeneratedGlyphBounds(messageText, canvasRect);
+            AssertGeneratedGlyphsInsideRect(messageText, canvasRect, messageGlyphs);
+            AssertGeneratedGlyphsInsideRect(enemyText, canvasRect, enemyGlyphs);
+            AssertGeneratedGlyphsInsideRect(phaseText, canvasRect);
+            AssertGeneratedGlyphsInsideRect(logText, canvasRect);
+            Assert.That(messageGlyphs.yMin - enemyGlyphs.yMax, Is.GreaterThanOrEqualTo(MinimumStatusGlyphGap),
+                $"The {width}x{height} render must keep status glyphs at least {MinimumStatusGlyphGap} virtual pixels above EnemyText glyphs.");
         }
 
         private static void AssertVerticalRectOrder(Rect upper, Rect lower, string upperName, string lowerName)
@@ -3488,13 +3538,23 @@ namespace ToilRelic.PlayModeTests
             return enemy;
         }
 
-        private static IEnumerator CaptureStableScreenshot(string evidenceDirectory, string fileName, int width, int height)
+        private static IEnumerator CaptureStableScreenshot(
+            string evidenceDirectory,
+            string fileName,
+            int width,
+            int height,
+            Action<Canvas, int, int> assertLayout = null)
         {
-            yield return CaptureScreenshot(evidenceDirectory, fileName, width, height);
-            yield return CaptureScreenshot(evidenceDirectory, fileName, width, height);
+            yield return CaptureScreenshot(evidenceDirectory, fileName, width, height, assertLayout);
+            yield return CaptureScreenshot(evidenceDirectory, fileName, width, height, assertLayout);
         }
 
-        private static IEnumerator CaptureScreenshot(string evidenceDirectory, string fileName, int width, int height)
+        private static IEnumerator CaptureScreenshot(
+            string evidenceDirectory,
+            string fileName,
+            int width,
+            int height,
+            Action<Canvas, int, int> assertLayout)
         {
             for (var frame = 0; frame < 10; frame++)
             {
@@ -3525,6 +3585,7 @@ namespace ToilRelic.PlayModeTests
                 Canvas.ForceUpdateCanvases();
                 Assert.That(camera.pixelWidth, Is.EqualTo(width), "Capture camera width must match the requested viewport.");
                 Assert.That(camera.pixelHeight, Is.EqualTo(height), "Capture camera height must match the requested viewport.");
+                assertLayout?.Invoke(canvas, width, height);
 
                 camera.Render();
                 yield return null;

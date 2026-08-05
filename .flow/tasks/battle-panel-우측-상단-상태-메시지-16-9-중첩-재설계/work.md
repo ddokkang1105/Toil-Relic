@@ -85,3 +85,62 @@ Render evidence integrity samples:
 - The first focused navigation/log Play Mode run failed because the new test changed state directly and therefore bypassed the real battle-entry interactability path. The test was corrected to use `EnterBattle()`; the unchanged production implementation then passed.
 - The generated scene has a large serializer-owned YAML diff and Unity's standard blank-value trailing spaces. It was kept as generated instead of hand-formatting the scene authority.
 - No console gameplay implementation changed because this task only restructures Unity UI presentation and input navigation.
+
+## Review rework - 2026-08-05
+
+### Resolved findings
+
+- **#1 viewport-faithful glyph guard:** the graphics capture helper now runs an optional Battle layout assertion while the requested `RenderTexture` and camera are attached. Each `1280x720` and `800x600` Battle capture verifies the serialized width-first `CanvasScaler`, the resulting `800x450` or `800x600` Canvas rect, status/enemy/phase/log glyph containment, and the 24px status-to-enemy glyph gap. Edit Mode generated-scene parity now also preserves `ScaleWithScreenSize | 800x600 | match=0`.
+- **#3 multiline logical-log contract:** the existing Battle action test now raises one whitespace-padded payload containing three logical lines, blank segments, LF, CRLF, and a trailing newline through `GameEvents`. It asserts the exact newest two trimmed non-empty lines.
+
+This rework changes test behavior only; no product/runtime files changed. The evidence strategy was characterization and contract strengthening rather than a red product test because the current rendered layout and parser behavior were expected to remain valid. The earlier passing work artifacts established the weaker baseline, and the strengthened tests now prove the missing branches directly.
+
+### Framework route
+
+- Personal Flow probe: OpenSpec CLI available but not active for this existing task; gstack and Compound Engineering available; OMX unavailable.
+- Execution: active `ce-work` in return-to-caller mode, native inline strategy. Both findings touched the same Play Mode fixture, so no parallel worker lane was used.
+
+### Verification
+
+| Check | Result | Evidence |
+|---|---|---|
+| Generated-scene Edit Mode parity and CanvasScaler contract | 1/1 passed | `work-rework-editmode-results.xml` |
+| Multiline log and 2x2 action contract | 1/1 passed | `work-rework-action-results.xml` |
+| Graphics-enabled viewport/glyph capture contract | 1/1 passed | `work-rework-layout-results.xml`, `work-rework-layout-evidence-r1/` |
+| Full Play Mode assembly | 62 passed, 0 failed, 1 intentionally ignored opt-in capture test | `work-rework-playmode-results.xml` |
+| Console build | 0 warnings, 0 errors | `dotnet build src/ToilRelic/ToilRelic.csproj --nologo` |
+
+The graphics run produced 22 PNGs. The four Battle images were checked for exact dimensions, non-uniform sampled pixels, and visual separation:
+
+| Image | Size | Sample colors | Sample hash |
+|---|---:|---:|---|
+| `battle-failure-1280x720.png` | 114,571 bytes | 98 | `E9A1F71752CB201E` |
+| `battle-failure-800x600.png` | 66,895 bytes | 42 | `CDD8B37A71CE36C6` |
+| `battle-normal-1280x720.png` | 104,713 bytes | 94 | `CC89451AB7211133` |
+| `battle-normal-800x600.png` | 60,823 bytes | 42 | `0C509C0C6BD19AF4` |
+
+All four show clear separation between GameStatus and Enemy text, contained Enemy/Phase/log rows, and an aligned 2x2 action grid.
+
+Final accepted commands omitted `-quit`; two earlier Edit Mode attempts that included `-quit` completed compilation but exited before the Unity Test Runner wrote XML, so they were not accepted as verification.
+
+```powershell
+& 'C:\Program Files\Unity\Hub\Editor\6000.3.19f1\Editor\Unity.exe' -batchmode -nographics -projectPath 'C:\Toil-Relic-main\unity' -runTests -testPlatform EditMode -assemblyNames 'ToilRelic.EditModeTests' -testResults '<task>\work-rework-editmode-results.xml' -logFile '<task>\work-rework-editmode.log'
+```
+
+```powershell
+& 'C:\Program Files\Unity\Hub\Editor\6000.3.19f1\Editor\Unity.exe' -batchmode -nographics -projectPath 'C:\Toil-Relic-main\unity' -runTests -testPlatform PlayMode -assemblyNames 'ToilRelic.PlayModeTests' -testFilter 'ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_BattleActionsUseTwoByTwoSpatialNavigationAndNewestTwoLogs' -testResults '<task>\work-rework-action-results.xml' -logFile '<task>\work-rework-action.log'
+```
+
+```powershell
+$env:TOIL_RELIC_LAYOUT_EVIDENCE_DIR = '<task>\work-rework-layout-evidence-r1'
+& 'C:\Program Files\Unity\Hub\Editor\6000.3.19f1\Editor\Unity.exe' -batchmode -projectPath 'C:\Toil-Relic-main\unity' -runTests -testPlatform PlayMode -assemblyNames 'ToilRelic.PlayModeTests' -testFilter 'ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_CaptureLayoutEvidenceWhenRequested' -testResults '<task>\work-rework-layout-results.xml' -logFile '<task>\work-rework-layout.log'
+```
+
+```powershell
+& 'C:\Program Files\Unity\Hub\Editor\6000.3.19f1\Editor\Unity.exe' -batchmode -nographics -projectPath 'C:\Toil-Relic-main\unity' -runTests -testPlatform PlayMode -assemblyNames 'ToilRelic.PlayModeTests' -testResults '<task>\work-rework-playmode-results.xml' -logFile '<task>\work-rework-playmode.log'
+dotnet build src/ToilRelic/ToilRelic.csproj --nologo
+```
+
+### Rework status
+
+Findings #1 and #3 are implemented and locally verified. R8 and U4 now have viewport-faithful automated evidence, and the task is ready to return to `review`.
