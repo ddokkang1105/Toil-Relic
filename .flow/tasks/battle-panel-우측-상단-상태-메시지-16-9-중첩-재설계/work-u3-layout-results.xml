@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="2" result="Passed" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-08-05 04:29:05Z" end-time="2026-08-05 04:29:06Z" duration="0.5960768">
+  <test-suite type="TestSuite" id="1071" name="_unity-bootstrap" fullname="_unity-bootstrap" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-08-05 04:29:05Z" end-time="2026-08-05 04:29:06Z" duration="0.596077" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1065" name="ToilRelic.PlayModeTests.dll" fullname="C:/Toil-Relic-main/unity/Library/ScriptAssemblies/ToilRelic.PlayModeTests.dll" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-08-05 04:29:05Z" end-time="2026-08-05 04:29:06Z" duration="0.588740" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="26432" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1066" name="ToilRelic" fullname="ToilRelic" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-08-05 04:29:05Z" end-time="2026-08-05 04:29:06Z" duration="0.587804" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1067" name="PlayModeTests" fullname="ToilRelic.PlayModeTests" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-08-05 04:29:05Z" end-time="2026-08-05 04:29:06Z" duration="0.587144" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1001" name="SampleSceneP0PlayModeTests" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-08-05 04:29:05Z" end-time="2026-08-05 04:29:06Z" duration="0.585785" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1046" name="P0_BattlePanelFitsBelowVisibleStatusAtWidescreenFloor" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_BattlePanelFitsBelowVisibleStatusAtWidescreenFloor" methodname="P0_BattlePanelFitsBelowVisibleStatusAtWidescreenFloor" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="952186817" result="Passed" start-time="2026-08-05 04:29:05Z" end-time="2026-08-05 04:29:05Z" duration="0.377755" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+            </test-case>
+            <test-case id="1047" name="P0_BattleTextUsesReadableNonoverlappingRenderedBounds" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_BattleTextUsesReadableNonoverlappingRenderedBounds" methodname="P0_BattleTextUsesReadableNonoverlappingRenderedBounds" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1965875289" result="Passed" start-time="2026-08-05 04:29:05Z" end-time="2026-08-05 04:29:06Z" duration="0.189239" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Saving results to: C:/Users/User/AppData/LocalLow/DefaultCompany/_unity-bootstrap\TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

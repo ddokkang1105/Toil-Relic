@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="1" result="Passed" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-08-05 04:31:46Z" end-time="2026-08-05 04:31:48Z" duration="2.1194095">
+  <test-suite type="TestSuite" id="1071" name="_unity-bootstrap" fullname="_unity-bootstrap" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-08-05 04:31:46Z" end-time="2026-08-05 04:31:48Z" duration="2.119410" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1065" name="ToilRelic.PlayModeTests.dll" fullname="C:/Toil-Relic-main/unity/Library/ScriptAssemblies/ToilRelic.PlayModeTests.dll" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-08-05 04:31:46Z" end-time="2026-08-05 04:31:48Z" duration="2.113140" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="5484" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestSuite" id="1066" name="ToilRelic" fullname="ToilRelic" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-08-05 04:31:46Z" end-time="2026-08-05 04:31:48Z" duration="2.112130" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1067" name="PlayModeTests" fullname="ToilRelic.PlayModeTests" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-08-05 04:31:46Z" end-time="2026-08-05 04:31:48Z" duration="2.111435" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1001" name="SampleSceneP0PlayModeTests" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-08-05 04:31:46Z" end-time="2026-08-05 04:31:48Z" duration="2.110089" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1057" name="P0_CaptureLayoutEvidenceWhenRequested" fullname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests.P0_CaptureLayoutEvidenceWhenRequested" methodname="P0_CaptureLayoutEvidenceWhenRequested" classname="ToilRelic.PlayModeTests.SampleSceneP0PlayModeTests" runstate="Runnable" seed="1864549108" result="Passed" start-time="2026-08-05 04:31:46Z" end-time="2026-08-05 04:31:48Z" duration="2.095668" asserts="0">
+              <properties>
+                <property name="_JOINTYPE" value="UnityCombinatorial" />
+                <property name="retryIteration" value="0" />
+                <property name="repeatIteration" value="0" />
+              </properties>
+              <output><![CDATA[Save write failed. System.IO.DirectoryNotFoundException: Could not find a part of the path "C:\Users\User\AppData\Local\Temp\DefaultCompany\_unity-bootstrap\ad259fe7cf5543f09c3c98170e0c47cd\toil_relic_save.json".
+  at System.IO.FileStream..ctor (System.String path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, System.Int32 bufferSize, System.Boolean anonymous, System.IO.FileOptions options) [0x00164] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at System.IO.FileStream..ctor (System.String path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, System.Int32 bufferSize, System.IO.FileOptions options) [0x00000] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at (wrapper remoting-invoke-with-check) System.IO.FileStream..ctor(string,System.IO.FileMode,System.IO.FileAccess,System.IO.FileShare,int,System.IO.FileOptions)
+  at System.IO.StreamWriter..ctor (System.String path, System.Boolean append, System.Text.Encoding encoding, System.Int32 bufferSize) [0x00055] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at System.IO.StreamWriter..ctor (System.String path) [0x00008] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at (wrapper remoting-invoke-with-check) System.IO.StreamWriter..ctor(string)
+  at System.IO.File.WriteAllText (System.String path, System.String contents) [0x00026] in <41d29b352f6a475ab1bf7c6628b82790>:0 
+  at ToilRelic.Unity.Save.SaveService.Save (ToilRelic.Unity.Core.PlayerState player) [0x0001a] in C:\Toil-Relic-main\unity\Assets\Scripts\Save\SaveService.cs:78 
+Saving results to: C:/Users/User/AppData/LocalLow/DefaultCompany/_unity-bootstrap\TestResults.xml
+]]></output>
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

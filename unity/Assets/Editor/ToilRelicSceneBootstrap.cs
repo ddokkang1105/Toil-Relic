@@ -37,8 +37,9 @@ namespace ToilRelic.Unity.Editor
         private static readonly Vector2 EquipmentPanelSize = new Vector2(768f, 282f);
         private static readonly Vector2 MenuButtonSize = new Vector2(220f, 44f);
         private static readonly Vector2 EquipmentActionButtonSize = new Vector2(156f, 44f);
-        private static readonly Vector2 BattlePanelPosition = new Vector2(180f, -61f);
-        private static readonly Vector2 BattlePanelSize = new Vector2(320f, 316f);
+        private static readonly Vector2 BattleActionButtonSize = new Vector2(136f, 44f);
+        private static readonly Vector2 BattlePanelPosition = new Vector2(180f, -43f);
+        private static readonly Vector2 BattlePanelSize = new Vector2(320f, 280f);
 
         [MenuItem("Tools/Toil Relic/Regenerate Sample Scene")]
         public static void ConfigureSampleScene()
@@ -242,13 +243,18 @@ namespace ToilRelic.Unity.Editor
             equipmentProperties.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(equipmentController);
             equipmentPanel.SetActive(false);
-            CreatePanelText("EnemyText", battlePanel.transform, 130f, 280f, 24f);
-            CreatePanelText("PhaseText", battlePanel.transform, 102f, 280f, 24f);
-            CreatePanelText("BattleLogText", battlePanel.transform, 70f, 280f, 50f);
-            var attackButton = CreateButton("Attack", battlePanel.transform, 12f, bridge.Attack, MenuButtonSize);
-            var defendButton = CreateButton("Defend", battlePanel.transform, -36f, bridge.Defend, MenuButtonSize);
-            var fleeButton = CreateButton("Flee", battlePanel.transform, -84f, bridge.Flee, MenuButtonSize);
-            var potionButton = CreateButton("Potion", battlePanel.transform, -132f, bridge.UsePotion, MenuButtonSize);
+            CreatePanelText("EnemyText", battlePanel.transform, 119f, 280f, 24f);
+            CreatePanelText("PhaseText", battlePanel.transform, 91f, 280f, 24f);
+            CreatePanelText("BattleLogText", battlePanel.transform, 42f, 280f, 66f);
+            var attackButton = CreateButton(
+                "Attack", battlePanel.transform, new Vector2(-72f, -19f), bridge.Attack, BattleActionButtonSize);
+            var defendButton = CreateButton(
+                "Defend", battlePanel.transform, new Vector2(72f, -19f), bridge.Defend, BattleActionButtonSize);
+            var fleeButton = CreateButton(
+                "Flee", battlePanel.transform, new Vector2(-72f, -71f), bridge.Flee, BattleActionButtonSize);
+            var potionButton = CreateButton(
+                "Potion", battlePanel.transform, new Vector2(72f, -71f), bridge.UsePotion, BattleActionButtonSize);
+            SetExplicitBattleGridNavigation(attackButton, defendButton, fleeButton, potionButton);
 
             var stateController = canvas.gameObject.AddComponent<StatePanelController>();
             var stateProperties = new SerializedObject(stateController);
@@ -686,6 +692,35 @@ namespace ToilRelic.Unity.Editor
                     selectOnRight = next
                 };
             }
+        }
+
+        private static void SetExplicitBattleGridNavigation(
+            Button attack,
+            Button defend,
+            Button flee,
+            Button potion)
+        {
+            SetExplicitNavigation(attack, flee, flee, defend, defend);
+            SetExplicitNavigation(defend, potion, potion, attack, attack);
+            SetExplicitNavigation(flee, attack, attack, potion, potion);
+            SetExplicitNavigation(potion, defend, defend, flee, flee);
+        }
+
+        private static void SetExplicitNavigation(
+            Button button,
+            Button up,
+            Button down,
+            Button left,
+            Button right)
+        {
+            button.navigation = new Navigation
+            {
+                mode = Navigation.Mode.Explicit,
+                selectOnUp = up,
+                selectOnDown = down,
+                selectOnLeft = left,
+                selectOnRight = right
+            };
         }
 
         private static void RemoveExistingToilRelicObjects()

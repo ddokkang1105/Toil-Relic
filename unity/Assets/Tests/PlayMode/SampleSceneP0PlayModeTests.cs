@@ -28,7 +28,9 @@ namespace ToilRelic.PlayModeTests
         private const string CombatSystemTypeName = "ToilRelic.Unity.Systems.CombatSystem";
         private const string PlayModeActionContractsCategory = "PlayModeActionContracts";
         private static readonly Vector2 WidescreenVirtualSize = new Vector2(800f, 450f);
+        private static readonly Vector2 StandardVirtualSize = new Vector2(800f, 600f);
         private const float MinimumTopRegionGap = 16f;
+        private const float MinimumStatusGlyphGap = 24f;
         private const string SaveServiceTypeName = "ToilRelic.Unity.Save.SaveService";
         private readonly List<UnityEngine.Object> fixtureObjects = new();
         private Type fixtureSaveServiceType;
@@ -1950,12 +1952,126 @@ namespace ToilRelic.PlayModeTests
             var statusRect = RequireRectTransform("GameStatus");
             var messageRect = RequireRectTransform("MessageText");
             var battleRect = RequireRectTransform("BattlePanel");
-            var statusBounds = CalculateVirtualRect(statusRect, WidescreenVirtualSize);
-            var visibleStatusBottom = statusBounds.yMax + messageRect.anchoredPosition.y - messageRect.sizeDelta.y;
-            var battleTop = CalculateVirtualRect(battleRect, WidescreenVirtualSize).yMax;
 
-            Assert.That(visibleStatusBottom - battleTop, Is.GreaterThanOrEqualTo(MinimumTopRegionGap),
-                "BattlePanel must remain below the visible state and message rows when the save row is hidden.");
+            foreach (var viewport in new[] { WidescreenVirtualSize, StandardVirtualSize })
+            {
+                AssertVirtualViewportMargins(battleRect, viewport, MinimumTopRegionGap);
+                var statusBounds = CalculateVirtualRect(statusRect, viewport);
+                var statusBottom = statusBounds.yMax
+                    + messageRect.anchoredPosition.y
+                    - messageRect.sizeDelta.y;
+                var battleTop = CalculateVirtualRect(battleRect, viewport).yMax;
+                Assert.That(statusBottom - battleTop, Is.GreaterThanOrEqualTo(MinimumTopRegionGap),
+                    $"BattlePanel must remain at least {MinimumTopRegionGap} virtual pixels below the active GameStatus rows at {viewport.x}x{viewport.y}.");
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator P0_BattleTextUsesReadableNonoverlappingRenderedBounds()
+        {
+            yield return null;
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var battlePanel = RequireComponent(BattlePanelControllerTypeName);
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var enemyText = GetPrivateField(battlePanel, "enemyText") as Text;
+            var phaseText = GetPrivateField(battlePanel, "phaseText") as Text;
+            var logText = GetPrivateField(battlePanel, "logText") as Text;
+            var messageText = GetPrivateField(status, "messageText") as Text;
+            var canvasRect = enemyText.GetComponentInParent<Canvas>().GetComponent<RectTransform>();
+            var stateType = GetPrivateField(gameManager, "state").GetType();
+            var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
+            var gameEventsType = gameManager.GetType().Assembly.GetType(GameEventsTypeName);
+
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Battle") });
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "A wild Ruin Wraith appears." });
+            RaiseSaveStatus(gameEventsType, "Failed");
+            enemyText.text = "Enemy: Ruin Wraith (18/18)";
+            logText.text = "You used a healing potion and recovered 12 HP.\nRuin Wraith hits you for 6.";
+
+            Assert.That(messageText.text, Is.EqualTo(
+                "A wild Ruin Wraith appears.\nSave failed. Progress may not be saved."));
+            AssertTextContract(enemyText, requireSingleVisualLine: true);
+            AssertTextContract(logText, requireSingleVisualLine: false);
+
+            foreach (var phase in new[]
+                     {
+                         "Your turn — choose an action.",
+                         "Enemy turn — resolving attack.",
+                         "Resolving battle result..."
+                     })
+            {
+                phaseText.text = phase;
+                Canvas.ForceUpdateCanvases();
+                AssertTextContract(phaseText, requireSingleVisualLine: true);
+                AssertGeneratedGlyphsInsideRect(phaseText, canvasRect);
+            }
+
+            phaseText.text = "Your turn — choose an action.";
+            Canvas.ForceUpdateCanvases();
+
+            var enemyRect = CalculateRectInAncestor(canvasRect, enemyText.rectTransform);
+            var phaseRect = CalculateRectInAncestor(canvasRect, phaseText.rectTransform);
+            var logRect = CalculateRectInAncestor(canvasRect, logText.rectTransform);
+            AssertVerticalRectOrder(enemyRect, phaseRect, enemyText.name, phaseText.name);
+            AssertVerticalRectOrder(phaseRect, logRect, phaseText.name, logText.name);
+            var enemyGlyphs = CalculateGeneratedGlyphBounds(enemyText, canvasRect);
+            AssertGeneratedGlyphsInsideRect(enemyText, canvasRect, enemyGlyphs);
+            AssertGeneratedGlyphsInsideRect(logText, canvasRect);
+
+            var messageGlyphs = CalculateGeneratedGlyphBounds(messageText, canvasRect);
+            Assert.That(messageGlyphs.yMin - enemyGlyphs.yMax, Is.GreaterThanOrEqualTo(MinimumStatusGlyphGap),
+                "The generated status glyphs must remain at least 24 common-Canvas pixels above EnemyText glyphs.");
+        }
+
+        [UnityTest]
+        public IEnumerator P0_BattleActionsUseTwoByTwoSpatialNavigationAndNewestTwoLogs()
+        {
+            yield return EnterBattle();
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var battlePanel = RequireComponent(BattlePanelControllerTypeName);
+            var logText = GetPrivateField(battlePanel, "logText") as Text;
+            var gameEventsType = gameManager.GetType().Assembly.GetType(GameEventsTypeName);
+            var attack = RequireRectTransform("AttackButton").GetComponent<Button>();
+            var defend = RequireRectTransform("DefendButton").GetComponent<Button>();
+            var flee = RequireRectTransform("FleeButton").GetComponent<Button>();
+            var potion = RequireRectTransform("PotionButton").GetComponent<Button>();
+
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "This older line must be discarded." });
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "You used a healing potion and recovered 12 HP." });
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "Ruin Wraith hits you for 6." });
+            yield return null;
+
+            Assert.That((int)GetPrivateField(battlePanel, "maxLogLines"), Is.EqualTo(2));
+            Assert.That(logText.text.Split('\n').Where(line => !string.IsNullOrWhiteSpace(line)), Is.EqualTo(new[]
+            {
+                "You used a healing potion and recovered 12 HP.",
+                "Ruin Wraith hits you for 6."
+            }), "The battle surface must retain the newest two non-empty logical log lines.");
+
+            AssertBattleButtonGeometry(attack, defend, flee, potion);
+            AssertPersistentAction(attack, GameActionBridgeTypeName, "Attack");
+            AssertPersistentAction(defend, GameActionBridgeTypeName, "Defend");
+            AssertPersistentAction(flee, GameActionBridgeTypeName, "Flee");
+            AssertPersistentAction(potion, GameActionBridgeTypeName, "UsePotion");
+            AssertExplicitNavigation(attack, up: flee, down: flee, left: defend, right: defend);
+            AssertExplicitNavigation(defend, up: potion, down: potion, left: attack, right: attack);
+            AssertExplicitNavigation(flee, up: attack, down: attack, left: potion, right: potion);
+            AssertExplicitNavigation(potion, up: defend, down: defend, left: flee, right: flee);
+
+            AssertTopRaycastReaches(attack);
+            AssertTopRaycastReaches(defend);
+            AssertTopRaycastReaches(flee);
+            AssertTopRaycastReaches(potion);
+
+            EventSystem.current.SetSelectedGameObject(attack.gameObject);
+            MoveSelection(MoveDirection.Right);
+            Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(defend.gameObject));
+            MoveSelection(MoveDirection.Down);
+            Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(potion.gameObject));
+            MoveSelection(MoveDirection.Left);
+            Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(flee.gameObject));
+            MoveSelection(MoveDirection.Up);
+            Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(attack.gameObject));
         }
 
         [UnityTest]
@@ -2389,10 +2505,49 @@ namespace ToilRelic.PlayModeTests
                 equipmentCatalogScope = null;
             }
 
-            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Battle") });
-            gameEventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "A wild Mine Vermin appears." });
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var battlePanel = RequireComponent(BattlePanelControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+            var saveStatusText = RequireSaveStatusText(status);
+            var phaseText = GetPrivateField(battlePanel, "phaseText") as Text;
+            var logText = GetPrivateField(battlePanel, "logText") as Text;
+
+            yield return EnterBattle();
+            gameEventsType.GetMethod("RaiseEnemyChanged").Invoke(null, new object[] { "Ruin Wraith", 18, 18 });
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(
+                null, new object[] { "You used a healing potion and recovered 12 HP." });
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(
+                null, new object[] { "Ruin Wraith hits you for 6." });
+            yield return null;
+
+            Assert.That(phaseText.text, Is.EqualTo("Your turn — choose an action."));
+            Assert.That(logText.text, Is.EqualTo(
+                "You used a healing potion and recovered 12 HP.\nRuin Wraith hits you for 6."));
+            Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.False,
+                "Battle evidence must hide the contextual SaveStatus row.");
+            Assert.That(messageText.text, Is.EqualTo(
+                "Ruin Wraith hits you for 6.\nSave failed. Progress may not be saved."));
             yield return CaptureStableScreenshot(evidenceDirectory, "battle-failure-1280x720.png", 1280, 720);
             yield return CaptureStableScreenshot(evidenceDirectory, "battle-failure-800x600.png", 800, 600);
+
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
+            RaiseSaveStatus(gameEventsType, "Succeeded");
+            yield return EnterBattle();
+            gameEventsType.GetMethod("RaiseEnemyChanged").Invoke(null, new object[] { "Ruin Wraith", 18, 18 });
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(
+                null, new object[] { "You used a healing potion and recovered 12 HP." });
+            gameEventsType.GetMethod("RaiseBattleLog").Invoke(
+                null, new object[] { "Ruin Wraith hits you for 6." });
+            yield return null;
+
+            Assert.That(phaseText.text, Is.EqualTo("Your turn — choose an action."));
+            Assert.That(logText.text, Is.EqualTo(
+                "You used a healing potion and recovered 12 HP.\nRuin Wraith hits you for 6."));
+            Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.False,
+                "Battle evidence must hide the contextual SaveStatus row.");
+            Assert.That(messageText.text, Is.EqualTo("Ruin Wraith hits you for 6."));
+            yield return CaptureStableScreenshot(evidenceDirectory, "battle-normal-1280x720.png", 1280, 720);
+            yield return CaptureStableScreenshot(evidenceDirectory, "battle-normal-800x600.png", 800, 600);
         }
 
         [UnityTest]
@@ -2436,6 +2591,32 @@ namespace ToilRelic.PlayModeTests
             Assert.That(fleeButton.interactable, Is.False);
             Assert.That(potionButton.interactable, Is.False);
 
+            changeBattlePhase.Invoke(gameManager, new[] { Enum.Parse(phaseType, "Resolving") });
+            yield return null;
+
+            Assert.That(attackButton.interactable, Is.False);
+            Assert.That(defendButton.interactable, Is.False);
+            Assert.That(fleeButton.interactable, Is.False);
+            Assert.That(potionButton.interactable, Is.False);
+
+            changeBattlePhase.Invoke(gameManager, new[] { Enum.Parse(phaseType, "PlayerAction") });
+            yield return null;
+
+            Assert.That(attackButton.interactable, Is.True);
+            Assert.That(defendButton.interactable, Is.True);
+            Assert.That(fleeButton.interactable, Is.True);
+            Assert.That(potionButton.interactable, Is.True);
+
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
+            yield return null;
+
+            Assert.That(enemyText.text, Is.EqualTo("Enemy: -"));
+            Assert.That(phaseText.text, Is.Empty);
+            Assert.That((GetPrivateField(battlePanel, "logText") as Text).text, Is.Empty);
+            Assert.That(attackButton.interactable, Is.False);
+            Assert.That(defendButton.interactable, Is.False);
+            Assert.That(fleeButton.interactable, Is.False);
+            Assert.That(potionButton.interactable, Is.False);
         }
 
         [UnityTest]
@@ -2721,6 +2902,158 @@ namespace ToilRelic.PlayModeTests
                 Assert.That(text.resizeTextForBestFit, Is.False,
                     $"{text.name} must not shrink below the typography contract.");
             }
+        }
+
+        private static void AssertVirtualViewportMargins(RectTransform rect, Vector2 viewport, float minimumMargin)
+        {
+            var bounds = CalculateVirtualRect(rect, viewport);
+            Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(minimumMargin),
+                $"{rect.name} must keep a {minimumMargin}-pixel left margin at {viewport.x}x{viewport.y}.");
+            Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(minimumMargin),
+                $"{rect.name} must keep a {minimumMargin}-pixel bottom margin at {viewport.x}x{viewport.y}.");
+            Assert.That(viewport.x - bounds.xMax, Is.GreaterThanOrEqualTo(minimumMargin),
+                $"{rect.name} must keep a {minimumMargin}-pixel right margin at {viewport.x}x{viewport.y}.");
+            Assert.That(viewport.y - bounds.yMax, Is.GreaterThanOrEqualTo(minimumMargin),
+                $"{rect.name} must keep a {minimumMargin}-pixel top margin at {viewport.x}x{viewport.y}.");
+        }
+
+        private static void AssertTextContract(Text text, bool requireSingleVisualLine)
+        {
+            Assert.That(text, Is.Not.Null);
+            Assert.That(text.fontSize, Is.GreaterThanOrEqualTo(16), $"{text.name} must remain readable.");
+            Assert.That(text.resizeTextForBestFit, Is.False, $"{text.name} must not shrink with Best Fit.");
+            Assert.That(text.preferredHeight, Is.LessThanOrEqualTo(text.rectTransform.rect.height + 0.01f),
+                $"{text.name} preferred height must fit its rectangle.");
+            if (requireSingleVisualLine)
+            {
+                Assert.That(text.preferredWidth, Is.LessThanOrEqualTo(text.rectTransform.rect.width + 0.01f),
+                    $"{text.name} preferred width must fit its one-line rectangle.");
+            }
+        }
+
+        private static Rect CalculateRectInAncestor(RectTransform ancestor, RectTransform rect)
+        {
+            var bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(ancestor, rect);
+            return Rect.MinMaxRect(bounds.min.x, bounds.min.y, bounds.max.x, bounds.max.y);
+        }
+
+        private static Rect CalculateGeneratedGlyphBounds(Text text, RectTransform canvasRect)
+        {
+            Assert.That(text, Is.Not.Null);
+            Assert.That(text.text, Is.Not.Empty, $"{text.name} must have text before generated-glyph measurement.");
+            var settings = text.GetGenerationSettings(text.rectTransform.rect.size);
+            var generator = text.cachedTextGenerator;
+            Assert.That(generator.Populate(text.text, settings), Is.True,
+                $"{text.name} must populate its TextGenerator before glyph measurement.");
+            var vertices = generator.verts;
+            var vertexCount = Mathf.Max(0, generator.vertexCount - 4);
+            Assert.That(vertexCount, Is.GreaterThan(0), $"{text.name} must generate visible glyph vertices.");
+
+            var first = ToAncestorPoint(text.rectTransform, canvasRect, vertices[0].position / text.pixelsPerUnit);
+            var xMin = first.x;
+            var xMax = first.x;
+            var yMin = first.y;
+            var yMax = first.y;
+            for (var index = 1; index < vertexCount; index++)
+            {
+                var point = ToAncestorPoint(
+                    text.rectTransform,
+                    canvasRect,
+                    vertices[index].position / text.pixelsPerUnit);
+                xMin = Mathf.Min(xMin, point.x);
+                xMax = Mathf.Max(xMax, point.x);
+                yMin = Mathf.Min(yMin, point.y);
+                yMax = Mathf.Max(yMax, point.y);
+            }
+
+            return Rect.MinMaxRect(xMin, yMin, xMax, yMax);
+        }
+
+        private static Vector3 ToAncestorPoint(RectTransform source, RectTransform ancestor, Vector3 localPoint)
+        {
+            return ancestor.InverseTransformPoint(source.TransformPoint(localPoint));
+        }
+
+        private static void AssertGeneratedGlyphsInsideRect(Text text, RectTransform canvasRect)
+        {
+            var glyphs = CalculateGeneratedGlyphBounds(text, canvasRect);
+            AssertGeneratedGlyphsInsideRect(text, canvasRect, glyphs);
+        }
+
+        private static void AssertGeneratedGlyphsInsideRect(Text text, RectTransform canvasRect, Rect glyphs)
+        {
+            var rect = CalculateRectInAncestor(canvasRect, text.rectTransform);
+            const float tolerance = 1f;
+            Assert.That(glyphs.xMin, Is.GreaterThanOrEqualTo(rect.xMin - tolerance),
+                $"{text.name} generated glyphs must stay inside the left text edge.");
+            Assert.That(glyphs.xMax, Is.LessThanOrEqualTo(rect.xMax + tolerance),
+                $"{text.name} generated glyphs must stay inside the right text edge.");
+            Assert.That(glyphs.yMin, Is.GreaterThanOrEqualTo(rect.yMin - tolerance),
+                $"{text.name} generated glyphs must stay inside the lower text edge.");
+            Assert.That(glyphs.yMax, Is.LessThanOrEqualTo(rect.yMax + tolerance),
+                $"{text.name} generated glyphs must stay inside the upper text edge.");
+        }
+
+        private static void AssertVerticalRectOrder(Rect upper, Rect lower, string upperName, string lowerName)
+        {
+            Assert.That(upper.yMin - lower.yMax, Is.GreaterThanOrEqualTo(0f),
+                $"{upperName} and {lowerName} rectangles must not intersect.");
+        }
+
+        private static void AssertBattleButtonGeometry(Button attack, Button defend, Button flee, Button potion)
+        {
+            var buttons = new[] { attack, defend, flee, potion };
+            foreach (var button in buttons)
+            {
+                Assert.That(button.GetComponent<RectTransform>().rect.height, Is.GreaterThanOrEqualTo(44f),
+                    $"{button.name} must remain at least 44 pixels high.");
+            }
+
+            var attackRect = attack.GetComponent<RectTransform>();
+            var defendRect = defend.GetComponent<RectTransform>();
+            var fleeRect = flee.GetComponent<RectTransform>();
+            var potionRect = potion.GetComponent<RectTransform>();
+            Assert.That(attackRect.anchoredPosition.y, Is.EqualTo(defendRect.anchoredPosition.y).Within(0.01f));
+            Assert.That(fleeRect.anchoredPosition.y, Is.EqualTo(potionRect.anchoredPosition.y).Within(0.01f));
+            Assert.That(attackRect.anchoredPosition.y, Is.GreaterThan(fleeRect.anchoredPosition.y));
+            Assert.That(attackRect.anchoredPosition.x, Is.EqualTo(fleeRect.anchoredPosition.x).Within(0.01f));
+            Assert.That(defendRect.anchoredPosition.x, Is.EqualTo(potionRect.anchoredPosition.x).Within(0.01f));
+            Assert.That(attackRect.anchoredPosition.x, Is.LessThan(defendRect.anchoredPosition.x));
+            AssertPositiveHorizontalGap(attackRect, defendRect);
+            AssertPositiveHorizontalGap(fleeRect, potionRect);
+            var firstRowBottom = attackRect.anchoredPosition.y
+                - (attackRect.sizeDelta.y * attackRect.pivot.y);
+            var secondRowTop = fleeRect.anchoredPosition.y
+                + (fleeRect.sizeDelta.y * (1f - fleeRect.pivot.y));
+            Assert.That(firstRowBottom - secondRowTop, Is.GreaterThan(0f),
+                "The Battle action rows must retain a positive vertical gap.");
+        }
+
+        private static void AssertExplicitNavigation(
+            Button button,
+            Button up,
+            Button down,
+            Button left,
+            Button right)
+        {
+            var navigation = button.navigation;
+            Assert.That(navigation.mode, Is.EqualTo(Navigation.Mode.Explicit),
+                $"{button.name} must use explicit spatial navigation.");
+            Assert.That(navigation.selectOnUp, Is.EqualTo(up));
+            Assert.That(navigation.selectOnDown, Is.EqualTo(down));
+            Assert.That(navigation.selectOnLeft, Is.EqualTo(left));
+            Assert.That(navigation.selectOnRight, Is.EqualTo(right));
+        }
+
+        private static void MoveSelection(MoveDirection direction)
+        {
+            var eventSystem = EventSystem.current;
+            Assert.That(eventSystem, Is.Not.Null);
+            var selected = eventSystem.currentSelectedGameObject;
+            Assert.That(selected, Is.Not.Null, $"A selected object is required before moving {direction}.");
+            var move = new AxisEventData(eventSystem) { moveDir = direction };
+            Assert.That(ExecuteEvents.Execute(selected, move, ExecuteEvents.moveHandler), Is.True,
+                $"{selected.name} must handle {direction} navigation.");
         }
 
         private static Rect CalculateVirtualRect(RectTransform rect, Vector2 canvasSize)

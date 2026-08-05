@@ -17,6 +17,7 @@ namespace ToilRelic.EditModeTests
     {
         private const string ScenePath = "Assets/Scenes/SampleScene.unity";
         private const string EquipmentPanelControllerTypeName = "ToilRelic.Unity.UI.EquipmentPanelController";
+        private const string BattlePanelControllerTypeName = "ToilRelic.Unity.UI.BattlePanelController";
         private static readonly HashSet<string> BootstrapRootNames = new(StringComparer.Ordinal)
         {
             "GameManager",
@@ -39,6 +40,17 @@ namespace ToilRelic.EditModeTests
             "totalsText",
             "validationText"
         };
+        private static readonly string[] BattleReferenceFields =
+        {
+            "gameManager",
+            "enemyText",
+            "phaseText",
+            "logText",
+            "attackButton",
+            "defendButton",
+            "fleeButton",
+            "potionButton"
+        };
         private static readonly string[] GeometryPaths =
         {
             "Canvas/CampPanel/EquipmentPanel",
@@ -51,14 +63,33 @@ namespace ToilRelic.EditModeTests
             "Canvas/CampPanel/EquipmentPanel/EquipmentDetailPanel",
             "Canvas/CampPanel/EquipmentPanel/BackButton",
             "Canvas/CampPanel/EquipmentPanel/EquipButton",
-            "Canvas/CampPanel/EquipmentPanel/UnequipButton"
+            "Canvas/CampPanel/EquipmentPanel/UnequipButton",
+            "Canvas/BattlePanel",
+            "Canvas/BattlePanel/EnemyText",
+            "Canvas/BattlePanel/PhaseText",
+            "Canvas/BattlePanel/BattleLogText",
+            "Canvas/BattlePanel/AttackButton",
+            "Canvas/BattlePanel/DefendButton",
+            "Canvas/BattlePanel/FleeButton",
+            "Canvas/BattlePanel/PotionButton"
         };
         private static readonly (string Path, string Method)[] PersistentActions =
         {
             ("Canvas/CampPanel/CampActionMenu/EquipmentButton", "OpenEquipment"),
             ("Canvas/CampPanel/EquipmentPanel/BackButton", "BackToCamp"),
             ("Canvas/CampPanel/EquipmentPanel/EquipButton", "EquipSelected"),
-            ("Canvas/CampPanel/EquipmentPanel/UnequipButton", "UnequipSelected")
+            ("Canvas/CampPanel/EquipmentPanel/UnequipButton", "UnequipSelected"),
+            ("Canvas/BattlePanel/AttackButton", "Attack"),
+            ("Canvas/BattlePanel/DefendButton", "Defend"),
+            ("Canvas/BattlePanel/FleeButton", "Flee"),
+            ("Canvas/BattlePanel/PotionButton", "UsePotion")
+        };
+        private static readonly string[] BattleButtonPaths =
+        {
+            "Canvas/BattlePanel/AttackButton",
+            "Canvas/BattlePanel/DefendButton",
+            "Canvas/BattlePanel/FleeButton",
+            "Canvas/BattlePanel/PotionButton"
         };
 
         [Test]
@@ -136,6 +167,11 @@ namespace ToilRelic.EditModeTests
                 Assert.That(generated.SerializedReferences, Is.EquivalentTo(committed.SerializedReferences));
                 Assert.That(generated.Actions, Is.EquivalentTo(committed.Actions));
                 Assert.That(generated.Geometry, Is.EquivalentTo(committed.Geometry));
+                Assert.That(generated.Navigation, Is.EquivalentTo(committed.Navigation));
+                Assert.That(generated.BattleMaxLogLines, Is.EqualTo(committed.BattleMaxLogLines));
+                Assert.That(committed.BattleMaxLogLines, Is.EqualTo(2),
+                    "BattlePanelController must serialize a two-log-line surface contract.");
+                AssertBattleNavigationContract(committed.Navigation);
                 Assert.That(File.ReadAllBytes(sceneFile), Is.EqualTo(committedBytes),
                     "The disposable bootstrap contract must not rewrite SampleScene.unity.");
             }
@@ -177,6 +213,19 @@ namespace ToilRelic.EditModeTests
                 field => field,
                 field => DescribeReference(serializedController.FindProperty(field)?.objectReferenceValue),
                 StringComparer.Ordinal);
+            var battleControllerType = FindType(BattlePanelControllerTypeName);
+            Assert.That(battleControllerType, Is.Not.Null);
+            var battleController = Resources.FindObjectsOfTypeAll(battleControllerType)
+                .OfType<Component>()
+                .Single(component => component.gameObject.scene == scene);
+            var serializedBattleController = new SerializedObject(battleController);
+            foreach (var field in BattleReferenceFields)
+            {
+                serializedReferences[$"Battle.{field}"] = DescribeReference(
+                    serializedBattleController.FindProperty(field)?.objectReferenceValue);
+            }
+            var maxLogLines = serializedBattleController.FindProperty("maxLogLines");
+            Assert.That(maxLogLines, Is.Not.Null);
             var actions = PersistentActions.ToDictionary(
                 action => action.Path,
                 action => DescribeAction(scene, action.Path, action.Method),
@@ -199,7 +248,49 @@ namespace ToilRelic.EditModeTests
                 grid.padding.right,
                 grid.padding.top,
                 grid.padding.bottom);
-            return new SceneContract(hierarchy, serializedReferences, actions, geometry);
+            var navigation = BattleButtonPaths.ToDictionary(
+                path => path,
+                path => DescribeNavigation(scene, path),
+                StringComparer.Ordinal);
+            return new SceneContract(
+                hierarchy,
+                serializedReferences,
+                actions,
+                geometry,
+                navigation,
+                maxLogLines.intValue);
+        }
+
+        private static void AssertBattleNavigationContract(IReadOnlyDictionary<string, string> navigation)
+        {
+            Assert.That(navigation["Canvas/BattlePanel/AttackButton"], Is.EqualTo(
+                "Explicit|Canvas/BattlePanel/FleeButton|Canvas/BattlePanel/FleeButton|Canvas/BattlePanel/DefendButton|Canvas/BattlePanel/DefendButton"));
+            Assert.That(navigation["Canvas/BattlePanel/DefendButton"], Is.EqualTo(
+                "Explicit|Canvas/BattlePanel/PotionButton|Canvas/BattlePanel/PotionButton|Canvas/BattlePanel/AttackButton|Canvas/BattlePanel/AttackButton"));
+            Assert.That(navigation["Canvas/BattlePanel/FleeButton"], Is.EqualTo(
+                "Explicit|Canvas/BattlePanel/AttackButton|Canvas/BattlePanel/AttackButton|Canvas/BattlePanel/PotionButton|Canvas/BattlePanel/PotionButton"));
+            Assert.That(navigation["Canvas/BattlePanel/PotionButton"], Is.EqualTo(
+                "Explicit|Canvas/BattlePanel/DefendButton|Canvas/BattlePanel/DefendButton|Canvas/BattlePanel/FleeButton|Canvas/BattlePanel/FleeButton"));
+        }
+
+        private static string DescribeNavigation(Scene scene, string path)
+        {
+            var button = FindTransform(scene, path).GetComponent<Button>();
+            Assert.That(button, Is.Not.Null, $"{path} must contain a Button.");
+            var navigation = button.navigation;
+            return string.Join("|",
+                navigation.mode,
+                DescribeNavigationTarget(scene, navigation.selectOnUp),
+                DescribeNavigationTarget(scene, navigation.selectOnDown),
+                DescribeNavigationTarget(scene, navigation.selectOnLeft),
+                DescribeNavigationTarget(scene, navigation.selectOnRight));
+        }
+
+        private static string DescribeNavigationTarget(Scene scene, Selectable target)
+        {
+            Assert.That(target, Is.Not.Null, "Explicit Battle navigation targets must be assigned.");
+            Assert.That(target.gameObject.scene, Is.EqualTo(scene));
+            return GetHierarchyPath(target.transform);
         }
 
         private static string DescribeAction(Scene scene, string path, string expectedMethod)
@@ -283,17 +374,23 @@ namespace ToilRelic.EditModeTests
             public IReadOnlyDictionary<string, string> SerializedReferences { get; }
             public IReadOnlyDictionary<string, string> Actions { get; }
             public IReadOnlyDictionary<string, string> Geometry { get; }
+            public IReadOnlyDictionary<string, string> Navigation { get; }
+            public int BattleMaxLogLines { get; }
 
             public SceneContract(
                 string[] hierarchy,
                 IReadOnlyDictionary<string, string> serializedReferences,
                 IReadOnlyDictionary<string, string> actions,
-                IReadOnlyDictionary<string, string> geometry)
+                IReadOnlyDictionary<string, string> geometry,
+                IReadOnlyDictionary<string, string> navigation,
+                int battleMaxLogLines)
             {
                 Hierarchy = hierarchy;
                 SerializedReferences = serializedReferences;
                 Actions = actions;
                 Geometry = geometry;
+                Navigation = navigation;
+                BattleMaxLogLines = battleMaxLogLines;
             }
         }
     }

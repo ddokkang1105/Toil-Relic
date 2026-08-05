@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using ToilRelic.Unity.Core;
 using UnityEngine;
@@ -15,9 +16,10 @@ namespace ToilRelic.Unity.UI
         [SerializeField] private Button defendButton;
         [SerializeField] private Button fleeButton;
         [SerializeField] private Button potionButton;
-        [SerializeField] private int maxLogLines = 10;
+        [SerializeField] private int maxLogLines = 2;
 
         private readonly StringBuilder logBuffer = new();
+        private readonly Queue<string> logicalLogLines = new();
 
         private void OnEnable()
         {
@@ -77,27 +79,70 @@ namespace ToilRelic.Unity.UI
             UpdateActionAvailability();
         }
 
-        private void AppendLog(string line)
+        private void AppendLog(string message)
         {
-            var current = logBuffer.ToString().Split('\n');
-            logBuffer.Clear();
-
-            var start = Mathf.Max(0, current.Length - maxLogLines + 1);
-            for (var i = start; i < current.Length; i++)
+            var lineLimit = Mathf.Max(0, maxLogLines);
+            if (lineLimit == 0)
             {
-                if (string.IsNullOrWhiteSpace(current[i]))
-                {
-                    continue;
-                }
-
-                logBuffer.AppendLine(current[i]);
+                ClearLog();
+                return;
             }
 
-            logBuffer.AppendLine(line);
+            if (!EnqueueLogicalLines(message, lineLimit))
+            {
+                return;
+            }
+
+            logBuffer.Clear();
+            foreach (var logicalLine in logicalLogLines)
+            {
+                if (logBuffer.Length > 0)
+                {
+                    logBuffer.Append('\n');
+                }
+
+                logBuffer.Append(logicalLine);
+            }
+
             if (logText != null)
             {
                 logText.text = logBuffer.ToString();
             }
+        }
+
+        private bool EnqueueLogicalLines(string content, int lineLimit)
+        {
+            if (string.IsNullOrEmpty(content))
+            {
+                return false;
+            }
+
+            var acceptedLine = false;
+            var lineStart = 0;
+            for (var index = 0; index <= content.Length; index++)
+            {
+                if (index < content.Length && content[index] != '\n')
+                {
+                    continue;
+                }
+
+                var logicalLine = content.Substring(lineStart, index - lineStart).Trim();
+                lineStart = index + 1;
+                if (logicalLine.Length == 0)
+                {
+                    continue;
+                }
+
+                logicalLogLines.Enqueue(logicalLine);
+                while (logicalLogLines.Count > lineLimit)
+                {
+                    logicalLogLines.Dequeue();
+                }
+
+                acceptedLine = true;
+            }
+
+            return acceptedLine;
         }
 
         private void UpdateActionAvailability()
@@ -123,16 +168,22 @@ namespace ToilRelic.Unity.UI
                 phaseText.text = string.Empty;
             }
 
-            logBuffer.Clear();
-            if (logText != null)
-            {
-                logText.text = string.Empty;
-            }
+            ClearLog();
 
             SetInteractable(attackButton, false);
             SetInteractable(defendButton, false);
             SetInteractable(fleeButton, false);
             SetInteractable(potionButton, false);
+        }
+
+        private void ClearLog()
+        {
+            logicalLogLines.Clear();
+            logBuffer.Clear();
+            if (logText != null)
+            {
+                logText.text = string.Empty;
+            }
         }
 
         private static void SetInteractable(Button button, bool value)
