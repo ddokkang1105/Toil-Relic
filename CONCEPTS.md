@@ -35,3 +35,7 @@ The repository's development task lifecycle that preserves decisions, execution 
 ### Action Contract
 
 A Play Mode scenario that activates a real serialized player action and verifies its state transition, ordered feedback, resource changes, persistence boundary, and return of control.
+
+### Viewport-Faithful Render Contract
+
+A Play Mode visual-layout contract that measures the live Canvas and visible glyphs after the requested render viewport is attached, so its semantic assertions and captured pixels describe the same UI state.
