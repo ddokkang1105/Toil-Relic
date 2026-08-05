@@ -1,4 +1,4 @@
-stage: close
+stage: closed
 profile: standard
 gates:
   office_hours: false
@@ -7,6 +7,7 @@ gates:
   design_review: true
   brainstorm: false
   multi_agent: false
+  ce_compound: active_full
 artifacts:
   task: task.md
   decisions: decisions.md
@@ -15,4 +16,4 @@ artifacts:
   review: review.md
   qa: qa.md
   followups: followups.md
-updated: 2026-07-16
+updated: 2026-08-04
