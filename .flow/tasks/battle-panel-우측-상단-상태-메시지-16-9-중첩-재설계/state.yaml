@@ -1,4 +1,4 @@
-stage: qa
+stage: close
 profile: standard
 gates:
   office_hours: false
