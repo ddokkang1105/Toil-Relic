@@ -93,6 +93,43 @@ namespace ToilRelic.EditModeTests
         };
 
         [Test]
+        public void BootstrapCreatesPurposefulHuntProductionContentGraph()
+        {
+            var contractType = FindType("ToilRelic.Unity.Data.HuntContractData");
+            var profileDatabaseType = FindType("ToilRelic.Unity.Data.EquipmentDropProfileDatabase");
+            var enemyDatabaseType = FindType("ToilRelic.Unity.Data.EnemyDatabase");
+            Assert.That(contractType, Is.Not.Null);
+            Assert.That(profileDatabaseType, Is.Not.Null);
+            Assert.That(enemyDatabaseType, Is.Not.Null);
+
+            var contract = AssetDatabase.LoadAssetAtPath("Assets/ScriptableObjects/HuntContract_FirstRelic.asset", contractType);
+            var profiles = AssetDatabase.LoadAssetAtPath("Assets/ScriptableObjects/EquipmentDropProfileDatabase_Main.asset", profileDatabaseType);
+            var enemies = AssetDatabase.LoadAssetAtPath("Assets/ScriptableObjects/EnemyDatabase_Main.asset", enemyDatabaseType);
+            Assert.That(contract, Is.Not.Null);
+            Assert.That(profiles, Is.Not.Null);
+            Assert.That(enemies, Is.Not.Null);
+
+            var validation = contractType.GetMethod("Validate").Invoke(contract, new[] { enemies, profiles });
+            Assert.That(validation.GetType().GetProperty("IsAvailable").GetValue(validation), Is.EqualTo(true));
+            var quarries = (System.Collections.IList)contractType.GetField("quarries").GetValue(contract);
+            var profileList = (System.Collections.IList)profileDatabaseType.GetField("profiles").GetValue(profiles);
+            var enemyList = (System.Collections.IList)enemyDatabaseType.GetField("enemies").GetValue(enemies);
+            Assert.That(quarries.Count, Is.EqualTo(3));
+            Assert.That(profileList.Count, Is.EqualTo(3));
+            Assert.That(enemyList.Count, Is.EqualTo(3));
+            Assert.That(quarries.Cast<object>().Select(entry => entry.GetType().GetField("id").GetValue(entry)),
+                Is.EqualTo(new[] { "mine-vermin", "rust-golem", "ruin-wraith" }));
+            Assert.That(profileList.Cast<object>().Select(entry => entry.GetType().GetField("equipmentId").GetValue(entry)),
+                Is.EqualTo(new[] { "vermin-fang", "rustguard-plate", "wraith-signet" }));
+            Assert.That(enemyList.Cast<object>().Select(entry => entry.GetType().GetField("equipmentDropProfileId").GetValue(entry)),
+                Is.EqualTo(new[] { "profile-mine-vermin", "profile-rust-golem", "profile-ruin-wraith" }));
+
+            Assert.That(AssetDatabase.FindAssets("t:HuntContractData", new[] { "Assets/ScriptableObjects" }).Length, Is.EqualTo(1));
+            Assert.That(AssetDatabase.FindAssets("t:EquipmentDropProfileDatabase", new[] { "Assets/ScriptableObjects" }).Length, Is.EqualTo(1));
+            Assert.That(AssetDatabase.FindAssets("t:EquipmentDropProfileData", new[] { "Assets/ScriptableObjects" }).Length, Is.EqualTo(3));
+        }
+
+        [Test]
         public void BootstrapRegeneratesCommittedEquipmentContractInDisposableScene()
         {
             var originalActiveScene = SceneManager.GetActiveScene();

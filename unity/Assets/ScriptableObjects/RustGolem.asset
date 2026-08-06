@@ -12,11 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 960963cb2fa40524494e9ce24bb49b64, type: 3}
   m_Name: RustGolem
   m_EditorClassIdentifier: Assembly-CSharp::ToilRelic.Unity.Data.EnemyData
+  id: rust-golem
   displayName: Rust Golem
   maxHp: 14
   attackMin: 3
   attackMax: 5
   expReward: 14
-  equipmentDropProfileId: 
+  equipmentDropProfileId: profile-rust-golem
   battleVisualPrefab: {fileID: 0}
   portrait: {fileID: 0}

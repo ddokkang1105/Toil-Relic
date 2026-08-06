@@ -29,10 +29,18 @@ namespace ToilRelic.Unity.Core
     {
         public const string StarterWeaponId = "starter-weapon";
         public const string RewardWeaponId = "reward-weapon";
+        public const string VerminFangId = "vermin-fang";
+        public const string RustguardPlateId = "rustguard-plate";
+        public const string WraithSignetId = "wraith-signet";
+        public const string ToilboundRelicId = "toilbound-relic";
         private static readonly Dictionary<string, EquipmentDefinition> Definitions = new(StringComparer.Ordinal)
         {
             { StarterWeaponId, new EquipmentDefinition(StarterWeaponId, "Starter Weapon", EquipmentCategory.PrimaryWeapon) },
-            { RewardWeaponId, new EquipmentDefinition(RewardWeaponId, "Reward Weapon", EquipmentCategory.PrimaryWeapon, attackBonus: 2) }
+            { RewardWeaponId, new EquipmentDefinition(RewardWeaponId, "Reward Weapon", EquipmentCategory.PrimaryWeapon, attackBonus: 2) },
+            { VerminFangId, new EquipmentDefinition(VerminFangId, "Vermin Fang", EquipmentCategory.SecondaryWeapon, attackBonus: 1) },
+            { RustguardPlateId, new EquipmentDefinition(RustguardPlateId, "Rustguard Plate", EquipmentCategory.Armor, defenseBonus: 2, maxHpBonus: 5) },
+            { WraithSignetId, new EquipmentDefinition(WraithSignetId, "Wraith Signet", EquipmentCategory.Ring, damageReductionBonus: 1) },
+            { ToilboundRelicId, new EquipmentDefinition(ToilboundRelicId, "Toilbound Relic", EquipmentCategory.Necklace, attackBonus: 2, defenseBonus: 2, damageReductionBonus: 1, maxHpBonus: 10) }
         };
         public static IReadOnlyList<EquipmentDefinition> All => Definitions.Values
             .OrderBy(definition => definition.DisplayName, StringComparer.Ordinal)

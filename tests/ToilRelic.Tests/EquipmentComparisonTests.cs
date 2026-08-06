@@ -69,19 +69,20 @@ public sealed class EquipmentComparisonTests
     }
 
     [Fact]
-    public void CatalogFixture_RepeatedInstallRestoresTwoProductionDefinitions()
+    public void CatalogFixture_RepeatedInstallRestoresProductionDefinitions()
     {
         var fixture = LoadFixture();
-        Assert.Equal(2, EquipmentCatalog.All.Count);
+        var productionIds = EquipmentCatalog.All.Select(definition => definition.Id).ToArray();
+        Assert.Equal(6, productionIds.Length);
 
         for (var iteration = 0; iteration < 2; iteration++)
         {
             using (EquipmentCatalogFixtureScope.Install(fixture.Definitions.Select(ToDefinition)))
             {
-                Assert.Equal(2 + fixture.Definitions.Length, EquipmentCatalog.All.Count);
+                Assert.Equal(productionIds.Length + fixture.Definitions.Length, EquipmentCatalog.All.Count);
             }
 
-            Assert.Equal(2, EquipmentCatalog.All.Count);
+            Assert.Equal(productionIds, EquipmentCatalog.All.Select(definition => definition.Id));
             Assert.True(EquipmentCatalog.TryGet(EquipmentCatalog.StarterWeaponId, out _));
             Assert.True(EquipmentCatalog.TryGet(EquipmentCatalog.RewardWeaponId, out _));
         }

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "content": {
+    "projectId": "first-relic-project",
+    "relicEquipmentId": "toilbound-relic",
+    "quarries": [
+      {
+        "id": "mine-vermin",
+        "enemyId": "mine-vermin",
+        "danger": "Low",
+        "contributionId": "chitin-shard",
+        "contributionName": "Chitin Shard",
+        "profileId": "profile-mine-vermin"
+      },
+      {
+        "id": "rust-golem",
+        "enemyId": "rust-golem",
+        "danger": "Medium",
+        "contributionId": "rustheart-core",
+        "contributionName": "Rustheart Core",
+        "profileId": "profile-rust-golem"
+      },
+      {
+        "id": "ruin-wraith",
+        "enemyId": "ruin-wraith",
+        "danger": "High",
+        "contributionId": "wraith-ash",
+        "contributionName": "Wraith Ash",
+        "profileId": "profile-ruin-wraith"
+      }
+    ],
+    "profiles": [
+      { "id": "profile-mine-vermin", "equipmentId": "vermin-fang", "chance": 0.35 },
+      { "id": "profile-rust-golem", "equipmentId": "rustguard-plate", "chance": 0.35 },
+      { "id": "profile-ruin-wraith", "equipmentId": "wraith-signet", "chance": 0.35 }
+    ],
+    "equipment": [
+      { "id": "vermin-fang", "displayName": "Vermin Fang", "category": "SecondaryWeapon", "attack": 1, "defense": 0, "damageReduction": 0, "maxHp": 0 },
+      { "id": "rustguard-plate", "displayName": "Rustguard Plate", "category": "Armor", "attack": 0, "defense": 2, "damageReduction": 0, "maxHp": 5 },
+      { "id": "wraith-signet", "displayName": "Wraith Signet", "category": "Ring", "attack": 0, "defense": 0, "damageReduction": 1, "maxHp": 0 },
+      { "id": "toilbound-relic", "displayName": "Toilbound Relic", "category": "Necklace", "attack": 2, "defense": 2, "damageReduction": 1, "maxHp": 10 }
+    ]
+  },
+  "commands": [],
+  "migrations": []
+}

@@ -6,12 +6,13 @@ namespace ToilRelic.Unity.Data
     public sealed class EnemyData : ScriptableObject
     {
         [Header("Gameplay")]
+        public string id = "mine-vermin";
         public string displayName = "Mine Vermin";
         public int maxHp = 12;
         public int attackMin = 2;
         public int attackMax = 5;
         public int expReward = 12;
-        [Tooltip("Optional future equipment-drop profile ID. This does not configure a live drop.")]
+        [Tooltip("Stable equipment-drop profile ID used by the Hunt Contract.")]
         public string equipmentDropProfileId;
 
         [Header("Presentation")]

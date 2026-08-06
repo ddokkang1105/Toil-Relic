@@ -18,6 +18,8 @@ namespace ToilRelic.Unity.Editor
         private const string ScenePath = "Assets/Scenes/SampleScene.unity";
         private const string DataDirectory = "Assets/ScriptableObjects";
         private const string EnemyDatabasePath = DataDirectory + "/EnemyDatabase_Main.asset";
+        private const string HuntContractPath = DataDirectory + "/HuntContract_FirstRelic.asset";
+        private const string EquipmentDropProfileDatabasePath = DataDirectory + "/EquipmentDropProfileDatabase_Main.asset";
         private const string DropTablePath = DataDirectory + "/DropTable_Default.asset";
         private const float ScreenMargin = 16f;
         private const float HudWidth = 344f;
@@ -67,6 +69,14 @@ namespace ToilRelic.Unity.Editor
             EnsureFolder(sceneDirectory);
             EnsureFolder(DataDirectory);
             var enemyDatabase = CreateEnemyDatabase();
+            var profileDatabase = CreateEquipmentDropProfileDatabase();
+            var huntContract = CreateHuntContract();
+            var huntValidation = huntContract.Validate(enemyDatabase, profileDatabase);
+            if (!huntValidation.IsAvailable)
+            {
+                throw new InvalidDataException(
+                    $"Purposeful Hunt content is invalid: {huntValidation.Issue} ({huntValidation.ContentId}).");
+            }
             var dropTable = LoadOrCreate<DropTableData>(DropTablePath);
             AssetDatabase.SaveAssets();
             if (dropTable == null)
@@ -323,9 +333,9 @@ namespace ToilRelic.Unity.Editor
             var database = LoadOrCreate<EnemyDatabase>(EnemyDatabasePath);
             var enemies = new[]
             {
-                CreateEnemy("MineVermin", "Mine Vermin", 10, 2, 4, 10),
-                CreateEnemy("RustGolem", "Rust Golem", 14, 3, 5, 14),
-                CreateEnemy("RuinWraith", "Ruin Wraith", 18, 4, 6, 20)
+                CreateEnemy("MineVermin", "mine-vermin", "Mine Vermin", 10, 2, 4, 10, "profile-mine-vermin"),
+                CreateEnemy("RustGolem", "rust-golem", "Rust Golem", 14, 3, 5, 14, "profile-rust-golem"),
+                CreateEnemy("RuinWraith", "ruin-wraith", "Ruin Wraith", 18, 4, 6, 20, "profile-ruin-wraith")
             };
             var properties = new SerializedObject(database);
             var list = properties.FindProperty("enemies");
@@ -340,17 +350,93 @@ namespace ToilRelic.Unity.Editor
             return database;
         }
 
-        private static EnemyData CreateEnemy(string fileName, string displayName, int maxHp, int attackMin, int attackMax, int expReward)
+        private static EnemyData CreateEnemy(
+            string fileName,
+            string id,
+            string displayName,
+            int maxHp,
+            int attackMin,
+            int attackMax,
+            int expReward,
+            string equipmentDropProfileId)
         {
             var path = DataDirectory + "/" + fileName + ".asset";
             var enemy = LoadOrCreate<EnemyData>(path);
+            enemy.id = id;
             enemy.displayName = displayName;
             enemy.maxHp = maxHp;
             enemy.attackMin = attackMin;
             enemy.attackMax = attackMax;
             enemy.expReward = expReward;
+            enemy.equipmentDropProfileId = equipmentDropProfileId;
             EditorUtility.SetDirty(enemy);
             return enemy;
+        }
+
+        private static EquipmentDropProfileDatabase CreateEquipmentDropProfileDatabase()
+        {
+            var database = LoadOrCreate<EquipmentDropProfileDatabase>(EquipmentDropProfileDatabasePath);
+            database.profiles = new System.Collections.Generic.List<EquipmentDropProfileData>
+            {
+                CreateEquipmentDropProfile("Profile_MineVermin", "profile-mine-vermin", EquipmentCatalog.VerminFangId),
+                CreateEquipmentDropProfile("Profile_RustGolem", "profile-rust-golem", EquipmentCatalog.RustguardPlateId),
+                CreateEquipmentDropProfile("Profile_RuinWraith", "profile-ruin-wraith", EquipmentCatalog.WraithSignetId)
+            };
+            EditorUtility.SetDirty(database);
+            return database;
+        }
+
+        private static EquipmentDropProfileData CreateEquipmentDropProfile(
+            string fileName,
+            string id,
+            string equipmentId)
+        {
+            var profile = LoadOrCreate<EquipmentDropProfileData>(DataDirectory + "/" + fileName + ".asset");
+            profile.id = id;
+            profile.equipmentId = equipmentId;
+            profile.chance = 0.35f;
+            EditorUtility.SetDirty(profile);
+            return profile;
+        }
+
+        private static HuntContractData CreateHuntContract()
+        {
+            var contract = LoadOrCreate<HuntContractData>(HuntContractPath);
+            contract.projectId = "first-relic-project";
+            contract.displayName = "First Relic Project";
+            contract.relicEquipmentId = EquipmentCatalog.ToilboundRelicId;
+            contract.quarries = new System.Collections.Generic.List<HuntQuarryData>
+            {
+                new HuntQuarryData
+                {
+                    id = "mine-vermin",
+                    enemyId = "mine-vermin",
+                    danger = HuntDanger.Low,
+                    contributionId = "chitin-shard",
+                    contributionDisplayName = "Chitin Shard",
+                    profileId = "profile-mine-vermin"
+                },
+                new HuntQuarryData
+                {
+                    id = "rust-golem",
+                    enemyId = "rust-golem",
+                    danger = HuntDanger.Medium,
+                    contributionId = "rustheart-core",
+                    contributionDisplayName = "Rustheart Core",
+                    profileId = "profile-rust-golem"
+                },
+                new HuntQuarryData
+                {
+                    id = "ruin-wraith",
+                    enemyId = "ruin-wraith",
+                    danger = HuntDanger.High,
+                    contributionId = "wraith-ash",
+                    contributionDisplayName = "Wraith Ash",
+                    profileId = "profile-ruin-wraith"
+                }
+            };
+            EditorUtility.SetDirty(contract);
+            return contract;
         }
 
         private static T LoadOrCreate<T>(string path) where T : ScriptableObject

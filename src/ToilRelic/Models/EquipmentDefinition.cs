@@ -53,11 +53,19 @@ public static class EquipmentCatalog
 {
     public const string StarterWeaponId = "starter-weapon";
     public const string RewardWeaponId = "reward-weapon";
+    public const string VerminFangId = "vermin-fang";
+    public const string RustguardPlateId = "rustguard-plate";
+    public const string WraithSignetId = "wraith-signet";
+    public const string ToilboundRelicId = "toilbound-relic";
 
     private static readonly Dictionary<string, EquipmentDefinition> Definitions = new(StringComparer.Ordinal)
     {
         [StarterWeaponId] = new(StarterWeaponId, "Starter Weapon", EquipmentCategory.PrimaryWeapon),
-        [RewardWeaponId] = new(RewardWeaponId, "Reward Weapon", EquipmentCategory.PrimaryWeapon, AttackBonus: 2)
+        [RewardWeaponId] = new(RewardWeaponId, "Reward Weapon", EquipmentCategory.PrimaryWeapon, AttackBonus: 2),
+        [VerminFangId] = new(VerminFangId, "Vermin Fang", EquipmentCategory.SecondaryWeapon, AttackBonus: 1),
+        [RustguardPlateId] = new(RustguardPlateId, "Rustguard Plate", EquipmentCategory.Armor, DefenseBonus: 2, MaxHpBonus: 5),
+        [WraithSignetId] = new(WraithSignetId, "Wraith Signet", EquipmentCategory.Ring, DamageReductionBonus: 1),
+        [ToilboundRelicId] = new(ToilboundRelicId, "Toilbound Relic", EquipmentCategory.Necklace, AttackBonus: 2, DefenseBonus: 2, DamageReductionBonus: 1, MaxHpBonus: 10)
     };
 
     public static IReadOnlyList<EquipmentDefinition> All => Definitions.Values

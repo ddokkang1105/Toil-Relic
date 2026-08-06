@@ -12,11 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 960963cb2fa40524494e9ce24bb49b64, type: 3}
   m_Name: MineVermin
   m_EditorClassIdentifier: Assembly-CSharp::ToilRelic.Unity.Data.EnemyData
+  id: mine-vermin
   displayName: Mine Vermin
   maxHp: 10
   attackMin: 2
   attackMax: 4
   expReward: 10
-  equipmentDropProfileId: 
+  equipmentDropProfileId: profile-mine-vermin
   battleVisualPrefab: {fileID: 0}
   portrait: {fileID: 0}

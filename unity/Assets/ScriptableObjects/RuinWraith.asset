@@ -12,11 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 960963cb2fa40524494e9ce24bb49b64, type: 3}
   m_Name: RuinWraith
   m_EditorClassIdentifier: Assembly-CSharp::ToilRelic.Unity.Data.EnemyData
+  id: ruin-wraith
   displayName: Ruin Wraith
   maxHp: 18
   attackMin: 4
   attackMax: 6
   expReward: 20
-  equipmentDropProfileId: 
+  equipmentDropProfileId: profile-ruin-wraith
   battleVisualPrefab: {fileID: 0}
   portrait: {fileID: 0}

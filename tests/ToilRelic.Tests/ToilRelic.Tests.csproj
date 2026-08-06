@@ -23,5 +23,8 @@
     <None Include="..\..\unity\Assets\Tests\Fixtures\EquipmentComparisonContracts.json"
           Link="Fixtures\EquipmentComparisonContracts.json"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\unity\Assets\Tests\Fixtures\PurposefulHuntContracts.json"
+          Link="Fixtures\PurposefulHuntContracts.json"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

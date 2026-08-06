@@ -361,7 +361,7 @@ namespace ToilRelic.PlayModeTests
             Assert.That(categoryType, Is.Not.Null);
             Assert.That(catalogType, Is.Not.Null);
             Assert.That(evaluatorType, Is.Not.Null);
-            Assert.That(GetCatalogCount(catalogType), Is.EqualTo(2));
+            Assert.That(GetCatalogCount(catalogType), Is.EqualTo(6));
 
             equipmentCatalogScope = CatalogFixtureScope.Install(
                 catalogType, definitionType, categoryType, fixture.definitions);
@@ -426,7 +426,7 @@ namespace ToilRelic.PlayModeTests
                 equipmentCatalogScope = null;
             }
 
-            Assert.That(GetCatalogCount(catalogType), Is.EqualTo(2));
+            Assert.That(GetCatalogCount(catalogType), Is.EqualTo(6));
         }
 
         [UnityTest]
@@ -438,16 +438,16 @@ namespace ToilRelic.PlayModeTests
             var catalogType = FindType("ToilRelic.Unity.Core.EquipmentCatalog");
             var definitionType = FindType("ToilRelic.Unity.Core.EquipmentDefinition");
             var categoryType = FindType("ToilRelic.Unity.Core.EquipmentCategory");
-            Assert.That(GetCatalogCount(catalogType), Is.EqualTo(2));
+            Assert.That(GetCatalogCount(catalogType), Is.EqualTo(6));
 
             for (var iteration = 0; iteration < 2; iteration++)
             {
                 equipmentCatalogScope = CatalogFixtureScope.Install(
                     catalogType, definitionType, categoryType, fixture.definitions);
-                Assert.That(GetCatalogCount(catalogType), Is.EqualTo(2 + fixture.definitions.Length));
+                Assert.That(GetCatalogCount(catalogType), Is.EqualTo(6 + fixture.definitions.Length));
                 equipmentCatalogScope.Dispose();
                 equipmentCatalogScope = null;
-                Assert.That(GetCatalogCount(catalogType), Is.EqualTo(2));
+                Assert.That(GetCatalogCount(catalogType), Is.EqualTo(6));
             }
         }
 

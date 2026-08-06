@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 097003e15039f6b47ba1200b7e14c5e8, type: 3}
+  m_Name: HuntContract_FirstRelic
+  m_EditorClassIdentifier: Assembly-CSharp::ToilRelic.Unity.Data.HuntContractData
+  projectId: first-relic-project
+  displayName: First Relic Project
+  relicEquipmentId: toilbound-relic
+  quarries:
+  - id: mine-vermin
+    enemyId: mine-vermin
+    danger: 0
+    contributionId: chitin-shard
+    contributionDisplayName: Chitin Shard
+    profileId: profile-mine-vermin
+  - id: rust-golem
+    enemyId: rust-golem
+    danger: 1
+    contributionId: rustheart-core
+    contributionDisplayName: Rustheart Core
+    profileId: profile-rust-golem
+  - id: ruin-wraith
+    enemyId: ruin-wraith
+    danger: 2
+    contributionId: wraith-ash
+    contributionDisplayName: Wraith Ash
+    profileId: profile-ruin-wraith
