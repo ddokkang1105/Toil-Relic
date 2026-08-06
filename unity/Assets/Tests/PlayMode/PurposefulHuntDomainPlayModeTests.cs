@@ -365,11 +365,13 @@ namespace ToilRelic.PlayModeTests
             yield return "legacy-carries-project";
         }
 
-        private static string BuildInvalidCurrentSave(string invalidCase)
+        private string BuildInvalidCurrentSave(string invalidCase)
         {
             const string emptyProject = "{\"completedContributionIds\":[],\"forged\":false}";
             const string readyProject = "{\"completedContributionIds\":[\"chitin-shard\",\"rustheart-core\",\"wraith-ash\"],\"forged\":false}";
-            const string current = "{\"version\":3,\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":0,\"inventory\":[{\"type\":0,\"amount\":2}],\"ownedEquipmentIds\":[\"starter-weapon\"],\"equippedEquipment\":[{\"slot\":0,\"equipmentId\":\"starter-weapon\"}],\"equipmentInitialized\":true,\"relicProject\":{\"completedContributionIds\":[],\"forged\":false}}}";
+            var save = saveServiceType.GetMethod("Save").Invoke(null, new[] { CreatePlayer(Array.Empty<string>()) });
+            Assert.That(GetProperty(save, "Succeeded"), Is.EqualTo(true));
+            var current = File.ReadAllText(savePath);
             return invalidCase switch
             {
                 "missing-project" => current.Replace(",\"relicProject\":" + emptyProject, string.Empty),

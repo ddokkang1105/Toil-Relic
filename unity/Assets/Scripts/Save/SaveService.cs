@@ -43,7 +43,6 @@ namespace ToilRelic.Unity.Save
             public List<InventorySlot> inventory;
             public List<string> ownedEquipmentIds;
             public List<EquippedEquipmentEntry> equippedEquipment;
-            public RelicProjectPresenceProbe relicProject;
 
             internal bool HasModernRequiredFields() =>
                 maxHp != SaveEnvelopePresenceProbe.MissingValue &&
@@ -59,12 +58,6 @@ namespace ToilRelic.Unity.Save
                 score != SaveEnvelopePresenceProbe.MissingValue &&
                 treasureCount != SaveEnvelopePresenceProbe.MissingValue &&
                 inventory != null;
-        }
-
-        [Serializable]
-        private sealed class RelicProjectPresenceProbe
-        {
-            public List<string> completedContributionIds;
         }
 
         public static SaveOperationResult Delete()
@@ -273,12 +266,22 @@ namespace ToilRelic.Unity.Save
                 if (json[index] == '"')
                 {
                     index = FindStringEnd(json, index);
-                    if (index < 0) return -1;
+                    if (index < 0)
+                    {
+                        return -1;
+                    }
+
                     continue;
                 }
 
-                if (json[index] == open) depth++;
-                else if (json[index] == close && --depth == 0) return index;
+                if (json[index] == open)
+                {
+                    depth++;
+                }
+                else if (json[index] == close && --depth == 0)
+                {
+                    return index;
+                }
             }
 
             return -1;
@@ -301,7 +304,10 @@ namespace ToilRelic.Unity.Save
                     continue;
                 }
 
-                if (json[index] == '"') return index;
+                if (json[index] == '"')
+                {
+                    return index;
+                }
             }
 
             return -1;
@@ -309,7 +315,11 @@ namespace ToilRelic.Unity.Save
 
         private static int SkipWhitespace(string json, int start)
         {
-            while (start < json.Length && char.IsWhiteSpace(json[start])) start++;
+            while (start < json.Length && char.IsWhiteSpace(json[start]))
+            {
+                start++;
+            }
+
             return start;
         }
 
