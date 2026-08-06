@@ -58,6 +58,13 @@ public sealed class RelicProjectState
         }
     }
 
+    internal void CopyFrom(RelicProjectState source)
+    {
+        _completedContributionIds.Clear();
+        _completedContributionIds.AddRange(source._completedContributionIds);
+        _forged = source._forged;
+    }
+
     internal static bool HasValidSaveState(
         RelicProjectSaveData? saveData,
         IReadOnlyCollection<string> ownedEquipmentIds,

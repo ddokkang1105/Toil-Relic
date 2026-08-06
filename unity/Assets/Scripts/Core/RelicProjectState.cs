@@ -22,6 +22,9 @@ namespace ToilRelic.Unity.Core
         public bool IsReady => completedContributionIds.Count == CanonicalIds.Length;
         public bool IsForged => forged;
 
+        public static bool IsCanonicalContributionId(string contributionId) =>
+            Array.IndexOf(CanonicalIds, contributionId) >= 0;
+
         public bool TryAddContribution(string contributionId)
         {
             var canonicalIndex = Array.IndexOf(CanonicalIds, contributionId);
@@ -45,6 +48,13 @@ namespace ToilRelic.Unity.Core
 
             forged = true;
             return true;
+        }
+
+        internal void CopyFrom(RelicProjectState source)
+        {
+            completedContributionIds.Clear();
+            completedContributionIds.AddRange(source.completedContributionIds);
+            forged = source.forged;
         }
 
         internal static bool HasValidSaveState(

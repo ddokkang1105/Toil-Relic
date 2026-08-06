@@ -41,7 +41,15 @@
       { "id": "toilbound-relic", "displayName": "Toilbound Relic", "category": "Necklace", "attack": 2, "defense": 2, "damageReduction": 1, "maxHp": 10 }
     ]
   },
-  "commands": [],
+  "commands": [
+    { "id": "below-threshold", "quarryId": "mine-vermin", "victory": true, "profileRoll": 0.3499, "experience": 7, "junk": 2, "relicPart": 1, "healingPotion": 1, "precompleted": [], "preownedProfile": false, "expectedStatus": "Applied", "expectedProfile": "Granted", "expectedContribution": "Granted", "expectedReady": false, "expectedSaveRequested": true },
+    { "id": "at-threshold", "quarryId": "rust-golem", "victory": true, "profileRoll": 0.35, "experience": 8, "junk": 1, "relicPart": 2, "healingPotion": 0, "precompleted": [], "preownedProfile": false, "expectedStatus": "Applied", "expectedProfile": "Missed", "expectedContribution": "Granted", "expectedReady": false, "expectedSaveRequested": true },
+    { "id": "above-threshold", "quarryId": "ruin-wraith", "victory": true, "profileRoll": 0.9, "experience": 9, "junk": 0, "relicPart": 3, "healingPotion": 0, "precompleted": [], "preownedProfile": false, "expectedStatus": "Applied", "expectedProfile": "Missed", "expectedContribution": "Granted", "expectedReady": false, "expectedSaveRequested": true },
+    { "id": "replay-owned-profile", "quarryId": "mine-vermin", "victory": true, "profileRoll": 0.1, "experience": 7, "junk": 1, "relicPart": 1, "healingPotion": 0, "precompleted": ["chitin-shard"], "preownedProfile": true, "expectedStatus": "Applied", "expectedProfile": "AlreadyOwned", "expectedContribution": "AlreadyComplete", "expectedReady": false, "expectedSaveRequested": true },
+    { "id": "third-contribution-ready", "quarryId": "ruin-wraith", "victory": true, "profileRoll": 0.1, "experience": 9, "junk": 1, "relicPart": 2, "healingPotion": 0, "precompleted": ["chitin-shard", "rustheart-core"], "preownedProfile": false, "expectedStatus": "Applied", "expectedProfile": "Granted", "expectedContribution": "Granted", "expectedReady": true, "expectedSaveRequested": true },
+    { "id": "non-victory", "quarryId": "mine-vermin", "victory": false, "profileRoll": 0.1, "experience": 7, "junk": 2, "relicPart": 1, "healingPotion": 1, "precompleted": [], "preownedProfile": false, "expectedStatus": "NotVictory", "expectedProfile": "NotEvaluated", "expectedContribution": "NotEvaluated", "expectedReady": false, "expectedSaveRequested": false },
+    { "id": "invalid-roll", "quarryId": "mine-vermin", "victory": true, "profileRoll": 1.0, "experience": 7, "junk": 2, "relicPart": 1, "healingPotion": 1, "precompleted": [], "preownedProfile": false, "expectedStatus": "Rejected", "expectedProfile": "NotEvaluated", "expectedContribution": "NotEvaluated", "expectedReady": false, "expectedSaveRequested": false }
+  ],
   "migrations": [
     { "id": "legacy-empty-project", "consoleVersion": 0, "unityVersion": 2, "expectedStatus": "Loaded", "expectedProjectState": "Empty" },
     { "id": "current-ready", "consoleVersion": 1, "unityVersion": 3, "expectedStatus": "Loaded", "expectedProjectState": "Ready" },

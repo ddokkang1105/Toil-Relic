@@ -9,6 +9,89 @@ namespace ToilRelic.Tests;
 public sealed class PurposefulHuntProjectTests
 {
     [Fact]
+    public void QuarryRewardVectors_AreAtomicAndMatchSharedOutcomes()
+    {
+        var fixture = PurposefulHuntContractFixture.Load();
+        foreach (var vector in fixture.Commands)
+        {
+            var player = new Player(vector.Id);
+            foreach (var contributionId in vector.Precompleted)
+            {
+                Assert.True(player.RelicProject.TryAddContribution(contributionId));
+            }
+
+            var quarry = PurposefulHuntContent.FirstRelicContract.Quarries.Single(item => item.Id == vector.QuarryId);
+            var profile = PurposefulHuntContent.Profiles.Single(item => item.Id == quarry.ProfileId);
+            if (vector.PreownedProfile)
+            {
+                Assert.True(player.GrantEquipment(profile.EquipmentId));
+            }
+
+            var before = JsonSerializer.Serialize(player.ToSaveData());
+            var result = QuarryRewardSystem.Resolve(
+                player,
+                PurposefulHuntContent.FirstRelicContract,
+                PurposefulHuntContent.Profiles,
+                new QuarryVictoryCommand(
+                    vector.QuarryId,
+                    vector.Victory,
+                    vector.ProfileRoll,
+                    vector.Experience,
+                    new GenericHuntReward(vector.Junk, vector.RelicPart, vector.HealingPotion)));
+
+            Assert.Equal(vector.ExpectedStatus, result.Status.ToString());
+            Assert.Equal(vector.ExpectedProfile, result.ProfileResult.ToString());
+            Assert.Equal(vector.ExpectedContribution, result.ContributionResult.ToString());
+            Assert.Equal(vector.ExpectedReady, result.ProjectReady);
+            Assert.Equal(vector.ExpectedSaveRequested, result.SaveRequested);
+            if (!vector.ExpectedSaveRequested)
+            {
+                Assert.Equal(before, JsonSerializer.Serialize(player.ToSaveData()));
+            }
+            else
+            {
+                Assert.Equal(vector.Junk, player.Inventory[ItemType.Junk]);
+                Assert.Equal(vector.RelicPart, player.Inventory[ItemType.RelicPart]);
+                Assert.Equal(vector.HealingPotion, player.Inventory[ItemType.HealingPotion]);
+                Assert.DoesNotContain(EquipmentCatalog.RewardWeaponId, player.OwnedEquipmentIds);
+            }
+        }
+    }
+
+    [Fact]
+    public void Forge_IsAtomicIdempotentAndRejectsConflictingOwnership()
+    {
+        var unready = new Player("Unready");
+        var unreadyBefore = JsonSerializer.Serialize(unready.ToSaveData());
+        var unreadyResult = RelicForgeSystem.Forge(unready, PurposefulHuntContent.FirstRelicContract);
+        Assert.Equal(ForgeStatus.NotReady, unreadyResult.Status);
+        Assert.False(unreadyResult.SaveRequested);
+        Assert.Equal(unreadyBefore, JsonSerializer.Serialize(unready.ToSaveData()));
+
+        var ready = CreateReadyPlayer();
+        var forged = RelicForgeSystem.Forge(ready, PurposefulHuntContent.FirstRelicContract);
+        Assert.Equal(ForgeStatus.Forged, forged.Status);
+        Assert.True(forged.SaveRequested);
+        Assert.True(ready.RelicProject.IsForged);
+        Assert.Contains(EquipmentCatalog.ToilboundRelicId, ready.OwnedEquipmentIds);
+        Assert.DoesNotContain(ready.EquippedEquipment, item => item.EquipmentId == EquipmentCatalog.ToilboundRelicId);
+
+        var forgedSnapshot = JsonSerializer.Serialize(ready.ToSaveData());
+        var repeated = RelicForgeSystem.Forge(ready, PurposefulHuntContent.FirstRelicContract);
+        Assert.Equal(ForgeStatus.AlreadyForged, repeated.Status);
+        Assert.False(repeated.SaveRequested);
+        Assert.Equal(forgedSnapshot, JsonSerializer.Serialize(ready.ToSaveData()));
+
+        var conflict = CreateReadyPlayer();
+        Assert.True(conflict.GrantEquipment(EquipmentCatalog.ToilboundRelicId));
+        var conflictSnapshot = JsonSerializer.Serialize(conflict.ToSaveData());
+        var rejected = RelicForgeSystem.Forge(conflict, PurposefulHuntContent.FirstRelicContract);
+        Assert.Equal(ForgeStatus.Rejected, rejected.Status);
+        Assert.False(rejected.SaveRequested);
+        Assert.Equal(conflictSnapshot, JsonSerializer.Serialize(conflict.ToSaveData()));
+    }
+
+    [Fact]
     public void ProjectState_CanonicalizesEveryAcquisitionOrder()
     {
         var migrationVectors = PurposefulHuntContractFixture.Load().Migrations;

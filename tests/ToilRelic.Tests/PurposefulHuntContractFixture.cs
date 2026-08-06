@@ -21,7 +21,27 @@ internal sealed class PurposefulHuntFixture
 {
     public int SchemaVersion { get; set; }
     public HuntContentFixture Content { get; set; } = new();
+    public HuntCommandFixture[] Commands { get; set; } = Array.Empty<HuntCommandFixture>();
     public HuntMigrationFixture[] Migrations { get; set; } = Array.Empty<HuntMigrationFixture>();
+}
+
+internal sealed class HuntCommandFixture
+{
+    public string Id { get; set; } = string.Empty;
+    public string QuarryId { get; set; } = string.Empty;
+    public bool Victory { get; set; }
+    public double ProfileRoll { get; set; }
+    public int Experience { get; set; }
+    public int Junk { get; set; }
+    public int RelicPart { get; set; }
+    public int HealingPotion { get; set; }
+    public string[] Precompleted { get; set; } = Array.Empty<string>();
+    public bool PreownedProfile { get; set; }
+    public string ExpectedStatus { get; set; } = string.Empty;
+    public string ExpectedProfile { get; set; } = string.Empty;
+    public string ExpectedContribution { get; set; } = string.Empty;
+    public bool ExpectedReady { get; set; }
+    public bool ExpectedSaveRequested { get; set; }
 }
 
 internal sealed class HuntMigrationFixture

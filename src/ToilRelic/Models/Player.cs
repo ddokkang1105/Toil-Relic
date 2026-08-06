@@ -97,6 +97,25 @@ public sealed class Player
     public bool IsAlive => Hp > 0;
     public void ResetExperience() => Experience = 0;
 
+    internal Player CloneForTransaction() => FromSaveData(ToSaveData());
+
+    internal void CommitFrom(Player postState)
+    {
+        MaxHp = postState.MaxHp;
+        Hp = postState.Hp;
+        Level = postState.Level;
+        Experience = postState.Experience;
+        TreasureCount = postState.TreasureCount;
+        _inventory.Clear();
+        foreach (var pair in postState._inventory) _inventory[pair.Key] = pair.Value;
+        _ownedEquipmentIds.Clear();
+        _ownedEquipmentIds.AddRange(postState._ownedEquipmentIds);
+        _equippedEquipment.Clear();
+        _equippedEquipment.AddRange(postState._equippedEquipment);
+        _equipmentInitialized = postState._equipmentInitialized;
+        _relicProject.CopyFrom(postState._relicProject);
+    }
+
     public PlayerSaveData ToSaveData() => new()
     {
         Name = Name, MaxHp = MaxHp, Hp = Hp, Level = Level, Experience = Experience, TreasureCount = TreasureCount,

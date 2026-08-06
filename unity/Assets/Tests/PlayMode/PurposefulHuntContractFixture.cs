@@ -18,7 +18,28 @@ namespace ToilRelic.PlayModeTests
     {
         public int schemaVersion;
         public HuntContentFixture content;
+        public HuntCommandFixture[] commands;
         public HuntMigrationFixture[] migrations;
+    }
+
+    [Serializable]
+    internal sealed class HuntCommandFixture
+    {
+        public string id;
+        public string quarryId;
+        public bool victory;
+        public float profileRoll;
+        public int experience;
+        public int junk;
+        public int relicPart;
+        public int healingPotion;
+        public string[] precompleted;
+        public bool preownedProfile;
+        public string expectedStatus;
+        public string expectedProfile;
+        public string expectedContribution;
+        public bool expectedReady;
+        public bool expectedSaveRequested;
     }
 
     [Serializable]

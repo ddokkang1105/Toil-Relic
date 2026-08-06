@@ -109,6 +109,8 @@ namespace ToilRelic.Unity.Core
         public void Add(ItemType type, int amount) { if (amount <= 0) return; var item = inventory.FirstOrDefault(entry => entry.type == type); if (item == null) inventory.Add(new InventorySlot { type = type, amount = amount }); else item.amount += amount; if (type == ItemType.Treasure) treasureCount += amount; }
         public bool Consume(ItemType type, int amount) { var item = inventory.FirstOrDefault(entry => entry.type == type); if (amount <= 0 || item == null || item.amount < amount) return false; item.amount -= amount; return true; }
         public void TakeDamage(int amount) { if (amount > 0) hp = Mathf.Max(0, hp - ReduceIncomingDamage(amount)); } public void Heal(int amount) { if (amount > 0) hp = Mathf.Min(maxHp, hp + amount); } public void HealAll() => hp = maxHp; public bool IsAlive => hp > 0;
+        internal PlayerState CloneForTransaction() => JsonUtility.FromJson<PlayerState>(JsonUtility.ToJson(this));
+        internal void CommitFrom(PlayerState postState) => JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(postState), this);
         private void NormalizeEquipment()
         {
             ownedEquipmentIds.RemoveAll(id => !EquipmentCatalog.TryGet(id, out _)); var unique = new HashSet<string>(StringComparer.Ordinal); ownedEquipmentIds.RemoveAll(id => !unique.Add(id));
