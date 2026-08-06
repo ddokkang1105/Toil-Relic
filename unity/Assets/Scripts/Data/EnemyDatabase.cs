@@ -11,7 +11,7 @@ namespace ToilRelic.Unity.Data
         public bool TryGet(string id, out EnemyData enemy)
         {
             enemy = null;
-            if (string.IsNullOrEmpty(id))
+            if (string.IsNullOrEmpty(id) || enemies == null)
             {
                 return false;
             }
@@ -30,7 +30,7 @@ namespace ToilRelic.Unity.Data
 
         public EnemyData GetRandom()
         {
-            if (enemies.Count == 0)
+            if (enemies == null || enemies.Count == 0)
             {
                 return null;
             }

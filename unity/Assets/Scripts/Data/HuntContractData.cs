@@ -66,7 +66,7 @@ namespace ToilRelic.Unity.Data
 
         public bool TryGetQuarry(string id, out HuntQuarryData quarry)
         {
-            quarry = quarries.FirstOrDefault(candidate =>
+            quarry = quarries?.FirstOrDefault(candidate =>
                 candidate != null && string.Equals(candidate.id, id, StringComparison.Ordinal));
             return quarry != null;
         }
@@ -75,17 +75,29 @@ namespace ToilRelic.Unity.Data
             EnemyDatabase enemyDatabase,
             EquipmentDropProfileDatabase profileDatabase)
         {
-            if (string.IsNullOrWhiteSpace(projectId) || string.IsNullOrWhiteSpace(displayName) || quarries.Count != 3)
+            if (string.IsNullOrWhiteSpace(projectId) || string.IsNullOrWhiteSpace(displayName) ||
+                quarries == null || quarries.Count != 3)
             {
                 return HuntContentValidationResult.Unavailable(HuntContentIssue.InvalidContract, projectId);
             }
 
-            if (!EquipmentCatalog.TryGet(relicEquipmentId, out _))
+            if (!EquipmentCatalog.TryGet(relicEquipmentId, out var relicEquipment))
             {
                 return HuntContentValidationResult.Unavailable(HuntContentIssue.MissingRelicEquipment, relicEquipmentId);
             }
 
+            if (!string.Equals(relicEquipmentId, EquipmentCatalog.ToilboundRelicId, StringComparison.Ordinal) ||
+                !relicEquipment.CanEquipTo(EquipmentSlot.Necklace))
+            {
+                return HuntContentValidationResult.Unavailable(HuntContentIssue.InvalidContract, relicEquipmentId);
+            }
+
             if (enemyDatabase == null || profileDatabase == null)
+            {
+                return HuntContentValidationResult.Unavailable(HuntContentIssue.InvalidContract, projectId);
+            }
+
+            if (enemyDatabase.enemies == null || profileDatabase.profiles == null)
             {
                 return HuntContentValidationResult.Unavailable(HuntContentIssue.InvalidContract, projectId);
             }
@@ -133,7 +145,8 @@ namespace ToilRelic.Unity.Data
                     return HuntContentValidationResult.Unavailable(HuntContentIssue.InvalidProfile, profile.id);
                 }
 
-                if (string.Equals(profile.equipmentId, EquipmentCatalog.RewardWeaponId, StringComparison.Ordinal))
+                if (string.Equals(profile.equipmentId, EquipmentCatalog.RewardWeaponId, StringComparison.Ordinal) ||
+                    string.Equals(profile.equipmentId, EquipmentCatalog.ToilboundRelicId, StringComparison.Ordinal))
                 {
                     return HuntContentValidationResult.Unavailable(HuntContentIssue.ForbiddenProfileEquipment, profile.equipmentId);
                 }

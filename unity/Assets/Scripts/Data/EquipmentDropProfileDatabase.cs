@@ -12,7 +12,7 @@ namespace ToilRelic.Unity.Data
         public bool TryGet(string id, out EquipmentDropProfileData profile)
         {
             profile = null;
-            if (string.IsNullOrEmpty(id))
+            if (string.IsNullOrEmpty(id) || profiles == null)
             {
                 return false;
             }

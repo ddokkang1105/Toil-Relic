@@ -156,19 +156,18 @@ namespace ToilRelic.PlayModeTests
             Assert.That(File.ReadAllText(savePath), Is.EqualTo(legacy));
         }
 
-        [Test]
-        public void SaveService_RejectsMissingCurrentProjectAndLegacyProjectPayload()
+        [TestCaseSource(nameof(InvalidCurrentSaveCases))]
+        public void SaveService_RejectsInvalidCurrentProjectMatrixWithoutWriting(string invalidCase)
         {
             ConfigureSavePath();
-            const string currentMissingProject = "{\"version\":3,\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":0,\"inventory\":[{\"type\":0,\"amount\":2}],\"ownedEquipmentIds\":[\"starter-weapon\"],\"equippedEquipment\":[{\"slot\":0,\"equipmentId\":\"starter-weapon\"}],\"equipmentInitialized\":true}}";
-            File.WriteAllText(savePath, currentMissingProject);
-            Assert.That(GetProperty(saveServiceType.GetMethod("Load").Invoke(null, null), "Status").ToString(), Is.EqualTo("Unreadable"));
-            Assert.That(File.ReadAllText(savePath), Is.EqualTo(currentMissingProject));
+            var original = BuildInvalidCurrentSave(invalidCase);
+            File.WriteAllText(savePath, original);
 
-            const string legacyWithProject = "{\"version\":2,\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":0,\"inventory\":[{\"type\":0,\"amount\":2}],\"relicProject\":{\"completedContributionIds\":[],\"forged\":false}}}";
-            File.WriteAllText(savePath, legacyWithProject);
-            Assert.That(GetProperty(saveServiceType.GetMethod("Load").Invoke(null, null), "Status").ToString(), Is.EqualTo("Unreadable"));
-            Assert.That(File.ReadAllText(savePath), Is.EqualTo(legacyWithProject));
+            var result = saveServiceType.GetMethod("Load").Invoke(null, null);
+
+            Assert.That(GetProperty(result, "Status").ToString(), Is.EqualTo("Unreadable"), invalidCase);
+            Assert.That(GetProperty(result, "Player"), Is.Null, invalidCase);
+            Assert.That(File.ReadAllText(savePath), Is.EqualTo(original), invalidCase);
         }
 
         [Test]
@@ -240,6 +239,59 @@ namespace ToilRelic.PlayModeTests
         }
 
         [Test]
+        public void ContentValidation_RejectsCatalogEquipmentAssignedToWrongProjectRoles()
+        {
+            BuildContentGraph(PurposefulHuntContractFixture.Load().content,
+                out var contract, out var enemyDatabase, out var profileDatabase);
+            var validate = contract.GetType().GetMethod("Validate");
+
+            SetField(contract, "relicEquipmentId", "reward-weapon");
+            var wrongRelic = validate.Invoke(contract, new[] { enemyDatabase, profileDatabase });
+            Assert.That(GetProperty(wrongRelic, "Issue").ToString(), Is.EqualTo("InvalidContract"));
+
+            SetField(contract, "relicEquipmentId", "toilbound-relic");
+            var profile = ((IList)GetField(profileDatabase, "profiles"))[0];
+            SetField(profile, "equipmentId", "toilbound-relic");
+            var wrongProfile = validate.Invoke(contract, new[] { enemyDatabase, profileDatabase });
+            Assert.That(GetProperty(wrongProfile, "Issue").ToString(), Is.EqualTo("ForbiddenProfileEquipment"));
+        }
+
+        [TestCase("quarries")]
+        [TestCase("enemies")]
+        [TestCase("profiles")]
+        public void ContentValidation_ReturnsUnavailableForNullSerializedCollections(string collection)
+        {
+            BuildContentGraph(PurposefulHuntContractFixture.Load().content,
+                out var contract, out var enemyDatabase, out var profileDatabase);
+            var owner = collection switch
+            {
+                "quarries" => contract,
+                "enemies" => enemyDatabase,
+                "profiles" => profileDatabase,
+                _ => throw new ArgumentOutOfRangeException(nameof(collection), collection, null)
+            };
+            SetField(owner, collection, null);
+            object result = null;
+
+            Assert.DoesNotThrow(() => result = contract.GetType().GetMethod("Validate")
+                .Invoke(contract, new[] { enemyDatabase, profileDatabase }), collection);
+            Assert.That(GetProperty(result, "IsAvailable"), Is.EqualTo(false), collection);
+        }
+
+        [TestCase("ToilRelic.Unity.Data.EnemyDatabase", "enemies")]
+        [TestCase("ToilRelic.Unity.Data.EquipmentDropProfileDatabase", "profiles")]
+        public void DatabaseLookup_ReturnsFalseForNullSerializedCollection(string typeName, string fieldName)
+        {
+            var database = Create(typeName);
+            SetField(database, fieldName, null);
+            var arguments = new object[] { "missing", null };
+
+            Assert.DoesNotThrow(() =>
+                Assert.That(database.GetType().GetMethod("TryGet").Invoke(database, arguments), Is.EqualTo(false)));
+            Assert.That(arguments[1], Is.Null);
+        }
+
+        [Test]
         public void EnemyDatabase_UsesStableIdWithoutRandomFallback()
         {
             var enemyDatabase = Create("ToilRelic.Unity.Data.EnemyDatabase");
@@ -287,6 +339,70 @@ namespace ToilRelic.PlayModeTests
             "ruin-wraith" => "wraith-signet",
             _ => throw new ArgumentOutOfRangeException(nameof(quarryId), quarryId, null)
         };
+
+        private static IEnumerable<string> InvalidCurrentSaveCases()
+        {
+            yield return "missing-project";
+            yield return "null-project";
+            yield return "wrong-kind-project";
+            yield return "missing-contributions";
+            yield return "null-contributions";
+            yield return "wrong-kind-contributions";
+            yield return "missing-forged";
+            yield return "null-forged";
+            yield return "wrong-kind-forged";
+            yield return "misleading-sibling-forged";
+            yield return "unknown-contribution";
+            yield return "duplicate-contribution";
+            yield return "out-of-order";
+            yield return "incomplete-forged";
+            yield return "relic-owned-before-forged";
+            yield return "forged-without-relic";
+            yield return "relic-equipped-without-ownership";
+            yield return "forged-relic-in-wrong-slot";
+            yield return "negative-version";
+            yield return "future-version";
+            yield return "legacy-carries-project";
+        }
+
+        private static string BuildInvalidCurrentSave(string invalidCase)
+        {
+            const string emptyProject = "{\"completedContributionIds\":[],\"forged\":false}";
+            const string readyProject = "{\"completedContributionIds\":[\"chitin-shard\",\"rustheart-core\",\"wraith-ash\"],\"forged\":false}";
+            const string current = "{\"version\":3,\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":0,\"inventory\":[{\"type\":0,\"amount\":2}],\"ownedEquipmentIds\":[\"starter-weapon\"],\"equippedEquipment\":[{\"slot\":0,\"equipmentId\":\"starter-weapon\"}],\"equipmentInitialized\":true,\"relicProject\":{\"completedContributionIds\":[],\"forged\":false}}}";
+            return invalidCase switch
+            {
+                "missing-project" => current.Replace(",\"relicProject\":" + emptyProject, string.Empty),
+                "null-project" => current.Replace(emptyProject, "null"),
+                "wrong-kind-project" => current.Replace(emptyProject, "[]"),
+                "missing-contributions" => current.Replace(emptyProject, "{\"forged\":false}"),
+                "null-contributions" => current.Replace("\"completedContributionIds\":[]", "\"completedContributionIds\":null"),
+                "wrong-kind-contributions" => current.Replace("\"completedContributionIds\":[]", "\"completedContributionIds\":{}"),
+                "missing-forged" => current.Replace(emptyProject, "{\"completedContributionIds\":[]}"),
+                "null-forged" => current.Replace("\"forged\":false", "\"forged\":null"),
+                "wrong-kind-forged" => current.Replace("\"forged\":false", "\"forged\":0"),
+                "misleading-sibling-forged" => AddRootForgedSibling(
+                    current.Replace(emptyProject, "{\"completedContributionIds\":[]}")),
+                "unknown-contribution" => current.Replace("\"completedContributionIds\":[]", "\"completedContributionIds\":[\"unknown\"]"),
+                "duplicate-contribution" => current.Replace("\"completedContributionIds\":[]", "\"completedContributionIds\":[\"chitin-shard\",\"chitin-shard\"]"),
+                "out-of-order" => current.Replace("\"completedContributionIds\":[]", "\"completedContributionIds\":[\"wraith-ash\",\"chitin-shard\"]"),
+                "incomplete-forged" => current.Replace("\"forged\":false", "\"forged\":true"),
+                "relic-owned-before-forged" => current.Replace("[\"starter-weapon\"]", "[\"starter-weapon\",\"toilbound-relic\"]"),
+                "forged-without-relic" => current.Replace(emptyProject, readyProject.Replace("false", "true")),
+                "relic-equipped-without-ownership" => current.Replace("[{\"slot\":0,\"equipmentId\":\"starter-weapon\"}]", "[{\"slot\":0,\"equipmentId\":\"starter-weapon\"},{\"slot\":6,\"equipmentId\":\"toilbound-relic\"}]"),
+                "forged-relic-in-wrong-slot" => current
+                    .Replace("[\"starter-weapon\"]", "[\"starter-weapon\",\"toilbound-relic\"]")
+                    .Replace("[{\"slot\":0,\"equipmentId\":\"starter-weapon\"}]", "[{\"slot\":0,\"equipmentId\":\"starter-weapon\"},{\"slot\":8,\"equipmentId\":\"toilbound-relic\"}]")
+                    .Replace(emptyProject, readyProject.Replace("false", "true")),
+                "negative-version" => current.Replace("\"version\":3", "\"version\":-1"),
+                "future-version" => current.Replace("\"version\":3", "\"version\":4"),
+                "legacy-carries-project" => current.Replace("\"version\":3", "\"version\":2"),
+                _ => throw new ArgumentOutOfRangeException(nameof(invalidCase), invalidCase, null)
+            };
+        }
+
+        private static string AddRootForgedSibling(string json) =>
+            json.Insert(json.Length - 1, ",\"forged\":false");
 
         private void BuildContentGraph(HuntContentFixture fixture, out ScriptableObject contract,
             out ScriptableObject enemyDatabase, out ScriptableObject profileDatabase)

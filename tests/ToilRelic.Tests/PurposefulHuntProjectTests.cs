@@ -161,9 +161,24 @@ public sealed class PurposefulHuntProjectTests
 
     [Theory]
     [InlineData("missing-project")]
+    [InlineData("null-project")]
+    [InlineData("wrong-kind-project")]
+    [InlineData("missing-contributions")]
+    [InlineData("null-contributions")]
+    [InlineData("wrong-kind-contributions")]
+    [InlineData("missing-forged")]
+    [InlineData("null-forged")]
+    [InlineData("wrong-kind-forged")]
+    [InlineData("unknown-contribution")]
     [InlineData("duplicate-contribution")]
     [InlineData("out-of-order")]
+    [InlineData("incomplete-forged")]
     [InlineData("relic-owned-before-forged")]
+    [InlineData("forged-without-relic")]
+    [InlineData("relic-equipped-without-ownership")]
+    [InlineData("forged-relic-in-wrong-slot")]
+    [InlineData("negative-version")]
+    [InlineData("future-version")]
     [InlineData("legacy-carries-project")]
     public void Load_InvalidProjectEnvelope_IsUnreadableWithoutChangingBytes(string invalidCase)
     {
@@ -175,14 +190,60 @@ public sealed class PurposefulHuntProjectTests
             case "missing-project":
                 root.Remove("RelicProject");
                 break;
+            case "null-project":
+                root["RelicProject"] = null;
+                break;
+            case "wrong-kind-project":
+                root["RelicProject"] = new JsonArray();
+                break;
+            case "missing-contributions":
+                root["RelicProject"]!.AsObject().Remove("CompletedContributionIds");
+                break;
+            case "null-contributions":
+                root["RelicProject"]!["CompletedContributionIds"] = null;
+                break;
+            case "wrong-kind-contributions":
+                root["RelicProject"]!["CompletedContributionIds"] = new JsonObject();
+                break;
+            case "missing-forged":
+                root["RelicProject"]!.AsObject().Remove("Forged");
+                break;
+            case "null-forged":
+                root["RelicProject"]!["Forged"] = null;
+                break;
+            case "wrong-kind-forged":
+                root["RelicProject"]!["Forged"] = "false";
+                break;
+            case "unknown-contribution":
+                root["RelicProject"]!["CompletedContributionIds"] = new JsonArray("unknown");
+                break;
             case "duplicate-contribution":
                 root["RelicProject"]!["CompletedContributionIds"] = new JsonArray("chitin-shard", "chitin-shard");
                 break;
             case "out-of-order":
                 root["RelicProject"]!["CompletedContributionIds"] = new JsonArray("wraith-ash", "chitin-shard");
                 break;
+            case "incomplete-forged":
+                root["RelicProject"]!["Forged"] = true;
+                break;
             case "relic-owned-before-forged":
                 root["OwnedEquipmentIds"]!.AsArray().Add(EquipmentCatalog.ToilboundRelicId);
+                break;
+            case "forged-without-relic":
+                SetReadyProject(root, forged: true);
+                break;
+            case "relic-equipped-without-ownership":
+                AddRelicEquipment(root, EquipmentSlot.Necklace, ownRelic: false);
+                break;
+            case "forged-relic-in-wrong-slot":
+                SetReadyProject(root, forged: true);
+                AddRelicEquipment(root, EquipmentSlot.Ring1, ownRelic: true);
+                break;
+            case "negative-version":
+                root["SchemaVersion"] = -1;
+                break;
+            case "future-version":
+                root["SchemaVersion"] = SaveSystem.CurrentSchemaVersion + 1;
                 break;
             case "legacy-carries-project":
                 root.Remove("SchemaVersion");
@@ -197,6 +258,27 @@ public sealed class PurposefulHuntProjectTests
         Assert.Equal(LoadStatus.Unreadable, result.Status);
         Assert.Null(result.Player);
         Assert.Equal(original, File.ReadAllText(fixture.SavePath));
+    }
+
+    private static void SetReadyProject(JsonObject root, bool forged)
+    {
+        root["RelicProject"]!["CompletedContributionIds"] =
+            new JsonArray("chitin-shard", "rustheart-core", "wraith-ash");
+        root["RelicProject"]!["Forged"] = forged;
+    }
+
+    private static void AddRelicEquipment(JsonObject root, EquipmentSlot slot, bool ownRelic)
+    {
+        if (ownRelic)
+        {
+            root["OwnedEquipmentIds"]!.AsArray().Add(EquipmentCatalog.ToilboundRelicId);
+        }
+
+        root["EquippedEquipment"]!.AsArray().Add(new JsonObject
+        {
+            ["Slot"] = (int)slot,
+            ["EquipmentId"] = EquipmentCatalog.ToilboundRelicId
+        });
     }
 
     private static Player CreateReadyPlayer()
