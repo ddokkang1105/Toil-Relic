@@ -35,7 +35,9 @@ namespace ToilRelic.PlayModeTests
                 var commandType = FindType("ToilRelic.Unity.Systems.QuarryVictoryCommand");
                 var command = Activator.CreateInstance(commandType, vector.quarryId, vector.victory, vector.profileRoll,
                     vector.experience, vector.junk, vector.relicPart, vector.healingPotion);
-                var result = FindType("ToilRelic.Unity.Systems.QuarryRewardSystem").GetMethod("Resolve")
+                var resolve = FindType("ToilRelic.Unity.Systems.QuarryRewardSystem").GetMethods()
+                    .Single(method => method.Name == "Resolve" && method.GetParameters().Length == 5);
+                var result = resolve
                     .Invoke(null, new[] { player, contract, enemyDatabase, profileDatabase, command });
 
                 Assert.That(GetProperty(result, "Status").ToString(), Is.EqualTo(vector.expectedStatus), vector.id);

@@ -10,15 +10,28 @@ namespace ToilRelic.Unity.UI
         [SerializeField] private Text levelText;
         [SerializeField] private Text invText;
         [SerializeField] private Text equipmentText;
+        [SerializeField] private Text projectText;
 
         private void OnEnable()
         {
             GameEvents.PlayerChanged += OnPlayerChanged;
+            GameEvents.RelicProjectChanged += OnProjectChanged;
         }
 
         private void OnDisable()
         {
             GameEvents.PlayerChanged -= OnPlayerChanged;
+            GameEvents.RelicProjectChanged -= OnProjectChanged;
+        }
+
+        private void OnProjectChanged(RelicProjectSnapshot project)
+        {
+            if (projectText == null) return;
+            projectText.text = project.Forged
+                ? "Relic: Forged"
+                : project.Ready
+                    ? "Relic: 3/3 Ready"
+                    : $"Relic: {project.Completed}/{project.Required}";
         }
 
         private void OnPlayerChanged(PlayerState player)

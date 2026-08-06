@@ -88,6 +88,7 @@ namespace ToilRelic.Unity.UI
         {
             GameEvents.PlayerChanged += OnPlayerChanged;
             GameEvents.StateChanged += OnStateChanged;
+            GameEvents.EquipmentFocusRequested += OnEquipmentFocusRequested;
             if (!isOpen)
             {
                 SetLocalPanelVisibility(showEquipment: false);
@@ -98,6 +99,7 @@ namespace ToilRelic.Unity.UI
         {
             GameEvents.PlayerChanged -= OnPlayerChanged;
             GameEvents.StateChanged -= OnStateChanged;
+            GameEvents.EquipmentFocusRequested -= OnEquipmentFocusRequested;
             CloseAndReset(restoreEntryFocus: false);
         }
 
@@ -139,6 +141,14 @@ namespace ToilRelic.Unity.UI
             RefreshDetails();
             ConfigureNavigation();
             SelectControl(slotButtons.FirstOrDefault());
+        }
+
+        public void OpenAndFocus(EquipmentSlot slot, string equipmentId)
+        {
+            OpenEquipment();
+            if (!isOpen) return;
+            SelectSlot(slot);
+            SelectCandidate(equipmentId);
         }
 
         public void BackToCamp()
@@ -287,6 +297,9 @@ namespace ToilRelic.Unity.UI
                 CloseAndReset(restoreEntryFocus: false);
             }
         }
+
+        private void OnEquipmentFocusRequested(EquipmentSlot slot, string equipmentId) =>
+            OpenAndFocus(slot, equipmentId);
 
         private void CloseAndReset(bool restoreEntryFocus)
         {

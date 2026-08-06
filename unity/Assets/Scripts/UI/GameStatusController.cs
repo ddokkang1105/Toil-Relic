@@ -25,6 +25,7 @@ namespace ToilRelic.Unity.UI
             GameEvents.BattleOutcome += OnBattleOutcome;
             GameEvents.LevelUp += OnLevelUp;
             GameEvents.SaveStatusChanged += OnSaveStatusChanged;
+            GameEvents.RelicProjectChanged += OnProjectChanged;
         }
 
         private void OnDisable()
@@ -34,6 +35,7 @@ namespace ToilRelic.Unity.UI
             GameEvents.BattleOutcome -= OnBattleOutcome;
             GameEvents.LevelUp -= OnLevelUp;
             GameEvents.SaveStatusChanged -= OnSaveStatusChanged;
+            GameEvents.RelicProjectChanged -= OnProjectChanged;
         }
 
         private void OnStateChanged(GameState state)
@@ -79,6 +81,15 @@ namespace ToilRelic.Unity.UI
             saveStatus = status;
             saveFailureActive = status == SaveFeedbackStatus.Failed;
             UpdateSaveStatusText();
+            RenderMessage();
+        }
+
+        private void OnProjectChanged(RelicProjectSnapshot project)
+        {
+            if (!project.Ready && !project.Forged) return;
+            primaryMessage = project.Forged
+                ? "First Relic Project complete: Toilbound Relic forged."
+                : "First Relic Project ready: Forge the Toilbound Relic at Camp.";
             RenderMessage();
         }
 

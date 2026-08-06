@@ -32,6 +32,22 @@ namespace ToilRelic.Unity.Systems
         public int HealingPotion { get; }
     }
 
+    public sealed class ConfirmedQuarryReward
+    {
+        public ConfirmedQuarryReward(string quarryId, string contributionId, string profileEquipmentId, float profileChance)
+        {
+            QuarryId = quarryId;
+            ContributionId = contributionId;
+            ProfileEquipmentId = profileEquipmentId;
+            ProfileChance = profileChance;
+        }
+
+        public string QuarryId { get; }
+        public string ContributionId { get; }
+        public string ProfileEquipmentId { get; }
+        public float ProfileChance { get; }
+    }
+
     public sealed class QuarryRewardOutcome
     {
         public QuarryRewardOutcome(QuarryRewardStatus status, ProfileRewardResult profileResult,
@@ -79,8 +95,33 @@ namespace ToilRelic.Unity.Systems
             if (contract == null || profileDatabase == null ||
                 !contract.Validate(enemyDatabase, profileDatabase).IsAvailable ||
                 !contract.TryGetQuarry(command.QuarryId, out var quarry) ||
-                !profileDatabase.TryGet(quarry.profileId, out var profile) ||
-                !RelicProjectState.IsCanonicalContributionId(quarry.contributionId) ||
+                !profileDatabase.TryGet(quarry.profileId, out var profile))
+            {
+                return QuarryRewardOutcome.Unchanged(QuarryRewardStatus.Rejected, player.RelicProject.IsReady);
+            }
+
+            return Resolve(player, new ConfirmedQuarryReward(
+                quarry.id, quarry.contributionId, profile.equipmentId, profile.chance), command);
+        }
+
+        public static QuarryRewardOutcome Resolve(PlayerState player, ConfirmedQuarryReward confirmed,
+            QuarryVictoryCommand command)
+        {
+            if (player == null || confirmed == null || command == null)
+            {
+                return QuarryRewardOutcome.Unchanged(QuarryRewardStatus.Rejected, false);
+            }
+
+            if (!command.Victory)
+            {
+                return QuarryRewardOutcome.Unchanged(QuarryRewardStatus.NotVictory, player.RelicProject.IsReady);
+            }
+
+            if (!string.Equals(command.QuarryId, confirmed.QuarryId, StringComparison.Ordinal) ||
+                !RelicProjectState.IsCanonicalContributionId(confirmed.ContributionId) ||
+                string.IsNullOrWhiteSpace(confirmed.ProfileEquipmentId) ||
+                !EquipmentCatalog.TryGet(confirmed.ProfileEquipmentId, out _) ||
+                confirmed.ProfileChance <= 0f || confirmed.ProfileChance > 1f ||
                 command.Experience < 0 || command.Junk < 0 || command.RelicPart < 0 || command.HealingPotion < 0 ||
                 float.IsNaN(command.ProfileRoll) || command.ProfileRoll < 0f || command.ProfileRoll >= 1f ||
                 !player.HasValidCurrentSaveData())
@@ -88,12 +129,12 @@ namespace ToilRelic.Unity.Systems
                 return QuarryRewardOutcome.Unchanged(QuarryRewardStatus.Rejected, player.RelicProject.IsReady);
             }
 
-            var contributionResult = player.RelicProject.CompletedContributionIds.Contains(quarry.contributionId)
+            var contributionResult = player.RelicProject.CompletedContributionIds.Contains(confirmed.ContributionId)
                 ? ContributionRewardResult.AlreadyComplete
                 : ContributionRewardResult.Granted;
-            var profileResult = command.ProfileRoll >= profile.chance
+            var profileResult = command.ProfileRoll >= confirmed.ProfileChance
                 ? ProfileRewardResult.Missed
-                : player.OwnedEquipmentIds.Contains(profile.equipmentId)
+                : player.OwnedEquipmentIds.Contains(confirmed.ProfileEquipmentId)
                     ? ProfileRewardResult.AlreadyOwned
                     : ProfileRewardResult.Granted;
 
@@ -102,20 +143,20 @@ namespace ToilRelic.Unity.Systems
             postState.Add(ItemType.RelicPart, command.RelicPart);
             postState.Add(ItemType.HealingPotion, command.HealingPotion);
             var levelUp = postState.GainExperience(command.Experience);
-            if (profileResult == ProfileRewardResult.Granted && !postState.GrantEquipment(profile.equipmentId))
+            if (profileResult == ProfileRewardResult.Granted && !postState.GrantEquipment(confirmed.ProfileEquipmentId))
             {
                 return QuarryRewardOutcome.Unchanged(QuarryRewardStatus.Rejected, player.RelicProject.IsReady);
             }
 
             if (contributionResult == ContributionRewardResult.Granted &&
-                !postState.RelicProject.TryAddContribution(quarry.contributionId))
+                !postState.RelicProject.TryAddContribution(confirmed.ContributionId))
             {
                 return QuarryRewardOutcome.Unchanged(QuarryRewardStatus.Rejected, player.RelicProject.IsReady);
             }
 
             player.CommitFrom(postState);
             return new QuarryRewardOutcome(QuarryRewardStatus.Applied, profileResult, contributionResult,
-                postState.RelicProject.IsReady, true, profile.equipmentId, quarry.contributionId, levelUp);
+                postState.RelicProject.IsReady, true, confirmed.ProfileEquipmentId, confirmed.ContributionId, levelUp);
         }
     }
 }

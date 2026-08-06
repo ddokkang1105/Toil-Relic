@@ -17,7 +17,7 @@ namespace ToilRelic.Unity.UI
         public void UsePotion() => gameManager.UsePotion();
         public void Rest() => gameManager.Rest();
         public void CraftTreasure() => gameManager.CraftTreasure();
+        public void ForgeRelic() => gameManager.ForgeRelic();
         public void EquipStarterWeapon() => gameManager.EquipStarterWeapon();
-        public void EquipRewardWeapon() => gameManager.EquipRewardWeapon();
     }
 }

@@ -2,7 +2,9 @@ using ToilRelic.Unity.Data;
 using ToilRelic.Unity.Save;
 using ToilRelic.Unity.Systems;
 using UnityEngine;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ToilRelic.Unity.Core
 {
@@ -76,6 +78,8 @@ namespace ToilRelic.Unity.Core
         [Header("Data")]
         [SerializeField] private EnemyDatabase enemyDatabase;
         [SerializeField] private DropTableData dropTable;
+        [SerializeField] private HuntContractData huntContract;
+        [SerializeField] private EquipmentDropProfileDatabase equipmentDropProfiles;
 
         [Header("State")]
         [SerializeField] private PlayerState player = new();
@@ -85,6 +89,10 @@ namespace ToilRelic.Unity.Core
         private readonly CraftingSystem crafting = new();
 
         private EnemyRuntime currentEnemy;
+        private ConfirmedQuarryReward confirmedQuarryReward;
+        private string currentQuarryId;
+        private string currentContributionName;
+        private HuntContractSnapshot presentedHuntContract;
         private GameState state = GameState.Title;
         private BattlePhase battlePhase = BattlePhase.None;
         private SaveLoadStatus saveLoadStatus;
@@ -94,6 +102,8 @@ namespace ToilRelic.Unity.Core
         public bool HasSavedGame => saveLoadStatus == SaveLoadStatus.Loaded;
         public SaveLoadStatus CurrentSaveLoadStatus => saveLoadStatus;
         public PlayerState Player => player;
+        public string CurrentQuarryId => currentQuarryId;
+        public HuntContractSnapshot PresentedHuntContract => presentedHuntContract;
 
         private void Awake()
         {
@@ -163,18 +173,52 @@ namespace ToilRelic.Unity.Core
                 return;
             }
 
-            var enemyData = enemyDatabase != null ? enemyDatabase.GetRandom() : null;
-            if (enemyData == null || dropTable == null)
+            if (!TryBuildHuntSnapshot(out var snapshot, out var diagnostic))
             {
-                GameEvents.RaiseBattleLog("Assign an enemy database with entries and a drop table before hunting.");
+                GameEvents.RaiseBattleLog($"Hunt Contract unavailable. {diagnostic}");
                 return;
             }
 
+            GameEvents.RaiseHuntContractPresented(snapshot);
+            presentedHuntContract = snapshot;
+            GameEvents.RaiseBattleLog("Choose a quarry. Profile equipment is optional; first-win project progress is guaranteed.");
+        }
+
+        public bool ConfirmHunt(string quarryId, string revision)
+        {
+            HuntContractSnapshot currentSnapshot = null;
+            string diagnostic = null;
+            if (state != GameState.Camp || string.IsNullOrEmpty(quarryId) ||
+                !TryBuildHuntSnapshot(out currentSnapshot, out diagnostic) ||
+                !string.Equals(currentSnapshot.Revision, revision, StringComparison.Ordinal) ||
+                !huntContract.TryGetQuarry(quarryId, out var quarry) ||
+                !enemyDatabase.TryGet(quarry.enemyId, out var enemyData) ||
+                !equipmentDropProfiles.TryGet(quarry.profileId, out var profile))
+            {
+                GameEvents.RaiseBattleLog($"Hunt confirmation rejected. {diagnostic ?? "The Contract changed; reopen it."}");
+                return false;
+            }
+
+            confirmedQuarryReward = new ConfirmedQuarryReward(
+                quarry.id, quarry.contributionId, profile.equipmentId, profile.chance);
+            currentQuarryId = quarry.id;
+            currentContributionName = quarry.contributionDisplayName;
             currentEnemy = new EnemyRuntime(enemyData);
+            presentedHuntContract = null;
+            GameEvents.RaiseHuntContractClosed();
             ChangeState(GameState.Battle);
             ChangeBattlePhase(BattlePhase.PlayerAction);
             PublishEnemy();
-            GameEvents.RaiseBattleLog($"A wild {currentEnemy.Name} appears.");
+            GameEvents.RaiseBattleLog($"Confirmed quarry: {currentEnemy.Name}. The selected target and rewards are locked for this battle.");
+            return true;
+        }
+
+        public void CancelHunt()
+        {
+            if (state != GameState.Camp) return;
+            GameEvents.RaiseHuntContractClosed();
+            presentedHuntContract = null;
+            GameEvents.RaiseBattleLog("Hunt Contract closed. No quarry was selected.");
         }
 
         public void Attack()
@@ -222,6 +266,7 @@ namespace ToilRelic.Unity.Core
                 GameEvents.RaiseBattleLog(outcome);
                 GameEvents.RaiseBattleOutcome(outcome);
                 currentEnemy = null;
+                ClearConfirmedQuarry();
                 PublishEnemy();
                 ChangeState(GameState.Camp);
                 ChangeBattlePhase(BattlePhase.None);
@@ -286,7 +331,38 @@ namespace ToilRelic.Unity.Core
         }
 
         public void EquipStarterWeapon() => EquipEquipment(EquipmentSlot.PrimaryWeapon, EquipmentCatalog.StarterWeaponId);
-        public void EquipRewardWeapon() => EquipEquipment(EquipmentSlot.PrimaryWeapon, EquipmentCatalog.RewardWeaponId);
+
+        public ForgeOutcome ForgeRelic()
+        {
+            if (state != GameState.Camp)
+            {
+                return new ForgeOutcome(ForgeStatus.Rejected, false);
+            }
+
+            var outcome = RelicForgeSystem.Forge(player, huntContract, enemyDatabase, equipmentDropProfiles);
+            switch (outcome.Status)
+            {
+                case ForgeStatus.Forged:
+                    PublishPlayer();
+                    GameEvents.RaiseBattleLog("Toilbound Relic forged. It is owned and remains unequipped until confirmed.");
+                    if (SaveProgress())
+                    {
+                        GameEvents.RaiseEquipmentFocusRequested(EquipmentSlot.Necklace, outcome.EquipmentId);
+                    }
+                    break;
+                case ForgeStatus.NotReady:
+                    GameEvents.RaiseBattleLog($"Forge unavailable: {player.RelicProject.CompletedContributionIds.Count}/3 contributions secured.");
+                    break;
+                case ForgeStatus.AlreadyForged:
+                    GameEvents.RaiseBattleLog("Toilbound Relic was already forged; nothing was granted.");
+                    break;
+                default:
+                    GameEvents.RaiseBattleLog("Forge rejected because project state or Hunt content is invalid.");
+                    break;
+            }
+
+            return outcome;
+        }
 
         public EquipmentCommandOutcome EquipEquipment(EquipmentSlot slot, string equipmentId)
         {
@@ -351,6 +427,7 @@ namespace ToilRelic.Unity.Core
                 GameEvents.RaiseBattleOutcome(outcome);
                 player.HealAll();
                 currentEnemy = null;
+                ClearConfirmedQuarry();
                 PublishEnemy();
                 ChangeState(GameState.Camp);
                 ChangeBattlePhase(BattlePhase.None);
@@ -367,21 +444,33 @@ namespace ToilRelic.Unity.Core
             ChangeBattlePhase(BattlePhase.Resolving);
             var expReward = currentEnemy.ExpReward;
             var rolled = loot.Roll(dropTable);
-            player.Add(ItemType.Junk, rolled.Junk);
-            player.Add(ItemType.RelicPart, rolled.RelicPart);
-            player.Add(ItemType.HealingPotion, rolled.HealingPotion);
-            var rewardWeaponGranted = player.GrantEquipment(EquipmentCatalog.RewardWeaponId);
-            var levelResult = player.GainExperience(expReward);
+            var reward = QuarryRewardSystem.Resolve(player, confirmedQuarryReward,
+                new QuarryVictoryCommand(currentQuarryId, true, UnityEngine.Random.value, expReward,
+                    rolled.Junk, rolled.RelicPart, rolled.HealingPotion));
+            if (reward.Status != QuarryRewardStatus.Applied)
+            {
+                const string failure = "Victory reward rejected. No loot, EXP, profile equipment, or project progress changed.";
+                GameEvents.RaiseBattleLog(failure);
+                GameEvents.RaiseBattleOutcome(failure);
+                currentEnemy = null;
+                ClearConfirmedQuarry();
+                PublishEnemy();
+                ChangeState(GameState.Camp);
+                ChangeBattlePhase(BattlePhase.None);
+                return;
+            }
 
-            var outcome = $"Win. Loot: {BuildLootLog(rolled.Junk, rolled.RelicPart, rolled.HealingPotion, expReward, rewardWeaponGranted)}.";
+            var outcome = $"Win. Loot: {BuildLootLog(rolled.Junk, rolled.RelicPart, rolled.HealingPotion, expReward)}. " +
+                BuildRewardFacts(reward);
             GameEvents.RaiseBattleLog(outcome);
             GameEvents.RaiseBattleOutcome(outcome);
-            if (levelResult.LeveledUp)
+            if (reward.LevelUp is { LeveledUp: true } levelResult)
             {
                 var levelUpMessage = $"Level up! +{levelResult.LevelsGained} -> Lv.{levelResult.NewLevel}. HP fully restored.";
                 GameEvents.RaiseLevelUp(levelUpMessage);
             }
             currentEnemy = null;
+            ClearConfirmedQuarry();
             PublishEnemy();
             ChangeState(GameState.Camp);
             ChangeBattlePhase(BattlePhase.None);
@@ -392,6 +481,11 @@ namespace ToilRelic.Unity.Core
         private void PublishPlayer()
         {
             GameEvents.RaisePlayerChanged(player);
+            GameEvents.RaiseRelicProjectChanged(new RelicProjectSnapshot(
+                player.RelicProject.CompletedContributionIds.Count,
+                3,
+                player.RelicProject.IsReady,
+                player.RelicProject.IsForged));
         }
 
         private void PublishEnemy()
@@ -422,18 +516,19 @@ namespace ToilRelic.Unity.Core
             return state == GameState.Battle && currentEnemy != null && battlePhase == BattlePhase.PlayerAction;
         }
 
-        private void SaveProgress()
+        private bool SaveProgress()
         {
             var saveResult = SaveService.Save(player);
             if (!saveResult.Succeeded)
             {
                 Debug.LogError($"Save write failed. {saveResult.Diagnostic}");
                 GameEvents.RaiseSaveStatusChanged(SaveFeedbackStatus.Failed);
-                return;
+                return false;
             }
 
             saveLoadStatus = SaveLoadStatus.Loaded;
             GameEvents.RaiseSaveStatusChanged(SaveFeedbackStatus.Succeeded);
+            return true;
         }
 
         private string GetTitleSaveMessage()
@@ -454,7 +549,7 @@ namespace ToilRelic.Unity.Core
             GameEvents.RaiseBattleLog(message);
         }
 
-        private static string BuildLootLog(int junk, int relicPart, int healingPotion, int expReward, bool rewardWeaponGranted)
+        private static string BuildLootLog(int junk, int relicPart, int healingPotion, int expReward)
         {
             var parts = new List<string>();
 
@@ -478,12 +573,75 @@ namespace ToilRelic.Unity.Core
                 parts.Add($"EXP +{expReward}");
             }
 
-            if (rewardWeaponGranted && EquipmentCatalog.TryGet(EquipmentCatalog.RewardWeaponId, out var weapon))
+            return parts.Count > 0 ? string.Join(", ", parts) : "no loot";
+        }
+
+        private string BuildRewardFacts(QuarryRewardOutcome reward)
+        {
+            EquipmentCatalog.TryGet(reward.ProfileEquipmentId, out var equipment);
+            var profileFact = reward.ProfileResult switch
             {
-                parts.Add(weapon.DisplayName);
+                ProfileRewardResult.Granted => $"Profile equipment acquired: {equipment.DisplayName}.",
+                ProfileRewardResult.AlreadyOwned => $"Profile equipment already owned: {equipment.DisplayName}.",
+                _ => $"Profile reward missed: {equipment.DisplayName}."
+            };
+            var contributionFact = reward.ContributionResult == ContributionRewardResult.Granted
+                ? $"Project contribution acquired: {currentContributionName}."
+                : $"Replay complete: {currentContributionName} was already secured; no additional project progress.";
+            return $"{profileFact} {contributionFact}{(reward.ProjectReady ? " Ready to forge." : string.Empty)}";
+        }
+
+        private bool TryBuildHuntSnapshot(out HuntContractSnapshot snapshot, out string diagnostic)
+        {
+            snapshot = null;
+            diagnostic = null;
+            if (huntContract == null || enemyDatabase == null || equipmentDropProfiles == null || dropTable == null)
+            {
+                diagnostic = "Assign the Contract, enemy database, reward profiles, and drop table.";
+                return false;
             }
 
-            return parts.Count > 0 ? string.Join(", ", parts) : "no loot";
+            var validation = huntContract.Validate(enemyDatabase, equipmentDropProfiles);
+            if (!validation.IsAvailable)
+            {
+                diagnostic = $"Content issue: {validation.Issue} ({validation.ContentId ?? "unknown"}).";
+                return false;
+            }
+
+            var quarries = new List<HuntQuarrySnapshot>();
+            var revisionParts = new List<string> { huntContract.projectId, huntContract.relicEquipmentId };
+            foreach (var quarry in huntContract.quarries)
+            {
+                enemyDatabase.TryGet(quarry.enemyId, out var enemy);
+                equipmentDropProfiles.TryGet(quarry.profileId, out var profile);
+                EquipmentCatalog.TryGet(profile.equipmentId, out var equipment);
+                revisionParts.Add($"{quarry.id}:{enemy.id}:{profile.id}:{profile.equipmentId}:{profile.chance:0.####}:{quarry.contributionId}");
+                quarries.Add(new HuntQuarrySnapshot(
+                    quarry.id,
+                    enemy.id,
+                    enemy.displayName,
+                    quarry.danger.ToString(),
+                    profile.equipmentId,
+                    equipment.DisplayName,
+                    (int)Math.Round(profile.chance * 100f),
+                    quarry.contributionId,
+                    quarry.contributionDisplayName,
+                    player.RelicProject.CompletedContributionIds.Contains(quarry.contributionId)));
+            }
+
+            snapshot = new HuntContractSnapshot(
+                huntContract.projectId,
+                huntContract.displayName,
+                string.Join("|", revisionParts),
+                quarries);
+            return true;
+        }
+
+        private void ClearConfirmedQuarry()
+        {
+            confirmedQuarryReward = null;
+            currentQuarryId = null;
+            currentContributionName = null;
         }
     }
 }
