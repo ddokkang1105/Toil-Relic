@@ -99,7 +99,12 @@ namespace ToilRelic.Unity.UI
             Close(restoreFocus: true);
         }
 
-        public void Forge() => gameManager?.ForgeRelic();
+        public void Forge()
+        {
+            if (gameManager == null) return;
+            Close(restoreFocus: false);
+            gameManager.ForgeRelic();
+        }
 
         private void OnContractPresented(HuntContractSnapshot presented)
         {

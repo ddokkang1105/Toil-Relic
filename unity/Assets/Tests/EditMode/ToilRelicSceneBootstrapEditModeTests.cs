@@ -17,6 +17,8 @@ namespace ToilRelic.EditModeTests
     {
         private const string ScenePath = "Assets/Scenes/SampleScene.unity";
         private const string EquipmentPanelControllerTypeName = "ToilRelic.Unity.UI.EquipmentPanelController";
+        private const string HuntContractPanelControllerTypeName = "ToilRelic.Unity.UI.HuntContractPanelController";
+        private const string GameManagerTypeName = "ToilRelic.Unity.Core.GameManager";
         private const string BattlePanelControllerTypeName = "ToilRelic.Unity.UI.BattlePanelController";
         private static readonly HashSet<string> BootstrapRootNames = new(StringComparer.Ordinal)
         {
@@ -51,6 +53,20 @@ namespace ToilRelic.EditModeTests
             "fleeButton",
             "potionButton"
         };
+        private static readonly string[] HuntReferenceFields =
+        {
+            "gameManager",
+            "campMenuPanel",
+            "contractPanel",
+            "huntEntryButton",
+            "quarryRowsContainer",
+            "titleText",
+            "detailsText",
+            "projectText",
+            "confirmButton",
+            "cancelButton",
+            "forgeButton"
+        };
         private static readonly string[] GeometryPaths =
         {
             "Canvas/CampPanel/EquipmentPanel",
@@ -64,6 +80,14 @@ namespace ToilRelic.EditModeTests
             "Canvas/CampPanel/EquipmentPanel/BackButton",
             "Canvas/CampPanel/EquipmentPanel/EquipButton",
             "Canvas/CampPanel/EquipmentPanel/UnequipButton",
+            "Canvas/CampPanel/HuntContractPanel",
+            "Canvas/CampPanel/HuntContractPanel/QuarryScrollView",
+            "Canvas/CampPanel/HuntContractPanel/QuarryScrollView/Viewport",
+            "Canvas/CampPanel/HuntContractPanel/QuarryScrollView/Viewport/QuarryRowsContainer",
+            "Canvas/CampPanel/HuntContractPanel/ContractDetailPanel",
+            "Canvas/CampPanel/HuntContractPanel/Back to CampButton",
+            "Canvas/CampPanel/HuntContractPanel/Confirm HuntButton",
+            "Canvas/CampPanel/HuntContractPanel/Forge RelicButton",
             "Canvas/BattlePanel",
             "Canvas/BattlePanel/EnemyText",
             "Canvas/BattlePanel/PhaseText",
@@ -75,7 +99,12 @@ namespace ToilRelic.EditModeTests
         };
         private static readonly (string Path, string Method)[] PersistentActions =
         {
+            ("Canvas/CampPanel/CampActionMenu/Hunt ContractButton", "OpenContract"),
+            ("Canvas/CampPanel/CampActionMenu/Craft TreasureButton", "CraftTreasure"),
             ("Canvas/CampPanel/CampActionMenu/EquipmentButton", "OpenEquipment"),
+            ("Canvas/CampPanel/HuntContractPanel/Back to CampButton", "Cancel"),
+            ("Canvas/CampPanel/HuntContractPanel/Confirm HuntButton", "ConfirmSelection"),
+            ("Canvas/CampPanel/HuntContractPanel/Forge RelicButton", "Forge"),
             ("Canvas/CampPanel/EquipmentPanel/BackButton", "BackToCamp"),
             ("Canvas/CampPanel/EquipmentPanel/EquipButton", "EquipSelected"),
             ("Canvas/CampPanel/EquipmentPanel/UnequipButton", "UnequipSelected"),
@@ -90,6 +119,12 @@ namespace ToilRelic.EditModeTests
             "Canvas/BattlePanel/DefendButton",
             "Canvas/BattlePanel/FleeButton",
             "Canvas/BattlePanel/PotionButton"
+        };
+        private static readonly string[] HuntButtonPaths =
+        {
+            "Canvas/CampPanel/HuntContractPanel/Back to CampButton",
+            "Canvas/CampPanel/HuntContractPanel/Confirm HuntButton",
+            "Canvas/CampPanel/HuntContractPanel/Forge RelicButton"
         };
 
         [Test]
@@ -211,6 +246,9 @@ namespace ToilRelic.EditModeTests
                     "BattlePanelController must serialize a two-log-line surface contract.");
                 Assert.That(committed.CanvasScaler, Is.EqualTo("ScaleWithScreenSize|800,600|0"),
                     "The committed scene must retain the width-first 800x600 CanvasScaler contract.");
+                Assert.That(committed.SerializedReferences["State.CampActionMenu"], Is.EqualTo("True"));
+                Assert.That(committed.SerializedReferences["State.HuntContractPanel"], Is.EqualTo("False"));
+                Assert.That(committed.SerializedReferences["State.EquipmentPanel"], Is.EqualTo("False"));
                 AssertBattleNavigationContract(committed.Navigation);
                 Assert.That(File.ReadAllBytes(sceneFile), Is.EqualTo(committedBytes),
                     "The disposable bootstrap contract must not rewrite SampleScene.unity.");
@@ -253,6 +291,31 @@ namespace ToilRelic.EditModeTests
                 field => field,
                 field => DescribeReference(serializedController.FindProperty(field)?.objectReferenceValue),
                 StringComparer.Ordinal);
+            var huntControllerType = FindType(HuntContractPanelControllerTypeName);
+            Assert.That(huntControllerType, Is.Not.Null);
+            var huntController = Resources.FindObjectsOfTypeAll(huntControllerType)
+                .OfType<Component>()
+                .Single(component => component.gameObject.scene == scene);
+            var serializedHuntController = new SerializedObject(huntController);
+            foreach (var field in HuntReferenceFields)
+            {
+                serializedReferences[$"Hunt.{field}"] = DescribeReference(
+                    serializedHuntController.FindProperty(field)?.objectReferenceValue);
+            }
+            var gameManagerType = FindType(GameManagerTypeName);
+            Assert.That(gameManagerType, Is.Not.Null);
+            var gameManager = Resources.FindObjectsOfTypeAll(gameManagerType)
+                .OfType<Component>()
+                .Single(component => component.gameObject.scene == scene);
+            var serializedGameManager = new SerializedObject(gameManager);
+            foreach (var field in new[] { "enemyDatabase", "dropTable", "huntContract", "equipmentDropProfiles" })
+            {
+                serializedReferences[$"GameManager.{field}"] = DescribeReference(
+                    serializedGameManager.FindProperty(field)?.objectReferenceValue);
+            }
+            serializedReferences["State.CampActionMenu"] = FindTransform(scene, "Canvas/CampPanel/CampActionMenu").gameObject.activeSelf.ToString();
+            serializedReferences["State.HuntContractPanel"] = FindTransform(scene, "Canvas/CampPanel/HuntContractPanel").gameObject.activeSelf.ToString();
+            serializedReferences["State.EquipmentPanel"] = FindTransform(scene, "Canvas/CampPanel/EquipmentPanel").gameObject.activeSelf.ToString();
             var battleControllerType = FindType(BattlePanelControllerTypeName);
             Assert.That(battleControllerType, Is.Not.Null);
             var battleController = Resources.FindObjectsOfTypeAll(battleControllerType)
@@ -288,7 +351,7 @@ namespace ToilRelic.EditModeTests
                 grid.padding.right,
                 grid.padding.top,
                 grid.padding.bottom);
-            var navigation = BattleButtonPaths.ToDictionary(
+            var navigation = BattleButtonPaths.Concat(HuntButtonPaths).ToDictionary(
                 path => path,
                 path => DescribeNavigation(scene, path),
                 StringComparer.Ordinal);

@@ -23,7 +23,7 @@ namespace ToilRelic.Unity.Editor
         private const string DropTablePath = DataDirectory + "/DropTable_Default.asset";
         private const float ScreenMargin = 16f;
         private const float HudWidth = 344f;
-        private const float HudHeight = 94f;
+        private const float HudHeight = 118f;
         private const float StatusWidth = 400f;
         private const float StatusHeight = 120f;
         private const float TopTextHeight = 22f;
@@ -37,6 +37,8 @@ namespace ToilRelic.Unity.Editor
         private static readonly Vector2 CampMenuPanelSize = new Vector2(280f, 224f);
         private static readonly Vector2 EquipmentPanelPosition = new Vector2(0f, -68f);
         private static readonly Vector2 EquipmentPanelSize = new Vector2(768f, 282f);
+        private static readonly Vector2 HuntContractPanelPosition = new Vector2(0f, -56f);
+        private static readonly Vector2 HuntContractPanelSize = new Vector2(704f, 356f);
         private static readonly Vector2 MenuButtonSize = new Vector2(220f, 44f);
         private static readonly Vector2 EquipmentActionButtonSize = new Vector2(156f, 44f);
         private static readonly Vector2 BattleActionButtonSize = new Vector2(136f, 44f);
@@ -111,7 +113,7 @@ namespace ToilRelic.Unity.Editor
                     throw new InvalidDataException($"Could not activate scene {scenePath} for regeneration.");
                 }
 
-                ConfigureActiveScene(enemyDatabase, dropTable);
+                ConfigureActiveScene(enemyDatabase, dropTable, profileDatabase, huntContract);
                 EditorSceneManager.MarkSceneDirty(targetScene);
                 if (!EditorSceneManager.SaveScene(targetScene, scenePath))
                 {
@@ -157,7 +159,11 @@ namespace ToilRelic.Unity.Editor
             return true;
         }
 
-        private static void ConfigureActiveScene(EnemyDatabase enemyDatabase, DropTableData dropTable)
+        private static void ConfigureActiveScene(
+            EnemyDatabase enemyDatabase,
+            DropTableData dropTable,
+            EquipmentDropProfileDatabase profileDatabase,
+            HuntContractData huntContract)
         {
             if (enemyDatabase == null)
             {
@@ -176,6 +182,8 @@ namespace ToilRelic.Unity.Editor
             var gameManagerProperties = new SerializedObject(gameManager);
             gameManagerProperties.FindProperty("enemyDatabase").objectReferenceValue = enemyDatabase;
             gameManagerProperties.FindProperty("dropTable").objectReferenceValue = dropTable;
+            gameManagerProperties.FindProperty("equipmentDropProfiles").objectReferenceValue = profileDatabase;
+            gameManagerProperties.FindProperty("huntContract").objectReferenceValue = huntContract;
             gameManagerProperties.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(gameManager);
 
@@ -183,6 +191,7 @@ namespace ToilRelic.Unity.Editor
             var titlePanel = CreatePanel("TitlePanel", canvas.transform, TitleMenuPanelPosition, TitleMenuPanelSize);
             var campPanel = CreateStretchRoot("CampPanel", canvas.transform);
             var campActionMenu = CreatePanel("CampActionMenu", campPanel.transform, CampMenuPanelPosition, CampMenuPanelSize);
+            var huntContractPanel = CreatePanel("HuntContractPanel", campPanel.transform, HuntContractPanelPosition, HuntContractPanelSize);
             var equipmentPanel = CreatePanel("EquipmentPanel", campPanel.transform, EquipmentPanelPosition, EquipmentPanelSize);
             var battlePanel = CreatePanel("BattlePanel", canvas.transform, BattlePanelPosition, BattlePanelSize);
             var hud = CreateHud(canvas.transform);
@@ -194,15 +203,65 @@ namespace ToilRelic.Unity.Editor
             bridgeProperties.ApplyModifiedPropertiesWithoutUndo();
 
             var equipmentController = campPanel.AddComponent<EquipmentPanelController>();
+            var huntContractController = campPanel.AddComponent<HuntContractPanelController>();
             var continueButton = CreateButton("Continue", titlePanel.transform, 52f, bridge.ContinueGame, MenuButtonSize);
             CreateButton("New Game", titlePanel.transform, 0f, bridge.StartNewGame, MenuButtonSize);
             CreateButton("Quit", titlePanel.transform, -52f, bridge.Quit, MenuButtonSize);
-            var huntButton = CreateButton("Hunt", campActionMenu.transform, 78f, bridge.StartHunt, MenuButtonSize);
+            var huntButton = CreateButton("Hunt Contract", campActionMenu.transform, 78f, huntContractController.OpenContract, MenuButtonSize);
             var restButton = CreateButton("Rest", campActionMenu.transform, 26f, bridge.Rest, MenuButtonSize);
             var craftButton = CreateButton("Craft Treasure", campActionMenu.transform, -26f, bridge.CraftTreasure, MenuButtonSize);
             var equipmentEntryButton = CreateButton(
                 "Equipment", campActionMenu.transform, -78f, equipmentController.OpenEquipment, MenuButtonSize);
             SetExplicitVerticalNavigation(huntButton, restButton, craftButton, equipmentEntryButton);
+
+            var contractTitle = CreatePanelText(
+                "ContractTitleText", huntContractPanel.transform, 155f, HuntContractPanelSize.x - 24f, 28f);
+            contractTitle.text = "First Relic Project";
+            contractTitle.fontStyle = FontStyle.Bold;
+            contractTitle.fontSize = 21;
+            var projectText = CreatePanelText(
+                "ProjectProgressText", huntContractPanel.transform, 126f, HuntContractPanelSize.x - 24f, 24f);
+            projectText.text = "First Relic Project: 0/3";
+            projectText.fontSize = 16;
+            var quarryRowsContainer = CreateScrollArea(
+                "QuarryScrollView", "QuarryRowsContainer", huntContractPanel.transform,
+                new Vector2(-172f, 18f), new Vector2(328f, 212f), useTwoColumnGrid: false);
+            var contractDetailPanel = CreatePanel(
+                "ContractDetailPanel", huntContractPanel.transform,
+                new Vector2(172f, 18f), new Vector2(328f, 212f));
+            var contractDetails = CreateDetailText(
+                "ContractDetailsText", contractDetailPanel.transform,
+                new Vector2(0f, 0f), new Vector2(300f, 178f));
+            contractDetails.fontSize = 17;
+            contractDetails.lineSpacing = 1.05f;
+            var contractBackButton = CreateButton(
+                "Back to Camp", huntContractPanel.transform, new Vector2(-174f, -142f),
+                huntContractController.Cancel, EquipmentActionButtonSize);
+            var confirmHuntButton = CreateButton(
+                "Confirm Hunt", huntContractPanel.transform, new Vector2(0f, -142f),
+                huntContractController.ConfirmSelection, EquipmentActionButtonSize);
+            var forgeButton = CreateButton(
+                "Forge Relic", huntContractPanel.transform, new Vector2(174f, -142f),
+                huntContractController.Forge, EquipmentActionButtonSize);
+            confirmHuntButton.interactable = false;
+            forgeButton.interactable = false;
+            SetExplicitVerticalNavigation(contractBackButton, confirmHuntButton, forgeButton);
+
+            var huntContractProperties = new SerializedObject(huntContractController);
+            huntContractProperties.FindProperty("gameManager").objectReferenceValue = gameManager;
+            huntContractProperties.FindProperty("campMenuPanel").objectReferenceValue = campActionMenu;
+            huntContractProperties.FindProperty("contractPanel").objectReferenceValue = huntContractPanel;
+            huntContractProperties.FindProperty("huntEntryButton").objectReferenceValue = huntButton;
+            huntContractProperties.FindProperty("quarryRowsContainer").objectReferenceValue = quarryRowsContainer;
+            huntContractProperties.FindProperty("titleText").objectReferenceValue = contractTitle;
+            huntContractProperties.FindProperty("detailsText").objectReferenceValue = contractDetails;
+            huntContractProperties.FindProperty("projectText").objectReferenceValue = projectText;
+            huntContractProperties.FindProperty("confirmButton").objectReferenceValue = confirmHuntButton;
+            huntContractProperties.FindProperty("cancelButton").objectReferenceValue = contractBackButton;
+            huntContractProperties.FindProperty("forgeButton").objectReferenceValue = forgeButton;
+            huntContractProperties.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(huntContractController);
+            huntContractPanel.SetActive(false);
 
             var equipmentTitle = CreatePanelText(
                 "EquipmentTitleText", equipmentPanel.transform, 124f, EquipmentPanelSize.x - 24f, 24f);
@@ -285,6 +344,7 @@ namespace ToilRelic.Unity.Editor
             hudProperties.FindProperty("levelText").objectReferenceValue = hud.transform.Find("LevelText").GetComponent<Text>();
             hudProperties.FindProperty("invText").objectReferenceValue = hud.transform.Find("InventoryText").GetComponent<Text>();
             hudProperties.FindProperty("equipmentText").objectReferenceValue = hud.transform.Find("EquipmentText").GetComponent<Text>();
+            hudProperties.FindProperty("projectText").objectReferenceValue = hud.transform.Find("ProjectText").GetComponent<Text>();
             hudProperties.ApplyModifiedPropertiesWithoutUndo();
 
             var statusController = status.AddComponent<GameStatusController>();
@@ -619,6 +679,7 @@ namespace ToilRelic.Unity.Editor
             CreateHudText("LevelText", hud.transform, -TopTextStep);
             CreateHudText("InventoryText", hud.transform, -TopTextStep * 2f);
             CreateHudText("EquipmentText", hud.transform, -TopTextStep * 3f);
+            CreateHudText("ProjectText", hud.transform, -TopTextStep * 4f);
             return hud;
         }
 
