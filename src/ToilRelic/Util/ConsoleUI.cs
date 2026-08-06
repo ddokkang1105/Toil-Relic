@@ -71,6 +71,25 @@ public static class ConsoleUI
         Pause();
     }
 
+    public static void HuntContract(Player player, HuntContract contract, IReadOnlyList<EquipmentDropProfile> profiles)
+    {
+        Console.WriteLine($"[Hunt Contract: {contract.DisplayName}]");
+        for (var index = 0; index < contract.Quarries.Count; index++)
+        {
+            var quarry = contract.Quarries[index];
+            Enemy.TryCreate(quarry.EnemyId, out var enemy);
+            var profile = profiles.Single(item => string.Equals(item.Id, quarry.ProfileId, StringComparison.Ordinal));
+            EquipmentCatalog.TryGet(profile.EquipmentId, out var profileEquipment);
+            var completed = player.RelicProject.CompletedContributionIds.Contains(quarry.ContributionId, StringComparer.Ordinal);
+            Console.WriteLine($"{index + 1}. {enemy.Name} | Danger {quarry.Danger}");
+            Console.WriteLine($"   {(int)Math.Round(profile.Chance * 100d)}% chance: {profileEquipment.DisplayName}");
+            Console.WriteLine(completed
+                ? $"   Completed: {quarry.ContributionDisplayName} | Replay: no additional project progress"
+                : $"   Guaranteed first-win contribution: {quarry.ContributionDisplayName}");
+        }
+        Console.WriteLine();
+    }
+
     public static void Equipment(Player player)
     {
         Console.WriteLine("[장비]");

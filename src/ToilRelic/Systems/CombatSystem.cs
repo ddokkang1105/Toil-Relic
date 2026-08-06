@@ -63,3 +63,20 @@ public sealed class CombatSystem
 }
 
 public sealed record CombatResult(bool PlayerWon, bool PlayerFled, bool TimeExpired, string Log);
+
+public interface IHuntRuntime
+{
+    CombatResult Fight(Player player, Enemy enemy);
+    Loot RollLoot();
+    double RollProfile();
+}
+
+public sealed class ProductionHuntRuntime : IHuntRuntime
+{
+    private readonly CombatSystem combat = new();
+    private readonly LootSystem loot = new();
+
+    public CombatResult Fight(Player player, Enemy enemy) => combat.Fight(player, enemy);
+    public Loot RollLoot() => loot.RollLoot();
+    public double RollProfile() => Random.Shared.NextDouble();
+}
