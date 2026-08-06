@@ -129,7 +129,7 @@ namespace ToilRelic.PlayModeTests
 
         [UnityTest]
         [Category(CategoryName)]
-        public IEnumerator SerializedFailures_RejectInvalidContentAndRecoverAfterSaveFailure()
+        public IEnumerator VictorySaveFailure_KeepsAppliedContributionAndCanPersistOnRetry()
         {
             var manager = FindComponent("ToilRelic.Unity.Core.GameManager");
             var status = FindComponent("ToilRelic.Unity.UI.GameStatusController");
@@ -144,19 +144,72 @@ namespace ToilRelic.PlayModeTests
             Assert.That(((Text)GetField(status, "messageText")).text, Does.Contain("Hunt Contract unavailable"));
             SetField(manager, "huntContract", contract);
 
+            Click("Hunt ContractButton");
+            yield return null;
+            Click("Quarry_rust-golem");
+            Click("Confirm HuntButton");
+            yield return null;
+            var enemy = GetField(manager, "currentEnemy");
+            Invoke(enemy, "TakeDamage", 999);
+
             var overrideField = saveServiceType.GetField("savePathOverride", BindingFlags.Static | BindingFlags.NonPublic);
             var invalidPath = Path.Combine(saveDirectory, "missing", "save.json");
             overrideField.SetValue(null, invalidPath);
             LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
-            Click("RestButton");
+            Click("AttackButton");
             yield return null;
+            Assert.That(GetProperty(manager, "CurrentState").ToString(), Is.EqualTo("Camp"));
+            Assert.That(Completed(GetProperty(player, "RelicProject")), Is.EqualTo(new[] { "rustheart-core" }));
             Assert.That(((Text)GetField(status, "messageText")).text,
                 Does.EndWith("Save failed. Progress may not be saved."));
 
             overrideField.SetValue(null, savePath);
             Click("RestButton");
             yield return null;
-            Assert.That(GetProperty(saveServiceType.GetMethod("Load").Invoke(null, null), "Status").ToString(), Is.EqualTo("Loaded"));
+            var loaded = saveServiceType.GetMethod("Load").Invoke(null, null);
+            Assert.That(GetProperty(loaded, "Status").ToString(), Is.EqualTo("Loaded"));
+            Assert.That(Completed(GetProperty(GetProperty(loaded, "Player"), "RelicProject")),
+                Is.EqualTo(new[] { "rustheart-core" }));
+        }
+
+        [UnityTest]
+        [Category(CategoryName)]
+        public IEnumerator ForgeSaveFailure_KeepsSingleUnequippedRelicAndCanPersistOnRetry()
+        {
+            var manager = FindComponent("ToilRelic.Unity.Core.GameManager");
+            var status = FindComponent("ToilRelic.Unity.UI.GameStatusController");
+            var equipmentController = FindComponent("ToilRelic.Unity.UI.EquipmentPanelController");
+            var player = GetProperty(manager, "Player");
+            var project = GetProperty(player, "RelicProject");
+            foreach (var id in new[] { "chitin-shard", "rustheart-core", "wraith-ash" })
+            {
+                Assert.That(Invoke(project, "TryAddContribution", id), Is.EqualTo(true));
+            }
+            InvokePrivate(manager, "PublishPlayer");
+            Click("Hunt ContractButton");
+            yield return null;
+            Assert.That(FindButton("Forge RelicButton").interactable, Is.True);
+
+            var overrideField = saveServiceType.GetField("savePathOverride", BindingFlags.Static | BindingFlags.NonPublic);
+            overrideField.SetValue(null, Path.Combine(saveDirectory, "missing", "save.json"));
+            LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
+            Click("Forge RelicButton");
+            yield return null;
+
+            Assert.That(GetProperty(project, "IsForged"), Is.EqualTo(true));
+            Assert.That(Owned(player).Count(id => id == "toilbound-relic"), Is.EqualTo(1));
+            Assert.That(IsEquipped(player, "toilbound-relic"), Is.False);
+            Assert.That(GetProperty(equipmentController, "IsOpen"), Is.EqualTo(false));
+            Assert.That(((Text)GetField(status, "messageText")).text,
+                Does.EndWith("Save failed. Progress may not be saved."));
+
+            overrideField.SetValue(null, savePath);
+            Click("RestButton");
+            yield return null;
+            var loaded = GetProperty(saveServiceType.GetMethod("Load").Invoke(null, null), "Player");
+            Assert.That(GetProperty(GetProperty(loaded, "RelicProject"), "IsForged"), Is.EqualTo(true));
+            Assert.That(Owned(loaded).Count(id => id == "toilbound-relic"), Is.EqualTo(1));
+            Assert.That(IsEquipped(loaded, "toilbound-relic"), Is.False);
         }
 
         [UnityTest]
