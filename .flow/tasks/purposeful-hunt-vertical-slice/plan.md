@@ -53,9 +53,18 @@
 
 ## Review rework
 
-1. [ ] RW1 - Make rejected console victory content return a no-save outcome and prove source save bytes remain unchanged.
-2. [ ] RW2 - Enforce the fixed forged-relic and profile-equipment roles in both runtime content validators.
-3. [ ] RW3 - Make Unity malformed serialized content return typed unavailability and make v3 required-field checks object-scoped.
-4. [ ] RW4 - Add feature-boundary save-failure action coverage for victory and Forge, including later exact reload.
-5. [ ] RW5 - Complete the mirrored strict current-schema rejection matrix with byte-preservation assertions.
-6. [ ] RW6 - Rename the new console runtime private fields to the required `_camelCase` form.
+1. [x] RW1 - Make rejected console victory content return a no-save outcome and prove source save bytes remain unchanged.
+2. [x] RW2 - Enforce the fixed forged-relic and profile-equipment roles in both runtime content validators.
+3. [x] RW3 - Make Unity malformed serialized content return typed unavailability and make v3 required-field checks object-scoped.
+4. [x] RW4 - Add feature-boundary save-failure action coverage for victory and Forge, including later exact reload.
+5. [x] RW5 - Complete the mirrored strict current-schema rejection matrix with byte-preservation assertions.
+6. [x] RW6 - Rename the new console runtime private fields to the required `_camelCase` form.
+
+## Rework evidence
+
+- RW1/RW2/RW6: the proof-first console Hunt/content run failed 2 of 10 tests before the fixes, then passed 10/10. Rejected stale victory content now returns no-save and preserves the existing save bytes; the content validator enforces the fixed Toilbound Relic/Necklace role and forbids reserved profile rewards; new runtime private fields use `_camelCase`.
+- RW3/RW5: the focused Unity validation run failed 10 of 32 cases before the fixes (22 passed), then passed 32/32. Null serialized collections return typed unavailability, required v3 fields are checked inside the correct `player` and `relicProject` objects, and misleading-sibling, missing/null/wrong-kind, contribution, invariant, version, and mixed-legacy inputs remain unreadable without rewriting source text. The mirrored console migration suite passed 25/25.
+- RW4: serialized victory and Forge actions now force write failure after successful mutation, prove the contribution/relic is applied exactly once and remains visible, then restore the path and prove exact reload. After simplification, the dedicated action category passed twice in fresh Unity processes with 4 passed, 0 failed, and 1 conditional graphics-capture skip per run.
+- Simplification: `ce-simplify-code` applied 2 reuse improvements and 4 quality improvements, including canonical save generation, shared content IDs, dead-probe removal, contract-focused action tests, common save-failure helpers, and repository brace style. Three low-value/risky suggestions were skipped: moving the schema matrix into the cross-runtime content fixture, replacing its explicit case switch with test-data indirection, and rewriting the safety scanner for one-time-load micro-optimization.
+- Final regression: console tests passed 86/86 and `dotnet build` completed with 0 warnings and 0 errors. Unity Edit Mode passed 2/2. Unity Play Mode passed 101 tests with 0 failures and 2 conditional graphics-capture skips out of 103.
+- Rework commits: `d9d8862`, `e9720dc`, `88b4268`, and `4edf29f`.
