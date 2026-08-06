@@ -50,3 +50,12 @@
 - U5: Three focused Unity runtime tests passed for confirmed second-quarry retention, immutable reward authority after live profile mutation, stale-confirm rejection, Camp-local controller open/select/cancel cleanup, Forge persistence, and no auto-equip. The six-test shared domain fixture also remained green. GameManager now owns validated snapshots and atomic reward/Forge commands, publishes typed Contract/project/equipment-focus events, removes automatic Reward Weapon victory grant, and keeps save failure as the final feedback boundary.
 - U6: The bootstrap was regenerated twice without duplicate production assets. Two full Edit Mode runs passed (2/2) and proved committed/disposable equivalence for the new Hunt Contract hierarchy, initial Camp/Contract/Equipment exclusivity, GameManager contract/profile references, controller references, persistent Hunt/Craft/Back/Confirm/Forge targets, geometry, and explicit navigation. The committed scene now includes the project HUD line and generated Contract/Forge surface; UNITY_SETUP documents save v3, live profiles, focused checks, and evidence commands.
 - U7: Dedicated serialized action tests passed twice in fresh Unity processes (2/2 each; the conditional graphics capture skipped without its evidence variable). The final full regressions passed with Console 69/69 and a warning-free build, Unity Edit Mode 2/2, and Unity Play Mode 73 passed/0 failed/2 conditional skips out of 75. A graphics-enabled capture produced and visually verified all 12 expected non-uniform PNGs at 1280x720 and 800x600; geometry assertions cover 800x450 and 800x600 protected HUD/status gaps, 44px controls, optional/guaranteed/replay labels, invalid-content, save-failure, forged, and relic-preview states.
+
+## Review rework
+
+1. [ ] RW1 - Make rejected console victory content return a no-save outcome and prove source save bytes remain unchanged.
+2. [ ] RW2 - Enforce the fixed forged-relic and profile-equipment roles in both runtime content validators.
+3. [ ] RW3 - Make Unity malformed serialized content return typed unavailability and make v3 required-field checks object-scoped.
+4. [ ] RW4 - Add feature-boundary save-failure action coverage for victory and Forge, including later exact reload.
+5. [ ] RW5 - Complete the mirrored strict current-schema rejection matrix with byte-preservation assertions.
+6. [ ] RW6 - Rename the new console runtime private fields to the required `_camelCase` form.
