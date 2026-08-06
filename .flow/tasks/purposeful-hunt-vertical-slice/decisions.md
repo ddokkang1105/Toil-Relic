@@ -45,3 +45,13 @@
 | Document review | Complete | Coherence, feasibility, product, design, scope, and adversarial lenses; one confirmed responsibility-overlap fix applied, recommended product/scope resolutions incorporated, no actionable findings remain |
 | Cross-model review | Skipped | No independently identifiable different-provider CLI was available |
 | Ready for Work | Pass: implementation-ready, complete unit dependencies, verification contract, migration and rollback boundaries | Plan audit on 2026-08-06 |
+
+## Work decisions — 2026-08-06
+
+- Personal Flow routed implementation through `compound-engineering:ce-work` in return-to-caller mode; Personal Flow retains the report-only review and QA tail.
+- The implementation used native Codex execution with host-owned integration, focused commits, and authoritative final verification because no external implementation-engine binding was configured.
+- Unity confirmation captures an immutable quarry/reward snapshot. Later live asset mutation cannot change the selected battle's reward authority, and stale revisions are rejected before Battle.
+- Victory and Forge remain pure atomic domain commands before persistence. A successful mutation remains visible after a save failure, with the save warning emitted last.
+- The Hunt Contract panel uses a 704x282 Camp-local surface, a protected 16px gap below the HUD/status regions at 800x450 and 800x600, 44px actions, and compact 14px/52px quarry rows so all three reward summaries remain visible.
+- Raw Unity XML/log output and the 12 PNG layout captures remain local work evidence and are intentionally excluded from source commits. Generated scene YAML retains Unity's serializer-produced blank scalar whitespace.
+- Work completed U1-U7. Review and runtime QA were not claimed or advanced during this stage.

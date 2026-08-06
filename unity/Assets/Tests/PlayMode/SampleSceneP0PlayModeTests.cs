@@ -24,6 +24,7 @@ namespace ToilRelic.PlayModeTests
         private const string GameStatusControllerTypeName = "ToilRelic.Unity.UI.GameStatusController";
         private const string StatePanelControllerTypeName = "ToilRelic.Unity.UI.StatePanelController";
         private const string EquipmentPanelControllerTypeName = "ToilRelic.Unity.UI.EquipmentPanelController";
+        private const string HuntContractPanelControllerTypeName = "ToilRelic.Unity.UI.HuntContractPanelController";
         private const string GameEventsTypeName = "ToilRelic.Unity.Core.GameEvents";
         private const string CombatSystemTypeName = "ToilRelic.Unity.Systems.CombatSystem";
         private const string PlayModeActionContractsCategory = "PlayModeActionContracts";
@@ -791,7 +792,7 @@ namespace ToilRelic.PlayModeTests
 
             var sentinelSaveBytes = new byte[] { 0x54, 0x52, 0x43, 0x31 };
             File.WriteAllBytes(fixtureSavePath, sentinelSaveBytes);
-            gameManager.GetType().GetMethod("StartHunt").Invoke(gameManager, null);
+            StartFirstQuarryBattle(gameManager);
             yield return null;
 
             Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Battle"));
@@ -808,7 +809,7 @@ namespace ToilRelic.PlayModeTests
             Assert.That(validationText.text, Is.Empty);
             Assert.That(File.ReadAllBytes(fixtureSavePath), Is.EqualTo(sentinelSaveBytes),
                 "Leaving Camp must not save or rewrite existing bytes.");
-            Assert.That(order, Is.EqualTo(new[] { "StateChanged", "BattleLog" }),
+            Assert.That(order, Is.EqualTo(new[] { "BattleLog", "StateChanged", "BattleLog" }),
                 "The equipment controller must not add gameplay or save events to the normal hunt transition.");
             Assert.That(stateChanged.Values.Single().ToString(), Is.EqualTo("Battle"));
             Assert.That(playerChanged.Values, Is.Empty);
@@ -1090,7 +1091,7 @@ namespace ToilRelic.PlayModeTests
 
             var campButtons = new[]
             {
-                RequireRectTransform("HuntButton").GetComponent<Button>(),
+                RequireRectTransform("Hunt ContractButton").GetComponent<Button>(),
                 RequireRectTransform("RestButton").GetComponent<Button>(),
                 RequireRectTransform("Craft TreasureButton").GetComponent<Button>(),
                 RequireRectTransform("EquipmentButton").GetComponent<Button>()
@@ -1198,7 +1199,7 @@ namespace ToilRelic.PlayModeTests
             yield return null;
             var expectedActions = new HashSet<string>
             {
-                "StartHunt", "Rest", "CraftTreasure", "Attack", "Defend", "Flee", "UsePotion"
+                "Rest", "CraftTreasure", "Attack", "Defend", "Flee", "UsePotion"
             };
             var boundActions = new HashSet<string>(StringComparer.Ordinal);
 
@@ -2086,7 +2087,7 @@ namespace ToilRelic.PlayModeTests
                 ("QuitButton", GameActionBridgeTypeName, "Quit"));
             AssertPanelButtons(
                 "CampActionMenu",
-                ("HuntButton", GameActionBridgeTypeName, "StartHunt"),
+                ("Hunt ContractButton", HuntContractPanelControllerTypeName, "OpenContract"),
                 ("RestButton", GameActionBridgeTypeName, "Rest"),
                 ("Craft TreasureButton", GameActionBridgeTypeName, "CraftTreasure"),
                 ("EquipmentButton", EquipmentPanelControllerTypeName, "OpenEquipment"));
@@ -2587,7 +2588,7 @@ namespace ToilRelic.PlayModeTests
             var gameEventsType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Core.GameEvents");
 
             changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
-            gameManager.GetType().GetMethod("StartHunt").Invoke(gameManager, null);
+            StartFirstQuarryBattle(gameManager);
             yield return null;
 
             Assert.That(stateText.text, Is.EqualTo("State: Battle"));
@@ -2738,7 +2739,10 @@ namespace ToilRelic.PlayModeTests
                 var invalidSavePath = Path.Combine(Application.temporaryCachePath, Guid.NewGuid().ToString(), "toil_relic_save.json");
                 SetPrivateStaticField(saveServiceType, "savePathOverride", invalidSavePath);
                 LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
-                gameManager.GetType().GetMethod("EquipRewardWeapon").Invoke(gameManager, null);
+                var slotType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Core.EquipmentSlot");
+                gameManager.GetType().GetMethod("EquipEquipment").Invoke(
+                    gameManager,
+                    new object[] { Enum.Parse(slotType, "PrimaryWeapon"), "reward-weapon" });
             }
             finally
             {
@@ -2807,9 +2811,27 @@ namespace ToilRelic.PlayModeTests
             var stateType = GetPrivateField(gameManager, "state").GetType();
             var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
             changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
-            gameManager.GetType().GetMethod("StartHunt").Invoke(gameManager, null);
+            StartFirstQuarryBattle(gameManager);
             yield return null;
             Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Battle"));
+        }
+
+        private static void StartFirstQuarryBattle(Component gameManager)
+        {
+            gameManager.GetType().GetMethod("StartHunt").Invoke(gameManager, null);
+            var snapshot = gameManager.GetType().GetProperty("PresentedHuntContract").GetValue(gameManager);
+            Assert.That(snapshot, Is.Not.Null,
+                "Hunt Contract must present a validated snapshot before confirmation.");
+            var revision = (string)snapshot.GetType().GetProperty("Revision").GetValue(snapshot);
+            var first = ((IEnumerable)snapshot.GetType().GetProperty("Quarries").GetValue(snapshot))
+                .Cast<object>()
+                .First();
+            var quarryId = (string)first.GetType().GetProperty("Id").GetValue(first);
+            var confirmed = gameManager.GetType().GetMethod("ConfirmHunt").Invoke(
+                gameManager,
+                new object[] { quarryId, revision });
+            Assert.That(confirmed, Is.EqualTo(true),
+                "The first validated quarry must enter Battle deterministically.");
         }
 
         private static void AssertTerminalCampState(Component gameManager, Text messageText, Button attackButton, string outcome)

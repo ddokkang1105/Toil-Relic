@@ -37,8 +37,8 @@ namespace ToilRelic.Unity.Editor
         private static readonly Vector2 CampMenuPanelSize = new Vector2(280f, 224f);
         private static readonly Vector2 EquipmentPanelPosition = new Vector2(0f, -68f);
         private static readonly Vector2 EquipmentPanelSize = new Vector2(768f, 282f);
-        private static readonly Vector2 HuntContractPanelPosition = new Vector2(0f, -56f);
-        private static readonly Vector2 HuntContractPanelSize = new Vector2(704f, 356f);
+        private static readonly Vector2 HuntContractPanelPosition = new Vector2(0f, -68f);
+        private static readonly Vector2 HuntContractPanelSize = new Vector2(704f, 282f);
         private static readonly Vector2 MenuButtonSize = new Vector2(220f, 44f);
         private static readonly Vector2 EquipmentActionButtonSize = new Vector2(156f, 44f);
         private static readonly Vector2 BattleActionButtonSize = new Vector2(136f, 44f);
@@ -215,33 +215,33 @@ namespace ToilRelic.Unity.Editor
             SetExplicitVerticalNavigation(huntButton, restButton, craftButton, equipmentEntryButton);
 
             var contractTitle = CreatePanelText(
-                "ContractTitleText", huntContractPanel.transform, 155f, HuntContractPanelSize.x - 24f, 28f);
+                "ContractTitleText", huntContractPanel.transform, 122f, HuntContractPanelSize.x - 24f, 28f);
             contractTitle.text = "First Relic Project";
             contractTitle.fontStyle = FontStyle.Bold;
             contractTitle.fontSize = 21;
             var projectText = CreatePanelText(
-                "ProjectProgressText", huntContractPanel.transform, 126f, HuntContractPanelSize.x - 24f, 24f);
+                "ProjectProgressText", huntContractPanel.transform, 96f, HuntContractPanelSize.x - 24f, 20f);
             projectText.text = "First Relic Project: 0/3";
             projectText.fontSize = 16;
             var quarryRowsContainer = CreateScrollArea(
                 "QuarryScrollView", "QuarryRowsContainer", huntContractPanel.transform,
-                new Vector2(-172f, 18f), new Vector2(328f, 212f), useTwoColumnGrid: false);
+                new Vector2(-172f, -2f), new Vector2(328f, 174f), useTwoColumnGrid: false);
             var contractDetailPanel = CreatePanel(
                 "ContractDetailPanel", huntContractPanel.transform,
-                new Vector2(172f, 18f), new Vector2(328f, 212f));
+                new Vector2(172f, -2f), new Vector2(328f, 174f));
             var contractDetails = CreateDetailText(
                 "ContractDetailsText", contractDetailPanel.transform,
-                new Vector2(0f, 0f), new Vector2(300f, 178f));
+                new Vector2(0f, 0f), new Vector2(300f, 146f));
             contractDetails.fontSize = 17;
             contractDetails.lineSpacing = 1.05f;
             var contractBackButton = CreateButton(
-                "Back to Camp", huntContractPanel.transform, new Vector2(-174f, -142f),
+                "Back to Camp", huntContractPanel.transform, new Vector2(-174f, -113f),
                 huntContractController.Cancel, EquipmentActionButtonSize);
             var confirmHuntButton = CreateButton(
-                "Confirm Hunt", huntContractPanel.transform, new Vector2(0f, -142f),
+                "Confirm Hunt", huntContractPanel.transform, new Vector2(0f, -113f),
                 huntContractController.ConfirmSelection, EquipmentActionButtonSize);
             var forgeButton = CreateButton(
-                "Forge Relic", huntContractPanel.transform, new Vector2(174f, -142f),
+                "Forge Relic", huntContractPanel.transform, new Vector2(174f, -113f),
                 huntContractController.Forge, EquipmentActionButtonSize);
             confirmHuntButton.interactable = false;
             forgeButton.interactable = false;

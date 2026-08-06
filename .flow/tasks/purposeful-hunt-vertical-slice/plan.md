@@ -13,9 +13,9 @@
 2. [x] U2 — Add strict raw save validation, console schema v1, Unity schema v3, and legacy migration tests.
 3. [x] U3 — Add pure atomic victory/Forge commands with deterministic reward rolls and typed outcomes.
 4. [x] U4 — Replace console random Hunt with the three-choice Contract flow and existing equipment handoff.
-5. [ ] U5 — Add Unity manager authority, events, Camp-local controller behavior, and equipment handoff.
-6. [ ] U6 — Generate and verify Unity data references, scene structure, navigation, and setup documentation.
-7. [ ] U7 — Prove real serialized actions, two-viewport geometry, graphics captures, and full parity/regression behavior.
+5. [x] U5 — Add Unity manager authority, events, Camp-local controller behavior, and equipment handoff.
+6. [x] U6 — Generate and verify Unity data references, scene structure, navigation, and setup documentation.
+7. [x] U7 — Prove real serialized actions, two-viewport geometry, graphics captures, and full parity/regression behavior.
 
 ## Affected paths
 
@@ -49,3 +49,4 @@
 - U4: Four deterministic console Hunt/Forge UX tests observed the missing orchestration seam before implementation, then passed with readable 35% profile odds, guaranteed first-win contributions, replay labels, selected-quarry identity retention, defeat with no rewards, and Ready-only Forge handoff into Necklace comparison. The full 69-test console suite and a temporary-directory production new-game/save/quit lifecycle passed; legacy Reward Weapon equipment tests remain green while production victory no longer grants it.
 - U5: Three focused Unity runtime tests passed for confirmed second-quarry retention, immutable reward authority after live profile mutation, stale-confirm rejection, Camp-local controller open/select/cancel cleanup, Forge persistence, and no auto-equip. The six-test shared domain fixture also remained green. GameManager now owns validated snapshots and atomic reward/Forge commands, publishes typed Contract/project/equipment-focus events, removes automatic Reward Weapon victory grant, and keeps save failure as the final feedback boundary.
 - U6: The bootstrap was regenerated twice without duplicate production assets. Two full Edit Mode runs passed (2/2) and proved committed/disposable equivalence for the new Hunt Contract hierarchy, initial Camp/Contract/Equipment exclusivity, GameManager contract/profile references, controller references, persistent Hunt/Craft/Back/Confirm/Forge targets, geometry, and explicit navigation. The committed scene now includes the project HUD line and generated Contract/Forge surface; UNITY_SETUP documents save v3, live profiles, focused checks, and evidence commands.
+- U7: Dedicated serialized action tests passed twice in fresh Unity processes (2/2 each; the conditional graphics capture skipped without its evidence variable). The final full regressions passed with Console 69/69 and a warning-free build, Unity Edit Mode 2/2, and Unity Play Mode 73 passed/0 failed/2 conditional skips out of 75. A graphics-enabled capture produced and visually verified all 12 expected non-uniform PNGs at 1280x720 and 800x600; geometry assertions cover 800x450 and 800x600 protected HUD/status gaps, 44px controls, optional/guaranteed/replay labels, invalid-content, save-failure, forged, and relic-preview states.

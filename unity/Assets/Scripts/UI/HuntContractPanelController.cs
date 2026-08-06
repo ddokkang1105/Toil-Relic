@@ -162,7 +162,7 @@ namespace ToilRelic.Unity.UI
                 labelRect.offsetMax = new Vector2(-12f, -5f);
                 var label = labelObject.GetComponent<Text>();
                 label.font = detailsText != null ? detailsText.font : null;
-                label.fontSize = 16;
+                label.fontSize = 14;
                 label.alignment = TextAnchor.MiddleLeft;
                 label.color = Color.white;
                 label.text = $"{quarry.EnemyName} · Danger {quarry.Danger}\n" +
@@ -170,7 +170,7 @@ namespace ToilRelic.Unity.UI
                     (quarry.Completed ? "Completed — replay only" : $"Guaranteed {quarry.ContributionName}");
 
                 var layout = row.AddComponent<LayoutElement>();
-                layout.preferredHeight = 58f;
+                layout.preferredHeight = 52f;
                 generatedRows.Add(row);
                 quarryButtons.Add(button);
             }
