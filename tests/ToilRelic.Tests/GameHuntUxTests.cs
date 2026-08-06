@@ -61,6 +61,31 @@ public sealed class GameHuntUxTests
     }
 
     [Fact]
+    public void Run_StaleProfileAtVictoryRejectsRewardsWithoutSaving()
+    {
+        using var fixture = new GameFixture();
+        Assert.True(fixture.System.Save(new Player("Hunter")).Succeeded);
+        var before = File.ReadAllBytes(fixture.SavePath);
+        var profiles = PurposefulHuntContent.Profiles.ToList();
+        var runtime = new FakeHuntRuntime(
+            new CombatResult(true, false, false, "victory"),
+            new Loot(2, 1, 1),
+            0d,
+            () => profiles[0] = profiles[0] with { EquipmentId = EquipmentCatalog.RewardWeaponId });
+
+        var capture = CaptureUntilInputEnds(new ScriptedTextReader("1", "1", "1", "1", ""),
+            () => new Game(fixture.System, runtime, huntProfiles: profiles).Run());
+
+        Assert.Contains("Hunt reward failed", capture.Output);
+        Assert.DoesNotContain("Save:", capture.Output);
+        Assert.Equal(before, File.ReadAllBytes(fixture.SavePath));
+        var loaded = fixture.System.Load().Player!;
+        Assert.Empty(loaded.RelicProject.CompletedContributionIds);
+        Assert.Equal(0, loaded.Inventory[ItemType.Junk]);
+        Assert.DoesNotContain(EquipmentCatalog.VerminFangId, loaded.OwnedEquipmentIds);
+    }
+
+    [Fact]
     public void Run_ReadyForgeGrantsRelicOnceAndOpensNecklaceComparisonWithoutAutoEquip()
     {
         using var fixture = new GameFixture();
@@ -120,21 +145,32 @@ public sealed class GameHuntUxTests
 
     private sealed class FakeHuntRuntime : IHuntRuntime
     {
-        private readonly CombatResult combat;
-        private readonly Loot loot;
-        private readonly double profileRoll;
+        private readonly CombatResult _combat;
+        private readonly Loot _loot;
+        private readonly double _profileRoll;
+        private readonly Action? _onFight;
 
-        public FakeHuntRuntime(CombatResult? combat = null, Loot? loot = null, double profileRoll = 0d)
+        public FakeHuntRuntime(
+            CombatResult? combat = null,
+            Loot? loot = null,
+            double profileRoll = 0d,
+            Action? onFight = null)
         {
-            this.combat = combat ?? new CombatResult(true, false, false, "victory");
-            this.loot = loot ?? new Loot(1, 0, 0);
-            this.profileRoll = profileRoll;
+            _combat = combat ?? new CombatResult(true, false, false, "victory");
+            _loot = loot ?? new Loot(1, 0, 0);
+            _profileRoll = profileRoll;
+            _onFight = onFight;
         }
 
         public string? LastEnemyId { get; private set; }
-        public CombatResult Fight(Player player, Enemy enemy) { LastEnemyId = enemy.Id; return combat; }
-        public Loot RollLoot() => loot;
-        public double RollProfile() => profileRoll;
+        public CombatResult Fight(Player player, Enemy enemy)
+        {
+            LastEnemyId = enemy.Id;
+            _onFight?.Invoke();
+            return _combat;
+        }
+        public Loot RollLoot() => _loot;
+        public double RollProfile() => _profileRoll;
     }
 
     private sealed class GameFixture : IDisposable

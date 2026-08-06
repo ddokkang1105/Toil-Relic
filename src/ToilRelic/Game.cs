@@ -190,7 +190,7 @@ public sealed class Game
             if (reward.Status != QuarryRewardStatus.Applied)
             {
                 ConsoleUI.Section("Hunt reward failed", "Victory rewards could not be committed; no reward state changed.");
-                return true;
+                return false;
             }
 
             ConsoleUI.Section("Loot", BuildLootLog(loot.Junk, loot.RelicPart, loot.HealingPotion, enemy.ExpReward));

@@ -73,6 +73,28 @@ public sealed class PurposefulHuntContentTests
     }
 
     [Fact]
+    public void Validation_RejectsCatalogEquipmentAssignedToWrongProjectRoles()
+    {
+        var production = PurposefulHuntContent.FirstRelicContract;
+        var wrongRelic = new HuntContract(
+            production.Id,
+            production.DisplayName,
+            EquipmentCatalog.RewardWeaponId,
+            production.Quarries);
+
+        var relicProfile = PurposefulHuntContent.Profiles
+            .Select(profile => profile.Id == production.Quarries[0].ProfileId
+                ? profile with { EquipmentId = EquipmentCatalog.ToilboundRelicId }
+                : profile)
+            .ToArray();
+
+        var wrongRelicResult = wrongRelic.Validate(PurposefulHuntContent.Profiles);
+        Assert.Equal(HuntContentIssue.InvalidContract, wrongRelicResult.Issue);
+        Assert.Equal(EquipmentCatalog.RewardWeaponId, wrongRelicResult.ContentId);
+        Assert.Equal(HuntContentIssue.ForbiddenProfileEquipment, production.Validate(relicProfile).Issue);
+    }
+
+    [Fact]
     public void EquipmentCatalog_KeepsLegacyDefinitionsAlongsidePurposefulHuntItems()
     {
         Assert.Equal(6, EquipmentCatalog.All.Count);

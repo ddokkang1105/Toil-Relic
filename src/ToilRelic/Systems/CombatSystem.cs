@@ -73,10 +73,10 @@ public interface IHuntRuntime
 
 public sealed class ProductionHuntRuntime : IHuntRuntime
 {
-    private readonly CombatSystem combat = new();
-    private readonly LootSystem loot = new();
+    private readonly CombatSystem _combat = new();
+    private readonly LootSystem _loot = new();
 
-    public CombatResult Fight(Player player, Enemy enemy) => combat.Fight(player, enemy);
-    public Loot RollLoot() => loot.RollLoot();
+    public CombatResult Fight(Player player, Enemy enemy) => _combat.Fight(player, enemy);
+    public Loot RollLoot() => _loot.RollLoot();
     public double RollProfile() => Random.Shared.NextDouble();
 }

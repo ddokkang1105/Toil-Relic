@@ -68,9 +68,15 @@ public sealed class HuntContract
             return HuntContentValidationResult.Unavailable(HuntContentIssue.InvalidContract, Id);
         }
 
-        if (!EquipmentCatalog.TryGet(RelicEquipmentId, out _))
+        if (!EquipmentCatalog.TryGet(RelicEquipmentId, out var relicEquipment))
         {
             return HuntContentValidationResult.Unavailable(HuntContentIssue.MissingRelicEquipment, RelicEquipmentId);
+        }
+
+        if (!string.Equals(RelicEquipmentId, EquipmentCatalog.ToilboundRelicId, StringComparison.Ordinal) ||
+            !relicEquipment.CanEquipTo(EquipmentSlot.Necklace))
+        {
+            return HuntContentValidationResult.Unavailable(HuntContentIssue.InvalidContract, RelicEquipmentId);
         }
 
         var profileList = profiles?.ToArray() ?? Array.Empty<EquipmentDropProfile>();
@@ -117,7 +123,8 @@ public sealed class HuntContract
                 return HuntContentValidationResult.Unavailable(HuntContentIssue.InvalidProfile, profile.Id);
             }
 
-            if (string.Equals(profile.EquipmentId, EquipmentCatalog.RewardWeaponId, StringComparison.Ordinal))
+            if (string.Equals(profile.EquipmentId, EquipmentCatalog.RewardWeaponId, StringComparison.Ordinal) ||
+                string.Equals(profile.EquipmentId, EquipmentCatalog.ToilboundRelicId, StringComparison.Ordinal))
             {
                 return HuntContentValidationResult.Unavailable(HuntContentIssue.ForbiddenProfileEquipment, profile.EquipmentId);
             }
