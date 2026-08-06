@@ -24,6 +24,22 @@ A read-only view of a candidate equipment item against an explicit destination s
 
 The preview does not change equipped state or saved progress until the player confirms an equip action.
 
+### Hunt Contract
+
+The Camp-facing commitment that lets the player inspect and confirm a specific quarry before battle, including its danger, featured reward, and contribution to the active Relic Project.
+
+Confirming a Hunt Contract makes the selected quarry authoritative for the encounter and its reward profile; the game does not replace it with a random enemy.
+
+### Quarry Reward Profile
+
+The live reward definition associated with one quarry, used to distinguish that quarry's featured equipment outcome from generic battle loot.
+
+### Relic Project
+
+A persistent, player-visible goal advanced by distinct quarry contributions and completed by explicitly forging its one-time relic reward.
+
+The Purposeful Hunt vertical slice supports one First Relic Project rather than a selectable project catalog.
+
 ## Development workflow
 
 ### Personal Flow

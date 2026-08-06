@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Toil Relic 저장소 전체 작업 추천</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg: #f4f1ea;
+            --surface: #fffdf8;
+            --surface-2: #ece7dc;
+            --text: #26231f;
+            --muted: #625d54;
+            --line: #d4ccbd;
+            --accent: #825b2a;
+            --accent-soft: #ead9bd;
+            --accent-text: #4d3215;
+            --safe-soft: #d9eadf;
+            --safe-text: #224c31;
+            --warn-soft: #f2dfbd;
+            --warn-text: #5b3b09;
+            --cool-soft: #dce6ec;
+            --cool-text: #294652;
+            --shadow: 0 12px 34px rgba(52, 42, 27, 0.08);
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #171613;
+                --surface: #22201c;
+                --surface-2: #2c2923;
+                --text: #f2eee5;
+                --muted: #c4bbad;
+                --line: #4a4439;
+                --accent: #e1b16d;
+                --accent-soft: #4d3b25;
+                --accent-text: #f7dfba;
+                --safe-soft: #263f30;
+                --safe-text: #c7ead2;
+                --warn-soft: #4a3820;
+                --warn-text: #f4d398;
+                --cool-soft: #293b44;
+                --cool-text: #cae0e9;
+                --shadow: 0 12px 34px rgba(0, 0, 0, 0.24);
+            }
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Pretendard", "Noto Sans KR", "Segoe UI", sans-serif;
+            font-size: 15px;
+            line-height: 1.72;
+        }
+        a { color: var(--accent); text-underline-offset: 0.18em; }
+        code {
+            font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+            font-size: 0.9em;
+        }
+        .page {
+            width: min(94vw, 940px);
+            margin: 0 auto;
+            padding: 3.4rem 0 4rem;
+        }
+        header {
+            padding: 2.4rem;
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+        .eyebrow {
+            margin: 0 0 0.4rem;
+            color: var(--accent);
+            font-size: 0.76rem;
+            font-weight: 800;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+        }
+        h1, h2, h3 { line-height: 1.28; letter-spacing: -0.025em; }
+        h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.25rem); max-width: 18ch; }
+        h2 { margin: 0 0 1rem; font-size: 1.6rem; }
+        h3 { margin: 0; font-size: 1.27rem; }
+        .lede { max-width: 68ch; margin: 1rem 0 0; color: var(--muted); font-size: 1.05rem; }
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+            margin: 1.5rem 0 0;
+            padding: 0;
+        }
+        .meta div, .metrics span, .idea-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 0.35rem 0.72rem;
+            background: var(--surface-2);
+        }
+        .meta dt, .meta dd { margin: 0; }
+        .meta dt { color: var(--muted); font-size: 0.73rem; font-weight: 800; text-transform: uppercase; }
+        .meta dd { font-size: 0.83rem; font-weight: 700; }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.8rem;
+            margin: 1.2rem 0 0;
+        }
+        .metric {
+            padding: 1rem;
+            border-radius: 15px;
+            background: var(--surface-2);
+            text-align: center;
+        }
+        .metric strong { display: block; font-size: 1.35rem; color: inherit; }
+        .metric small { color: var(--muted); }
+        nav, section {
+            margin-top: 1.2rem;
+            padding: 1.6rem;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: var(--surface);
+        }
+        nav ul, .jump-list { display: flex; flex-wrap: wrap; gap: 0.55rem; list-style: none; margin: 0; padding: 0; }
+        nav a, .jump-list a {
+            display: inline-block;
+            padding: 0.38rem 0.72rem;
+            border-radius: 999px;
+            background: var(--surface-2);
+            color: var(--text);
+            font-size: 0.83rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        p, li { max-width: 72ch; }
+        .ground-list { margin: 0; padding-left: 1.2rem; }
+        .ground-list li + li { margin-top: 0.65rem; }
+        .decision {
+            margin: 1.1rem 0 0;
+            padding: 1rem 1.1rem;
+            border-radius: 14px;
+            background: var(--accent-soft);
+            color: var(--accent-text);
+        }
+        .decision p { margin: 0; }
+        .idea-grid { display: grid; gap: 1rem; margin-top: 1.1rem; }
+        .idea {
+            padding: 1.35rem;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: var(--bg);
+        }
+        .idea-head { display: flex; gap: 1rem; justify-content: space-between; align-items: flex-start; }
+        .rank {
+            flex: 0 0 auto;
+            display: grid;
+            place-items: center;
+            width: 2.3rem;
+            height: 2.3rem;
+            border-radius: 50%;
+            background: var(--accent-soft);
+            color: var(--accent-text);
+            font-weight: 900;
+        }
+        .idea-title { display: flex; align-items: center; gap: 0.75rem; }
+        .idea-meta { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.4rem; }
+        .idea-meta span { font-size: 0.75rem; font-weight: 800; }
+        .confidence-high { background: var(--safe-soft) !important; color: var(--safe-text); }
+        .confidence-mid { background: var(--warn-soft) !important; color: var(--warn-text); }
+        .complexity { background: var(--cool-soft) !important; color: var(--cool-text); }
+        .fields { display: grid; grid-template-columns: 8.4rem 1fr; gap: 0.65rem 1rem; margin: 1.2rem 0 0; }
+        .fields dt { font-weight: 800; color: var(--muted); }
+        .fields dd { margin: 0; max-width: 72ch; }
+        .diagram {
+            margin: 1.2rem 0 0;
+            padding: 0.8rem;
+            border-radius: 14px;
+            background: var(--surface);
+            overflow-x: auto;
+        }
+        .diagram svg { display: block; width: 100%; min-width: 660px; height: auto; }
+        .diagram figcaption { margin-top: 0.55rem; color: var(--muted); font-size: 0.82rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+        th, td { padding: 0.7rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+        th { background: var(--surface-2); }
+        .table-wrap { overflow-x: auto; }
+        .sources { columns: 2; column-gap: 2rem; padding-left: 1.2rem; }
+        .sources li { break-inside: avoid; margin-bottom: 0.5rem; }
+        footer { margin-top: 1.3rem; color: var(--muted); font-size: 0.8rem; text-align: center; }
+        @media (max-width: 720px) {
+            .page { width: min(94vw, 940px); padding-top: 1rem; }
+            header, nav, section { padding: 1.15rem; border-radius: 15px; }
+            .metrics { grid-template-columns: 1fr; }
+            .idea-head { display: block; }
+            .idea-meta { justify-content: flex-start; margin-top: 0.8rem; }
+            .fields { grid-template-columns: 1fr; gap: 0.2rem; }
+            .fields dd + dt { margin-top: 0.7rem; }
+            .sources { columns: 1; }
+        }
+        @media print {
+            body { background: #fff; color: #111; }
+            .page { width: 100%; padding: 0; }
+            header, nav, section, .idea { box-shadow: none; break-inside: avoid; }
+            a { color: inherit; }
+        }
+    </style>
+</head>
+<body>
+<main class="page">
+    <header>
+        <p class="eyebrow">Repo-grounded ideation</p>
+        <h1>Toil Relic에서 지금 가장 가치 높은 작업</h1>
+        <p class="lede">최근 완성된 UI·저장 피드백·장비 비교·PlayMode QA 기반을 실제 게임의 목적성으로 전환할 시점이다. 결론은 <strong>Purposeful Hunt Vertical Slice</strong>—사냥 선택, 표적 보상, 하나의 유물 프로젝트를 짧고 완결된 흐름으로 묶는 작업이다.</p>
+        <dl class="meta">
+            <div><dt>Date</dt><dd><time datetime="2026-08-06">2026-08-06</time></dd></div>
+            <div><dt>Topic</dt><dd>open-ideation</dd></div>
+            <div><dt>Focus</dt><dd>저장소 전체에서 가장 가치 높은 작업 추천</dd></div>
+            <div><dt>Mode</dt><dd>repo-grounded</dd></div>
+        </dl>
+        <div class="metrics" aria-label="아이디어 선별 요약">
+            <div class="metric"><strong>42</strong><small>raw candidates</small></div>
+            <div class="metric"><strong>6</strong><small>ranked survivors</small></div>
+            <div class="metric"><strong>2</strong><small>independently sound now</small></div>
+        </div>
+    </header>
+
+    <nav aria-label="문서 목차">
+        <ul>
+            <li><a href="#grounding-context">Codebase Context</a></li>
+            <li><a href="#topic-axes">Topic Axes</a></li>
+            <li><a href="#ranked-ideas">Ranked Ideas</a></li>
+            <li><a href="#rejection-summary">Rejection Summary</a></li>
+            <li><a href="#sources">Sources &amp; References</a></li>
+        </ul>
+    </nav>
+
+    <section id="grounding-context">
+        <p class="eyebrow">Grounding</p>
+        <h2>Codebase Context</h2>
+        <ul class="ground-list">
+            <li>콘솔과 Unity 모두 <strong>사냥 → 전투 → 보상/경험치 → 제작 → 반복</strong>이라는 핵심 루프를 이미 공유한다.</li>
+            <li>최근 작업은 저장 피드백, 장비 비교, HUD 중첩, 16:9 전투 패널, PlayMode QA 같은 기반 품질을 닫았다. 추적 중인 Personal Flow 태스크도 모두 종료 상태다.</li>
+            <li>가장 큰 제품 공백은 목적성이다. 승리 보상은 양쪽 런타임에서 사실상 같은 무기로 고정되어 있고, Unity의 <code>equipmentDropProfileId</code>는 미래 연결점으로 남아 있으며, 콘솔 제작은 단일 레시피다.</li>
+            <li>가장 명확한 신뢰성 부채는 저장 내구성이다. 기존 후속 문서는 원자적 쓰기와 last-known-good 복구를 높은 우선순위로 기록한다.</li>
+            <li>게임플레이 변경은 콘솔과 Unity에 함께 반영해야 한다. 따라서 전투·세션·영속성을 한 번에 다시 설계하는 아이디어는 체감보다 비용이 빠르게 커진다.</li>
+        </ul>
+        <div class="decision">
+            <p><strong>순위 원칙:</strong> 독립 검증은 납품 확실성과 위험 감소만 보면 Ironclad Save Envelope를 1위로 평가했다. 이 문서는 “저장소 전체 가치”를 플레이어 체감과 프로젝트 정체성까지 포함해 판단해 Purposeful Hunt Vertical Slice를 1위로 올렸다.</p>
+        </div>
+    </section>
+
+    <section id="topic-axes">
+        <p class="eyebrow">Exploration mode</p>
+        <h2>Topic Axes</h2>
+        <p>Decomposition skipped — surprise-me mode.</p>
+    </section>
+
+    <section id="ranked-ideas">
+        <p class="eyebrow">Shortlist</p>
+        <h2>Ranked Ideas</h2>
+        <ul class="jump-list" aria-label="추천 아이디어 바로가기">
+            <li><a href="#idea-1">1. Purposeful Hunt</a></li>
+            <li><a href="#idea-2">2. Save Envelope</a></li>
+            <li><a href="#idea-3">3. Tactical Grammar</a></li>
+            <li><a href="#idea-4">4. Quarry Mastery</a></li>
+            <li><a href="#idea-5">5. One Content Source</a></li>
+            <li><a href="#idea-6">6. Relic Vow</a></li>
+        </ul>
+
+        <div class="idea-grid">
+            <article class="idea" id="idea-1">
+                <div class="idea-head">
+                    <div class="idea-title"><span class="rank">1</span><h3>1. Purposeful Hunt Vertical Slice</h3></div>
+                    <div class="idea-meta"><span class="confidence-high">Confidence 88%</span><span class="complexity">Complexity High</span></div>
+                </div>
+                <dl class="fields">
+                    <dt>Description</dt>
+                    <dd>한 번의 안내형 Hunt Contract에서 소수의 사냥감을 고르게 하고, 2~3개의 사냥감별 드롭 프로필을 활성화하며, 재료가 하나의 활성 유물 프로젝트로 이어지게 한다. 첫 증분은 의도적으로 작게 유지해 기존 전투·보상·장비 비교·제작·저장·UI가 하나의 플레이어 목표를 이루게 한다.</dd>
+                    <dt>Basis</dt>
+                    <dd><strong>direct:</strong> Unity에는 아직 쓰이지 않는 <code>EnemyData.equipmentDropProfileId</code>가 있고, 두 런타임 모두 승리 시 같은 고정 무기를 보상하며, 콘솔 제작은 한 레시피뿐이다. <strong>external:</strong> <a href="https://store.steampowered.com/app/1336490/Against_the_Storm/">Against the Storm</a>의 목표와 수정자 구조는 제한된 콘텐츠도 의도 있는 선택으로 묶을 수 있다는 선례다. <strong>reasoned:</strong> 개별 루프 단계의 품질을 이미 높였으므로 이제 가장 큰 레버리지는 단계들에 명시적인 이유와 보상을 주는 데 있다.</dd>
+                    <dt>Rationale</dt>
+                    <dd>“왜 다시 사냥해야 하는가?”를 해결하면서 이미 만든 시스템을 모두 실전 사용한다. 잘 다듬어진 프로토타입을 고유한 정체성이 있는 게임으로 옮기는 가장 강한 연결점이다.</dd>
+                    <dt>Downsides</dt>
+                    <dd>범용 계약 프레임워크로 확장하면 즉시 과대해진다. 첫 태스크는 <strong>안내형 계약 1개, 프로필 2~3개, 유물 프로젝트 1개, 양쪽 런타임의 결정론적 검증</strong>으로 상한을 고정해야 한다.</dd>
+                </dl>
+                <figure class="diagram">
+                    <svg viewBox="0 0 820 190" role="img" aria-labelledby="hunt-flow-title hunt-flow-desc">
+                        <title id="hunt-flow-title">목적 있는 사냥의 개념 흐름</title>
+                        <desc id="hunt-flow-desc">계약 선택이 사냥감과 예상 보상을 정하고, 전투 보상이 활성 유물 프로젝트를 진전시키며 다음 계약 선택으로 이어진다.</desc>
+                        <defs>
+                            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
+                        </defs>
+                        <g fill="none" stroke="currentColor" stroke-width="2" opacity="0.55" marker-end="url(#arrow)">
+                            <path d="M175 83 H232"/><path d="M385 83 H442"/><path d="M595 83 H652"/>
+                            <path d="M735 128 C735 168 91 168 91 128"/>
+                        </g>
+                        <g font-family="Segoe UI, sans-serif" font-size="14" text-anchor="middle">
+                            <rect x="15" y="38" width="160" height="90" rx="16" fill="var(--accent-soft)" stroke="var(--line)"/>
+                            <text x="95" y="73" fill="var(--accent-text)" font-weight="700">Hunt Contract</text><text x="95" y="97" fill="var(--accent-text)">목표와 선택</text>
+                            <rect x="232" y="38" width="153" height="90" rx="16" fill="var(--cool-soft)" stroke="var(--line)"/>
+                            <text x="308" y="73" fill="var(--cool-text)" font-weight="700">Quarry</text><text x="308" y="97" fill="var(--cool-text)">읽을 수 있는 사냥</text>
+                            <rect x="442" y="38" width="153" height="90" rx="16" fill="var(--warn-soft)" stroke="var(--line)"/>
+                            <text x="518" y="73" fill="var(--warn-text)" font-weight="700">Drop Profile</text><text x="518" y="97" fill="var(--warn-text)">표적 보상</text>
+                            <rect x="652" y="38" width="153" height="90" rx="16" fill="var(--safe-soft)" stroke="var(--line)"/>
+                            <text x="728" y="73" fill="var(--safe-text)" font-weight="700">Relic Project</text><text x="728" y="97" fill="var(--safe-text)">보이는 진척</text>
+                            <text x="411" y="181" fill="var(--muted)" font-size="12">완성된 보상이 다음 사냥의 이유가 된다</text>
+                        </g>
+                    </svg>
+                    <figcaption>방향성 개념도: 새 시스템을 늘어놓는 대신 기존 루프를 하나의 약속과 보상으로 연결한다.</figcaption>
+                </figure>
+            </article>
+
+            <article class="idea" id="idea-2">
+                <div class="idea-head">
+                    <div class="idea-title"><span class="rank">2</span><h3>2. Ironclad Save Envelope</h3></div>
+                    <div class="idea-meta"><span class="confidence-high">Confidence 96%</span><span class="complexity">Complexity Medium</span></div>
+                </div>
+                <dl class="fields">
+                    <dt>Description</dt>
+                    <dd>양쪽 런타임에 동일한 내구성 계약을 정의한다. 버전이 있는 저장 envelope, 임시 파일 쓰기, 원자적 교체, last-known-good 백업, 복구 메시지, 실패 주입 검증을 한 묶음으로 제공한다.</dd>
+                    <dt>Basis</dt>
+                    <dd><strong>direct:</strong> 저장 UX 태스크가 원자적 쓰기와 last-known-good 복구를 높은 우선순위 후속 작업으로 이미 기록했다. 콘솔의 교체 로직에는 완전한 복구 경로가 없고 Unity는 현재 live 파일에 직접 쓴다. <strong>reasoned:</strong> 누적 진행은 충돌과 부분 쓰기에서도 살아남을 때만 가치가 보존된다.</dd>
+                    <dt>Rationale</dt>
+                    <dd>가장 안전한 고가치 작업이자 더 많은 진행 상태를 추가하기 전의 좋은 전제다. 독립 검증은 위험 감소와 납품 확실성을 기준으로 이 작업을 1위로 평가했다.</dd>
+                    <dt>Downsides</dt>
+                    <dd>플레이어는 문제가 생길 때 주로 체감한다. 현재 루프를 보호하지만 루프 자체를 더 흥미롭게 만들지는 않는다.</dd>
+                </dl>
+            </article>
+
+            <article class="idea" id="idea-3">
+                <div class="idea-head">
+                    <div class="idea-title"><span class="rank">3</span><h3>3. Tactical Hunt Grammar</h3></div>
+                    <div class="idea-meta"><span class="confidence-mid">Confidence 67%</span><span class="complexity">Complexity Medium–High</span></div>
+                </div>
+                <dl class="fields">
+                    <dt>Description</dt>
+                    <dd>적 의도를 미리 보여주고 Attack/Defend의 타이밍에 의미를 부여한다. 완전한 콤보 시스템보다 읽을 수 있는 적 패턴 한두 개에서 시작한다.</dd>
+                    <dt>Basis</dt>
+                    <dd><strong>direct:</strong> 두 런타임은 Attack과 Defend를 이미 갖지만 콘솔 전투는 자율적으로 진행된다. <strong>reasoned:</strong> intent는 버튼 수를 늘리지 않고도 전술적 선택을 만들 수 있다.</dd>
+                    <dt>Rationale</dt>
+                    <dd>기존 전투 동사를 더 표현력 있게 만들고 적의 개성을 강화한다.</dd>
+                    <dt>Downsides</dt>
+                    <dd>정직한 기능 정렬을 위해 콘솔 상호작용도 다시 설계해야 하므로 겉보기보다 큰 교차 런타임 변경이다.</dd>
+                </dl>
+            </article>
+
+            <article class="idea" id="idea-4">
+                <div class="idea-head">
+                    <div class="idea-title"><span class="rank">4</span><h3>4. Quarry Mastery Loop</h3></div>
+                    <div class="idea-meta"><span class="confidence-mid">Confidence 61%</span><span class="complexity">Complexity High</span></div>
+                </div>
+                <dl class="fields">
+                    <dt>Description</dt>
+                    <dd>반복 조우가 공격 범위, 예상 드롭, 대응법을 드러내게 하고, 이후 숙련은 일상적인 사냥을 더 빠르게 처리할 수 있게 한다.</dd>
+                    <dt>Basis</dt>
+                    <dd><strong>direct:</strong> 저장소는 작은 적 로스터와 반복 사냥 루프를 갖는다. <strong>reasoned:</strong> 지식 진행은 숫자 성장에만 의존하지 않고 반복을 플레이어 학습으로 바꿀 수 있다.</dd>
+                    <dt>Rationale</dt>
+                    <dd>반복 조우에 장기적인 의미를 주고 사냥감 정체성을 강화한다.</dd>
+                    <dt>Downsides</dt>
+                    <dd>적별 보상과 전술이 먼저 존재할 때 훨씬 강하다. 지금 만들면 얕은 차이를 기록하는 도감이 될 수 있다.</dd>
+                </dl>
+            </article>
+
+            <article class="idea" id="idea-5">
+                <div class="idea-head">
+                    <div class="idea-title"><span class="rank">5</span><h3>5. One Content Source, Two Runtime Builds</h3></div>
+                    <div class="idea-meta"><span class="confidence-mid">Confidence 58%</span><span class="complexity">Complexity High</span></div>
+                </div>
+                <dl class="fields">
+                    <dt>Description</dt>
+                    <dd>하나의 버전 관리형 중립 콘텐츠 카탈로그에서 콘솔 정의와 Unity 데이터 에셋을 생성하거나 검증한다.</dd>
+                    <dt>Basis</dt>
+                    <dd><strong>direct:</strong> 저장소 정책은 두 구현의 게임플레이 기능 정렬을 요구한다. <strong>reasoned:</strong> 의미가 안정된 뒤의 공용 카탈로그는 드리프트를 줄이고 미래 콘텐츠 작업을 누적적으로 싸게 만든다.</dd>
+                    <dt>Rationale</dt>
+                    <dd>장기적으로 콘텐츠 추가 비용을 낮추고 parity를 증명하기 쉽게 한다.</dd>
+                    <dt>Downsides</dt>
+                    <dd>계약·드롭·제작의 의미가 아직 진화 중이라 지금 중앙화하면 잘못된 추상화를 굳힐 수 있다.</dd>
+                </dl>
+            </article>
+
+            <article class="idea" id="idea-6">
+                <div class="idea-head">
+                    <div class="idea-title"><span class="rank">6</span><h3>6. Relic Vow Commission</h3></div>
+                    <div class="idea-meta"><span class="confidence-mid">Confidence 52%</span><span class="complexity">Complexity Medium–High</span></div>
+                </div>
+                <dl class="fields">
+                    <dt>Description</dt>
+                    <dd>미리 볼 수 있는 유물 의뢰가 아이템 테마의 자발적 전투 시험으로 이어지고, 성공하면 유물의 대표 효과가 각성한다.</dd>
+                    <dt>Basis</dt>
+                    <dd><strong>direct:</strong> 게임은 이미 사냥, 제작, 장비를 연결한다. <strong>reasoned:</strong> 의뢰는 제작을 자판기 행동이 아니라 기억할 만한 하나의 아이템 여정으로 만들 수 있다.</dd>
+                    <dt>Rationale</dt>
+                    <dd>Purposeful Hunt가 표적 획득을 증명한 뒤 빌드 정체성을 깊게 만들 수 있는 주제적 확장이다.</dd>
+                    <dt>Downsides</dt>
+                    <dd>후원자, 설계도, 각성 시험은 저장소에 아직 근거가 없고 더 단순한 계약+유물 프로젝트 방향과 겹친다.</dd>
+                </dl>
+            </article>
+        </div>
+    </section>
+
+    <section id="rejection-summary">
+        <p class="eyebrow">What was cut</p>
+        <h2>Rejection Summary</h2>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Considered idea</th><th>Reason rejected or absorbed</th></tr></thead>
+                <tbody>
+                    <tr><td>Contract Board; Hunt Board; The Hunt Starts With a Promise</td><td>#1에 흡수. 동일한 계약 wrapper의 중복 변형이다.</td></tr>
+                    <tr><td>Every Enemy Answers a Crafting Question; Stop Raining the Same Sword; Track Prey</td><td>#1의 사냥감별 보상 부분에 흡수.</td></tr>
+                    <tr><td>Blueprint Forge; Declare the Relic; Craft a World Rule</td><td>활성 프로젝트는 #1에 흡수했고 doctrine·자동화 변형은 아직 범위가 크다.</td></tr>
+                    <tr><td>Telegraph the Threat; Zero New Combat Buttons</td><td>#3 Tactical Hunt Grammar에 흡수.</td></tr>
+                    <tr><td>Field Notes; Progress by Learning; Naturalist Notebook; Mastery Automates Grind</td><td>#4에 흡수하되, 사냥감별 차이가 먼저 깊어져야 한다.</td></tr>
+                    <tr><td>Collapse Should Force a Rescue Choice</td><td>핵심 사냥 보상보다 먼저 새로운 패배 경제를 만든다.</td></tr>
+                    <tr><td>Failure Writes the Rematch; Defeat Creates a Nemesis; Nemesis Contract</td><td>현재 근거가 약한 개별 적 영속 상태와 회복 규칙이 필요하다.</td></tr>
+                    <tr><td>Ironclad Save Journal; Invisible Save Transaction; Migration-first Envelope</td><td>#2 Ironclad Save Envelope에 흡수.</td></tr>
+                    <tr><td>Gameplay Contract Spine; Generate Two Games' Proof</td><td>유용하지만 다음 플레이어 체감 작업으로는 지나치게 구조 중심이다.</td></tr>
+                    <tr><td>Combat Stops Only for Decisions</td><td>두 런타임에 새로운 자동 전투/interrupt 모델이 필요하다.</td></tr>
+                    <tr><td>Every Victory a Salvage Dilemma</td><td>아직 없는 개별 loot와 trophy 의미론에 의존한다.</td></tr>
+                    <tr><td>Save &amp; Quit Into a Cliffhanger</td><td>내구성 있는 복구와 다음 사냥의 약속 이후에 할 세션 종료 polish다.</td></tr>
+                    <tr><td>Relic Demands Toil; Named Patrons; Qualification Trials</td><td>강한 부분은 #6에 통합했고 나머지는 설정 wrapper 변형이다.</td></tr>
+                    <tr><td>Seeded Expedition Capsules; Dual Implementations as Daily Challenge</td><td>아직 없는 결정론적 expedition/session 규칙에 의존한다.</td></tr>
+                    <tr><td>Typed Result Protocol; Progression Fact Ledger; Semantic Gameplay Core</td><td>즉시 플레이어 가치에 비해 여러 아키텍처 프로그램을 한꺼번에 묶는다.</td></tr>
+                    <tr><td>Balance Lab</td><td>보상과 계약 의미가 선택되기 전에 도구가 루프보다 앞서간다.</td></tr>
+                    <tr><td>Living Mine Ecosystem</td><td>한 태스크에서 제품 범위와 시뮬레이션 정체성을 너무 크게 바꾼다.</td></tr>
+                    <tr><td>Hunt Season; Geological Strata; One Mine Shift</td><td>모두 새로운 expedition/session 층을 요구하며 단일 계약 slice보다 약하다.</td></tr>
+                    <tr><td>One Relic Warden</td><td>콘솔은 적 4종, 생성 Unity 콘텐츠는 3종이라 전제가 런타임 간 일치하지 않고 루프를 강화하기보다 대체한다.</td></tr>
+                    <tr><td>Loot Provenance; Personal Relic Provenance</td><td>아직 없는 개별 유물 provenance와 trophy disposition 모델이 필요하다.</td></tr>
+                    <tr><td>Only Camp Is Real; Expedition Spine</td><td>임시 상태, 세션 구조, seed, 원자 저장을 하나의 과대 설계로 묶는다.</td></tr>
+                    <tr><td>One Action Contract + Fact Ledger + Content Catalog</td><td>하나의 태스크로는 기각. 검증된 기능 seam이 각 추상화를 먼저 정당화해야 한다.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section id="sources">
+        <p class="eyebrow">Evidence index</p>
+        <h2>Sources &amp; References</h2>
+        <ul class="sources">
+            <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/README.md">README.md — core loop and project surface</a></li>
+            <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/unity/Assets/Scripts/Data/EnemyData.cs#L14">EnemyData.cs — dormant drop-profile seam</a></li>
+            <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/unity/Assets/Scripts/Core/GameManager.cs#L365">Unity GameManager.cs — victory reward path</a></li>
+            <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/src/ToilRelic/Game.cs#L123">Console Game.cs — victory reward path</a></li>
+            <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/src/ToilRelic/Systems/CraftingSystem.cs#L7">CraftingSystem.cs — current recipe surface</a></li>
+            <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/src/ToilRelic/Systems/SaveSystem.cs#L20">Console SaveSystem.cs</a></li>
+            <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/unity/Assets/Scripts/Save/SaveService.cs#L72">Unity SaveService.cs</a></li>
+            <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/.flow/tasks/%EC%A0%80%EC%9E%A5-ux-%EB%B3%B4%EA%B0%95/plan.md#L50">Save UX follow-up — atomic recovery priority</a></li>
+            <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/docs/solutions/architecture-patterns/pure-equipment-preview-with-commit-revalidation.md">Equipment preview/commit learning</a></li>
+            <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/docs/solutions/best-practices/deterministic-unity-playmode-action-contracts.md">Deterministic PlayMode action contracts</a></li>
+            <li><a href="https://store.steampowered.com/app/1336490/Against_the_Storm/">Against the Storm — objective/modifier prior art</a></li>
+            <li><a href="https://www.foundations.unity.com/fundamentals/interactions">Unity interaction foundations</a></li>
+        </ul>
+    </section>
+
+    <footer class="composition-signal">Composed 2026-08-06T10:55:28+09:00 by ce-ideate from the user prompt “저장소 전체에서 가장 가치 높은 작업 추천”.</footer>
+</main>
+</body>
+</html>
