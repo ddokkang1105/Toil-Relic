@@ -42,5 +42,9 @@
     ]
   },
   "commands": [],
-  "migrations": []
+  "migrations": [
+    { "id": "legacy-empty-project", "consoleVersion": 0, "unityVersion": 2, "expectedStatus": "Loaded", "expectedProjectState": "Empty" },
+    { "id": "current-ready", "consoleVersion": 1, "unityVersion": 3, "expectedStatus": "Loaded", "expectedProjectState": "Ready" },
+    { "id": "legacy-project-mixed", "consoleVersion": 0, "unityVersion": 2, "expectedStatus": "Unreadable", "expectedProjectState": "None" }
+  ]
 }

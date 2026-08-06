@@ -21,6 +21,16 @@ internal sealed class PurposefulHuntFixture
 {
     public int SchemaVersion { get; set; }
     public HuntContentFixture Content { get; set; } = new();
+    public HuntMigrationFixture[] Migrations { get; set; } = Array.Empty<HuntMigrationFixture>();
+}
+
+internal sealed class HuntMigrationFixture
+{
+    public string Id { get; set; } = string.Empty;
+    public int ConsoleVersion { get; set; }
+    public int UnityVersion { get; set; }
+    public string ExpectedStatus { get; set; } = string.Empty;
+    public string ExpectedProjectState { get; set; } = string.Empty;
 }
 
 internal sealed class HuntContentFixture

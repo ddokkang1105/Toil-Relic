@@ -9,8 +9,8 @@
 
 ## Steps
 
-1. [ ] U1 — Add mirrored native quarry, reward-profile, project, and equipment content plus shared parity vectors.
-2. [ ] U2 — Add strict raw save validation, console schema v1, Unity schema v3, and legacy migration tests.
+1. [x] U1 — Add mirrored native quarry, reward-profile, project, and equipment content plus shared parity vectors.
+2. [x] U2 — Add strict raw save validation, console schema v1, Unity schema v3, and legacy migration tests.
 3. [ ] U3 — Add pure atomic victory/Forge commands with deterministic reward rolls and typed outcomes.
 4. [ ] U4 — Replace console random Hunt with the three-choice Contract flow and existing equipment handoff.
 5. [ ] U5 — Add Unity manager authority, events, Camp-local controller behavior, and equipment handoff.
@@ -40,3 +40,8 @@
 - Invalid current or mixed-version payloads remain unreadable; normalization must not repair them before validation.
 - Gameplay commands resolve completely before mutation. A domain precondition failure leaves state unchanged; a save failure after a successful mutation keeps in-memory state and reports failure last.
 - If implementation must be rolled back, remove the Hunt/Forge production wiring and new generated assets together while preserving legacy equipment catalog compatibility and existing saves. Atomic file replacement remains deferred to Ironclad Save Envelope.
+
+## Work evidence
+
+- U1: Console content tests observed the expected compile-time red failure before implementation, then 4 focused tests and the 55-test console suite passed. Unity content tests observed missing native types before implementation, then 2 focused Play Mode tests, the catalog fixture regression, and the generated-data Edit Mode contract passed. Two bootstrap runs produced one contract, one profile database, and three profile assets without duplication.
+- U2: Console project tests observed missing project-state APIs before implementation; all 63 console tests then passed with schema v1, legacy defaulting, canonical contribution order, and corrupt-current rejection. Unity tests observed missing project state and v2 behavior before implementation; 5 focused tests and the 68-test Play Mode suite passed with v3 round-trip, v0-v2 byte-preserving legacy load, and mixed/current rejection.

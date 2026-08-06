@@ -2,6 +2,7 @@ namespace ToilRelic.Models;
 
 public sealed class PlayerSaveData
 {
+    public int SchemaVersion { get; init; } = 1;
     public string Name { get; init; } = "노역자";
     public int MaxHp { get; init; } = 1000;
     public int Hp { get; init; } = 1000;
@@ -14,4 +15,11 @@ public sealed class PlayerSaveData
     public string? EquippedWeaponId { get; init; }
     public List<EquippedEquipmentEntry> EquippedEquipment { get; init; } = new();
     public bool EquipmentInitialized { get; init; }
+    public RelicProjectSaveData RelicProject { get; init; } = new();
+}
+
+public sealed class RelicProjectSaveData
+{
+    public List<string> CompletedContributionIds { get; init; } = new();
+    public bool Forged { get; init; }
 }

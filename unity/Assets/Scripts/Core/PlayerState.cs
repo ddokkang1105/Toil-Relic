@@ -19,12 +19,14 @@ namespace ToilRelic.Unity.Core
         [SerializeField] private List<string> ownedEquipmentIds = new();
         [SerializeField] private List<EquippedEquipmentEntry> equippedEquipment = new();
         [SerializeField] private bool equipmentInitialized;
+        [SerializeField] private RelicProjectState relicProject = new();
         // Unity JsonUtility reads this legacy field from older saves; new saves do not write it.
         [SerializeField] private string equippedWeaponId;
 
         public int MaxHp => maxHp; public int Hp => hp; public int Level => level; public int Experience => experience;
         public int ExperienceToNextLevel => RequiredExperience(level); public float LevelProgressValue => level + experience / (float)ExperienceToNextLevel;
         public int TreasureCount => treasureCount; public IReadOnlyList<InventorySlot> Inventory => inventory; public IReadOnlyList<string> OwnedEquipmentIds => ownedEquipmentIds; public IReadOnlyList<EquippedEquipmentEntry> EquippedEquipment => equippedEquipment;
+        public RelicProjectState RelicProject => relicProject;
         private IEnumerable<EquipmentDefinition> EquippedDefinitions => equippedEquipment.Select(entry => EquipmentCatalog.TryGet(entry.equipmentId, out var item) ? item : null).Where(item => item != null);
         public int AttackBonus => EquippedDefinitions.Sum(item => item.AttackBonus); public int DefenseBonus => EquippedDefinitions.Sum(item => item.DefenseBonus); public int DamageReductionBonus => EquippedDefinitions.Sum(item => item.DamageReductionBonus); public int EquipmentMaxHpBonus => EquippedDefinitions.Sum(item => item.MaxHpBonus);
         public int ReduceIncomingDamage(int amount) => Mathf.Max(0, amount - DefenseBonus - DamageReductionBonus);
@@ -38,9 +40,48 @@ namespace ToilRelic.Unity.Core
             inventory != null && inventory.Count > 0 &&
             inventory.All(slot => slot != null && slot.amount >= 0 && Enum.IsDefined(typeof(ItemType), slot.type));
 
+        internal bool HasValidCurrentSaveData()
+        {
+            if (!HasValidSaveData() || !equipmentInitialized || ownedEquipmentIds == null ||
+                equippedEquipment == null || relicProject == null)
+            {
+                return false;
+            }
+
+            var owned = new HashSet<string>(StringComparer.Ordinal);
+            if (ownedEquipmentIds.Any(id =>
+                    string.IsNullOrWhiteSpace(id) || !owned.Add(id) || !EquipmentCatalog.TryGet(id, out _)))
+            {
+                return false;
+            }
+
+            var equipmentIds = new HashSet<string>(StringComparer.Ordinal);
+            var slots = new HashSet<EquipmentSlot>();
+            foreach (var entry in equippedEquipment)
+            {
+                if (entry == null || !Enum.IsDefined(typeof(EquipmentSlot), entry.slot) ||
+                    string.IsNullOrWhiteSpace(entry.equipmentId) || !owned.Contains(entry.equipmentId) ||
+                    !EquipmentCatalog.TryGet(entry.equipmentId, out var equipment) || !equipment.CanEquipTo(entry.slot) ||
+                    !equipmentIds.Add(entry.equipmentId) || !slots.Add(entry.slot))
+                {
+                    return false;
+                }
+            }
+
+            return slots.Contains(EquipmentSlot.PrimaryWeapon) &&
+                RelicProjectState.HasValidSaveState(relicProject, ownedEquipmentIds, equippedEquipment);
+        }
+
+        internal bool HasLegacyRelicState() =>
+            ownedEquipmentIds?.Contains(EquipmentCatalog.ToilboundRelicId) == true ||
+            equippedEquipment?.Any(entry => entry != null &&
+                string.Equals(entry.equipmentId, EquipmentCatalog.ToilboundRelicId, StringComparison.Ordinal)) == true;
+
+        internal void EnsureLegacyProject() => relicProject ??= new RelicProjectState();
+
         public void InitDefaults()
         {
-            inventory ??= new List<InventorySlot>(); ownedEquipmentIds ??= new List<string>(); equippedEquipment ??= new List<EquippedEquipmentEntry>();
+            inventory ??= new List<InventorySlot>(); ownedEquipmentIds ??= new List<string>(); equippedEquipment ??= new List<EquippedEquipmentEntry>(); relicProject ??= new RelicProjectState();
             if (inventory.Count == 0) foreach (var type in Enum.GetValues(typeof(ItemType)).Cast<ItemType>()) inventory.Add(new InventorySlot { type = type, amount = 0 });
             NormalizeEquipment(); RecalculateMaxHp(hp <= 0);
         }

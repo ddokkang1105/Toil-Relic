@@ -246,7 +246,7 @@ public sealed class SaveSystemTests
     }
 
     [Fact]
-    public void Save_CurrentFormat_KeepsExistingJsonShape()
+    public void Save_CurrentFormat_AddsVersionedProjectWithoutDroppingExistingShape()
     {
         using var fixture = new SaveFixture();
 
@@ -260,9 +260,9 @@ public sealed class SaveSystemTests
         Assert.Equal(
             new HashSet<string>(StringComparer.Ordinal)
             {
-                "Name", "MaxHp", "Hp", "Level", "Experience", "TreasureCount",
+                "SchemaVersion", "Name", "MaxHp", "Hp", "Level", "Experience", "TreasureCount",
                 "Inventory", "OwnedEquipmentIds", "EquippedWeaponId",
-                "EquippedEquipment", "EquipmentInitialized"
+                "EquippedEquipment", "EquipmentInitialized", "RelicProject"
             },
             propertyNames);
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
@@ -11,6 +12,10 @@ namespace ToilRelic.PlayModeTests
     public sealed class PurposefulHuntDomainPlayModeTests
     {
         private readonly List<UnityEngine.Object> created = new();
+        private Type saveServiceType;
+        private object previousSavePathOverride;
+        private string saveDirectory;
+        private string savePath;
 
         [TearDown]
         public void TearDown()
@@ -24,6 +29,83 @@ namespace ToilRelic.PlayModeTests
             }
 
             created.Clear();
+            if (saveServiceType != null)
+            {
+                saveServiceType.GetField("savePathOverride", BindingFlags.Static | BindingFlags.NonPublic)
+                    .SetValue(null, previousSavePathOverride);
+            }
+
+            if (!string.IsNullOrEmpty(saveDirectory) && Directory.Exists(saveDirectory))
+            {
+                Directory.Delete(saveDirectory, recursive: true);
+            }
+        }
+
+        [Test]
+        public void RelicProjectState_CanonicalizesContributionOrder()
+        {
+            var migrationVectors = PurposefulHuntContractFixture.Load().migrations;
+            Assert.That(migrationVectors.Select(vector => vector.id),
+                Is.EqualTo(new[] { "legacy-empty-project", "current-ready", "legacy-project-mixed" }));
+            Assert.That(migrationVectors.Select(vector => vector.expectedStatus),
+                Is.EqualTo(new[] { "Loaded", "Loaded", "Unreadable" }));
+            var project = Activator.CreateInstance(FindType("ToilRelic.Unity.Core.RelicProjectState"));
+            var add = project.GetType().GetMethod("TryAddContribution");
+            Assert.That(add.Invoke(project, new object[] { "wraith-ash" }), Is.EqualTo(true));
+            Assert.That(add.Invoke(project, new object[] { "chitin-shard" }), Is.EqualTo(true));
+            Assert.That(add.Invoke(project, new object[] { "rustheart-core" }), Is.EqualTo(true));
+
+            var completed = ((IEnumerable)GetProperty(project, "CompletedContributionIds")).Cast<string>().ToArray();
+            Assert.That(completed, Is.EqualTo(new[] { "chitin-shard", "rustheart-core", "wraith-ash" }));
+            Assert.That(GetProperty(project, "IsReady"), Is.EqualTo(true));
+            Assert.That(GetProperty(project, "IsForged"), Is.EqualTo(false));
+        }
+
+        [Test]
+        public void SaveService_V3RoundTripsProjectAndLegacyDefaultsWithoutWriting()
+        {
+            ConfigureSavePath();
+            var player = Activator.CreateInstance(FindType("ToilRelic.Unity.Core.PlayerState"));
+            player.GetType().GetMethod("InitDefaults").Invoke(player, null);
+            var project = GetProperty(player, "RelicProject");
+            var add = project.GetType().GetMethod("TryAddContribution");
+            foreach (var id in new[] { "wraith-ash", "chitin-shard", "rustheart-core" })
+            {
+                Assert.That(add.Invoke(project, new object[] { id }), Is.EqualTo(true));
+            }
+
+            var save = saveServiceType.GetMethod("Save").Invoke(null, new[] { player });
+            Assert.That(GetProperty(save, "Succeeded"), Is.EqualTo(true));
+            var currentJson = File.ReadAllText(savePath);
+            Assert.That(currentJson, Does.Contain("\"version\":3"));
+            Assert.That(currentJson, Does.Contain("\"relicProject\""));
+            var currentLoad = saveServiceType.GetMethod("Load").Invoke(null, null);
+            Assert.That(GetProperty(currentLoad, "Status").ToString(), Is.EqualTo("Loaded"),
+                GetProperty(currentLoad, "Diagnostic")?.ToString());
+
+            const string legacy = "{\"version\":2,\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":0,\"inventory\":[{\"type\":0,\"amount\":2}]}}";
+            File.WriteAllText(savePath, legacy);
+            var legacyResult = saveServiceType.GetMethod("Load").Invoke(null, null);
+            Assert.That(GetProperty(legacyResult, "Status").ToString(), Is.EqualTo("Loaded"));
+            var legacyPlayer = GetProperty(legacyResult, "Player");
+            var legacyProject = GetProperty(legacyPlayer, "RelicProject");
+            Assert.That(((IEnumerable)GetProperty(legacyProject, "CompletedContributionIds")).Cast<object>(), Is.Empty);
+            Assert.That(File.ReadAllText(savePath), Is.EqualTo(legacy));
+        }
+
+        [Test]
+        public void SaveService_RejectsMissingCurrentProjectAndLegacyProjectPayload()
+        {
+            ConfigureSavePath();
+            const string currentMissingProject = "{\"version\":3,\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":0,\"inventory\":[{\"type\":0,\"amount\":2}],\"ownedEquipmentIds\":[\"starter-weapon\"],\"equippedEquipment\":[{\"slot\":0,\"equipmentId\":\"starter-weapon\"}],\"equipmentInitialized\":true}}";
+            File.WriteAllText(savePath, currentMissingProject);
+            Assert.That(GetProperty(saveServiceType.GetMethod("Load").Invoke(null, null), "Status").ToString(), Is.EqualTo("Unreadable"));
+            Assert.That(File.ReadAllText(savePath), Is.EqualTo(currentMissingProject));
+
+            const string legacyWithProject = "{\"version\":2,\"player\":{\"maxHp\":30,\"hp\":18,\"level\":2,\"experience\":3,\"treasureCount\":0,\"inventory\":[{\"type\":0,\"amount\":2}],\"relicProject\":{\"completedContributionIds\":[],\"forged\":false}}}";
+            File.WriteAllText(savePath, legacyWithProject);
+            Assert.That(GetProperty(saveServiceType.GetMethod("Load").Invoke(null, null), "Status").ToString(), Is.EqualTo("Unreadable"));
+            Assert.That(File.ReadAllText(savePath), Is.EqualTo(legacyWithProject));
         }
 
         [Test]
@@ -119,6 +201,17 @@ namespace ToilRelic.PlayModeTests
             var instance = ScriptableObject.CreateInstance(FindType(typeName));
             created.Add(instance);
             return instance;
+        }
+
+        private void ConfigureSavePath()
+        {
+            saveServiceType = FindType("ToilRelic.Unity.Save.SaveService");
+            var field = saveServiceType.GetField("savePathOverride", BindingFlags.Static | BindingFlags.NonPublic);
+            previousSavePathOverride = field.GetValue(null);
+            saveDirectory = Path.Combine(Path.GetTempPath(), $"toil-relic-project-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(saveDirectory);
+            savePath = Path.Combine(saveDirectory, "toil_relic_save.json");
+            field.SetValue(null, savePath);
         }
 
         private static IList CreateList(object owner, string fieldName)

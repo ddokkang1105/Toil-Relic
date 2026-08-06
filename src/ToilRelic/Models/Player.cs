@@ -6,6 +6,7 @@ public sealed class Player
     private readonly Dictionary<ItemType, int> _inventory = new();
     private readonly List<string> _ownedEquipmentIds = new();
     private readonly List<EquippedEquipmentEntry> _equippedEquipment = new();
+    private readonly RelicProjectState _relicProject = new();
     private bool _equipmentInitialized;
 
     public string Name { get; }
@@ -19,6 +20,7 @@ public sealed class Player
     public IReadOnlyDictionary<ItemType, int> Inventory => _inventory;
     public IReadOnlyList<string> OwnedEquipmentIds => _ownedEquipmentIds;
     public IReadOnlyList<EquippedEquipmentEntry> EquippedEquipment => _equippedEquipment;
+    public RelicProjectState RelicProject => _relicProject;
     public int AttackBonus => EquippedDefinitions.Sum(equipment => equipment.AttackBonus);
     public int DefenseBonus => EquippedDefinitions.Sum(equipment => equipment.DefenseBonus);
     public int DamageReductionBonus => EquippedDefinitions.Sum(equipment => equipment.DamageReductionBonus);
@@ -98,7 +100,8 @@ public sealed class Player
     public PlayerSaveData ToSaveData() => new()
     {
         Name = Name, MaxHp = MaxHp, Hp = Hp, Level = Level, Experience = Experience, TreasureCount = TreasureCount,
-        Inventory = new(_inventory), OwnedEquipmentIds = new(_ownedEquipmentIds), EquippedEquipment = new(_equippedEquipment), EquipmentInitialized = _equipmentInitialized
+        SchemaVersion = 1, Inventory = new(_inventory), OwnedEquipmentIds = new(_ownedEquipmentIds), EquippedEquipment = new(_equippedEquipment),
+        EquipmentInitialized = _equipmentInitialized, RelicProject = _relicProject.ToSaveData()
     };
 
     public static Player FromSaveData(PlayerSaveData saveData)
@@ -113,6 +116,7 @@ public sealed class Player
         player._equippedEquipment.AddRange(saveData.EquippedEquipment ?? new());
         if (!string.IsNullOrWhiteSpace(saveData.EquippedWeaponId)) player._equippedEquipment.Add(new(EquipmentSlot.PrimaryWeapon, saveData.EquippedWeaponId));
         player._equipmentInitialized = saveData.EquipmentInitialized;
+        player._relicProject.LoadFromSaveData(saveData.RelicProject);
         player.NormalizeEquipment();
         player.RecalculateMaxHp();
         player.Hp = Math.Clamp(saveData.Hp, 0, player.MaxHp);

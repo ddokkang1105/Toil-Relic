@@ -1276,7 +1276,7 @@ namespace ToilRelic.PlayModeTests
             SetPrivateField(player, "level", 3);
             var saveResult = fixtureSaveServiceType.GetMethod("Save").Invoke(null, new[] { player });
             Assert.That((bool)saveResult.GetType().GetProperty("Succeeded").GetValue(saveResult), Is.True);
-            Assert.That(File.ReadAllText(fixtureSavePath), Does.Contain("\"version\":2"));
+            Assert.That(File.ReadAllText(fixtureSavePath), Does.Contain("\"version\":3"));
 
             yield return ReloadSampleScene();
 
@@ -1425,7 +1425,7 @@ namespace ToilRelic.PlayModeTests
             var saveResult = fixtureSaveServiceType.GetMethod("Save").Invoke(null, new[] { player });
             Assert.That((bool)saveResult.GetType().GetProperty("Succeeded").GetValue(saveResult), Is.True);
 
-            var original = File.ReadAllText(fixtureSavePath).Replace("\"version\":2", "\"version\":999");
+            var original = File.ReadAllText(fixtureSavePath).Replace("\"version\":3", "\"version\":999");
             Assert.That(original, Does.Contain("\"version\":999"));
             File.WriteAllText(fixtureSavePath, original);
             LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save load failed"));

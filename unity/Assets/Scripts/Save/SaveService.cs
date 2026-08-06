@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using ToilRelic.Unity.Core;
 using UnityEngine;
 
@@ -17,43 +18,53 @@ namespace ToilRelic.Unity.Save
     {
         private const int VersionlessSaveVersion = 0;
         private const int LegacySaveVersion = 1;
-        public const int CurrentSaveVersion = 2;
+        private const int PreviousSaveVersion = 2;
+        public const int CurrentSaveVersion = 3;
         private static string savePathOverride;
         private static string SavePath => savePathOverride ?? Path.Combine(Application.persistentDataPath, "toil_relic_save.json");
 
         [Serializable]
         private sealed class SaveEnvelopePresenceProbe
         {
-            public PlayerStatePresenceProbe player = new();
+            public const int MissingValue = int.MinValue;
+            public int version = MissingValue;
+            public PlayerStatePresenceProbe player;
         }
 
         [Serializable]
         private sealed class PlayerStatePresenceProbe
         {
-            private const int MissingValue = int.MinValue;
-
-            public int maxHp = MissingValue;
-            public int hp = MissingValue;
-            public int level = MissingValue;
-            public int experience = MissingValue;
-            public int score = MissingValue;
-            public int treasureCount = MissingValue;
+            public int maxHp = SaveEnvelopePresenceProbe.MissingValue;
+            public int hp = SaveEnvelopePresenceProbe.MissingValue;
+            public int level = SaveEnvelopePresenceProbe.MissingValue;
+            public int experience = SaveEnvelopePresenceProbe.MissingValue;
+            public int score = SaveEnvelopePresenceProbe.MissingValue;
+            public int treasureCount = SaveEnvelopePresenceProbe.MissingValue;
             public List<InventorySlot> inventory;
+            public List<string> ownedEquipmentIds;
+            public List<EquippedEquipmentEntry> equippedEquipment;
+            public RelicProjectPresenceProbe relicProject;
 
             internal bool HasModernRequiredFields() =>
-                maxHp != MissingValue &&
-                hp != MissingValue &&
-                level != MissingValue &&
-                experience != MissingValue &&
-                treasureCount != MissingValue &&
+                maxHp != SaveEnvelopePresenceProbe.MissingValue &&
+                hp != SaveEnvelopePresenceProbe.MissingValue &&
+                level != SaveEnvelopePresenceProbe.MissingValue &&
+                experience != SaveEnvelopePresenceProbe.MissingValue &&
+                treasureCount != SaveEnvelopePresenceProbe.MissingValue &&
                 inventory != null;
 
             internal bool HasHistoricalRequiredFields() =>
-                maxHp != MissingValue &&
-                hp != MissingValue &&
-                score != MissingValue &&
-                treasureCount != MissingValue &&
+                maxHp != SaveEnvelopePresenceProbe.MissingValue &&
+                hp != SaveEnvelopePresenceProbe.MissingValue &&
+                score != SaveEnvelopePresenceProbe.MissingValue &&
+                treasureCount != SaveEnvelopePresenceProbe.MissingValue &&
                 inventory != null;
+        }
+
+        [Serializable]
+        private sealed class RelicProjectPresenceProbe
+        {
+            public List<string> completedContributionIds;
         }
 
         public static SaveOperationResult Delete()
@@ -74,8 +85,7 @@ namespace ToilRelic.Unity.Save
             try
             {
                 var envelope = new SaveEnvelope { version = CurrentSaveVersion, player = player };
-                var json = JsonUtility.ToJson(envelope, prettyPrint: false);
-                File.WriteAllText(SavePath, json);
+                File.WriteAllText(SavePath, JsonUtility.ToJson(envelope, prettyPrint: false));
                 return SaveOperationResult.Success();
             }
             catch (Exception exception)
@@ -89,10 +99,9 @@ namespace ToilRelic.Unity.Save
             try
             {
                 var json = File.ReadAllText(SavePath);
-                var presenceProbe = new SaveEnvelopePresenceProbe();
-                JsonUtility.FromJsonOverwrite(json, presenceProbe);
+                var presenceProbe = JsonUtility.FromJson<SaveEnvelopePresenceProbe>(json);
                 var envelope = JsonUtility.FromJson<SaveEnvelope>(json);
-                if (envelope == null || envelope.player == null)
+                if (envelope == null || envelope.player == null || presenceProbe?.player == null)
                 {
                     return SaveLoadResult.Unreadable("The save did not contain player data.");
                 }
@@ -102,14 +111,26 @@ namespace ToilRelic.Unity.Save
                     return SaveLoadResult.Unreadable($"Unsupported save version: {envelope.version}.");
                 }
 
-                if (!HasRequiredPlayerFields(envelope.version, presenceProbe.player))
+                var isCurrent = presenceProbe.version == CurrentSaveVersion && envelope.version == CurrentSaveVersion;
+                if (isCurrent)
                 {
-                    return SaveLoadResult.Unreadable("The save did not contain all required player fields.");
+                    if (!HasCurrentRequiredFields(json, presenceProbe.player) || !envelope.player.HasValidCurrentSaveData())
+                    {
+                        return SaveLoadResult.Unreadable("The current save did not contain valid project and player data.");
+                    }
                 }
-
-                if (!envelope.player.HasValidSaveData())
+                else
                 {
-                    return SaveLoadResult.Unreadable("The save did not contain valid player data.");
+                    if (envelope.version == CurrentSaveVersion ||
+                        !HasLegacyRequiredFields(envelope.version, presenceProbe.player) ||
+                        HasJsonProperty(json, "relicProject") ||
+                        envelope.player.HasLegacyRelicState() ||
+                        !envelope.player.HasValidSaveData())
+                    {
+                        return SaveLoadResult.Unreadable("The legacy save did not contain valid player data.");
+                    }
+
+                    envelope.player.EnsureLegacyProject();
                 }
 
                 return SaveLoadResult.Loaded(envelope.player);
@@ -129,13 +150,25 @@ namespace ToilRelic.Unity.Save
         }
 
         private static bool IsSupportedVersion(int version) =>
-            version == VersionlessSaveVersion ||
-            version == LegacySaveVersion ||
-            version == CurrentSaveVersion;
+            version == VersionlessSaveVersion || version == LegacySaveVersion ||
+            version == PreviousSaveVersion || version == CurrentSaveVersion;
 
-        private static bool HasRequiredPlayerFields(int version, PlayerStatePresenceProbe player) =>
+        private static bool HasLegacyRequiredFields(int version, PlayerStatePresenceProbe player) =>
             player != null &&
             (player.HasModernRequiredFields() ||
              version == VersionlessSaveVersion && player.HasHistoricalRequiredFields());
+
+        private static bool HasCurrentRequiredFields(string json, PlayerStatePresenceProbe player) =>
+            player != null && player.HasModernRequiredFields() &&
+            player.ownedEquipmentIds != null && player.equippedEquipment != null &&
+            player.relicProject?.completedContributionIds != null &&
+            HasBooleanProperty(json, "equipmentInitialized") &&
+            HasBooleanProperty(json, "forged");
+
+        private static bool HasBooleanProperty(string json, string propertyName) =>
+            Regex.IsMatch(json, $"\\\"{Regex.Escape(propertyName)}\\\"\\s*:\\s*(true|false)(?=\\s*[,}}])");
+
+        private static bool HasJsonProperty(string json, string propertyName) =>
+            Regex.IsMatch(json, $"\\\"{Regex.Escape(propertyName)}\\\"\\s*:");
     }
 }

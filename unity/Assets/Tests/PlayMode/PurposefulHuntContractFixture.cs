@@ -18,6 +18,17 @@ namespace ToilRelic.PlayModeTests
     {
         public int schemaVersion;
         public HuntContentFixture content;
+        public HuntMigrationFixture[] migrations;
+    }
+
+    [Serializable]
+    internal sealed class HuntMigrationFixture
+    {
+        public string id;
+        public int consoleVersion;
+        public int unityVersion;
+        public string expectedStatus;
+        public string expectedProjectState;
     }
 
     [Serializable]
