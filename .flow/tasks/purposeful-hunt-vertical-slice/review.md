@@ -4,65 +4,71 @@
 
 `approved`
 
-The RW7-RW9 rework closes all three findings from the prior review. The task can advance to `qa`.
+RW10-RW11 close both QA findings. No unresolved finding remains, so the task can advance to `qa`.
 
-## Code Review Results
+## Framework and scope
 
-**Scope:** base `ad989f62d11f34726492c4de12d265793f12a7e9` -> task head `7fcf9ffb32fce04ad26e72fc2447ecf6b4a0b639` (6 tracked files; 79 executable lines)
-**Intent:** Reject confirmation after Hunt Contract cancellation, restore Hunt-entry focus after serialized Cancel, and preserve third-victory outcome, Ready, and level-up feedback through the required Unity publication order.
-**Mode:** markdown report-only
+- Personal Flow probe: OpenSpec CLI available without project artifacts; gstack available; Compound Engineering 3.21.4 active for this review; OMX unavailable.
+- CE review context helper: unavailable because the Git Bash fence failed before its context markers; the documented normal review behavior was used without a retry.
+- Scope: base `e2b43fdd5d2d2506419037d61a0307ace1feccdb` -> reviewed head `8c4212a83614d0bf5bf456e5bcbde414e0bf9805`.
+- Tracked diff: 5 files, 26 executable lines, and 3 uncounted workflow/document files.
+- Intent: fit the complete quarry summary in every 52px row, prove legacy Text bounds in serialized and capture states, and correct the focused Unity category with a non-zero selection requirement.
+- Mode: CE markdown report-only. No code fix was authorized or required.
+- Review artifact: `C:\Users\User\AppData\Local\Temp\compound-engineering-User\ce-code-review\20260810-153316-2ad77414`.
 
-**Reviewers:** correctness, project-standards, testing, learnings, adversarial
+## Reviewers
 
-- `correctness` checked state transitions, snapshot authority, event order, and side effects.
-- `project-standards` checked the root `AGENTS.md` rules and Personal Flow artifact consistency.
-- `testing` checked whether the new manager and serialized-action regressions prove the reported failures.
-- `learnings` matched the change against relevant repository solution documents.
-- `adversarial` challenged synchronous event re-entry, ABA-style confirmation, and feedback ordering.
-- A different-provider cross-model pass was unavailable because no supported non-Codex peer CLI was installed. The local adversarial pass was used as the fallback.
-- Untracked test and evidence outputs were inventoried but excluded from the reviewed production diff.
+- `correctness`: traced label geometry, runtime row construction, and the documentation/source category match.
+- `project-standards`: checked root `AGENTS.md` rules and Personal Flow artifact consistency.
+- `testing`: checked that the bounds assertions fail on the old inset and cover open, Ready, forged, and serialized journey states without a false pass.
+- `learnings`: matched the rework against width-first Unity layout, deterministic Action Contract, screenshot-validity, and layered QA patterns.
+- Adversarial/cross-model review was not selected. The diff changes an ordinary feature assertion and documentation, not a silent-pass automated gate or another adversarial trigger.
 
-### Requirements Completeness
+## Requirements completeness
 
 | Requirement or unit | Status | Review evidence |
 |---|---|---|
-| R1-R2, R4-R9, R11-R13 | Met | These requirements were already complete in the prior full review and are unchanged by this focused rework. |
-| R3 | Met | `ConfirmHunt` now requires the submitted quarry and revision to match the actively presented snapshot. Cancellation clears that authority before publishing the synchronous close event. |
-| R10 | Met | Player and project state publish before the terminal outcome and level-up events, so the detailed third-victory message remains visible when control returns. Save status remains last. |
-| U1-U4 | Met | These implementation units are unchanged and retain their prior green evidence. |
-| U5 | Met | `GameManager` enforces active snapshot authority, fresh-content revalidation, and the KTD7 publication order. |
-| U6 | Met | `HuntContractPanelController` restores Hunt-entry focus before dispatching manager cancellation, while the manager still owns state and events. |
-| U7 | Met | Runtime and real serialized-action regressions cover delayed confirm, Cancel focus, and third-victory visible feedback. |
+| R1, R3-R13 | Met, unchanged | This focused rework does not change the previously reviewed gameplay, state, parity, persistence, or feedback contracts. |
+| R2 | Met | All three quarry rows retain identity, danger, profile reward, guaranteed contribution, and completion copy. `Rustheart Core` and `replay only` fit in current production rows. |
+| U1-U5 | Met, unchanged | The rework does not alter content, save, domain command, console, or manager behavior. |
+| U6 | Met | `UNITY_SETUP.md` now uses the source category `PurposefulHuntActionContracts` and rejects a `total=0` result as validation. |
+| U7 | Met | Every generated quarry label checks `preferredHeight <= rect.height`; focused red/green evidence, two fresh category runs, full Play Mode regression, and two-viewport captures are recorded. |
 
-### Actionable Findings
+## Findings and disposition
+
+### Actionable findings
 
 None.
 
-### Learnings & Past Solutions
+### Mechanical synthesis
 
-- [Known Pattern] [Pure equipment preview with commit revalidation](../../../docs/solutions/architecture-patterns/pure-equipment-preview-with-commit-revalidation.md) - keep UI selections advisory and revalidate stable identifiers at the authoritative command boundary.
-- [Known Pattern] [Deterministic Unity PlayMode action contracts](../../../docs/solutions/best-practices/deterministic-unity-playmode-action-contracts.md) - drive real serialized buttons and assert the full state, feedback, persistence, and focus contract.
-- [Known Pattern] [Unity status event and save-failure contracts](../../../docs/solutions/ui-bugs/unity-status-event-save-failure-contracts.md) - preserve terminal outcome and level-up facts while keeping save failure last.
-
-### Coverage
-
-- Fast pass: no P0 or P1 issue.
-- Mechanical synthesis: 0 primary findings, 0 pre-existing findings, 0 suppressed findings, and 0 malformed findings or reviewer returns.
-- Validator: no batch was required because no primary or actionable finding survived synthesis.
-- Testing gaps: none reported by the selected reviewers.
+- Primary findings: 0.
+- Pre-existing findings: 0.
+- Suppressed findings: 0.
+- Malformed findings or returns: 0.
+- Validator batch: not required because no P0, P1, or actionable finding survived synthesis.
 - Failed or timed-out reviewers: none.
-- Work evidence reviewed: runtime fixture 4/4; serialized action category twice with 5 passed, 0 failed, and 1 conditional graphics skip per run; console 86/86 and warning-free build; Unity Edit Mode 2/2; Unity Play Mode 103 passed, 0 failed, and 2 conditional graphics skips out of 105.
-- Residual risk: `HuntContractPresented` remains synchronous. A future subscriber that confirms re-entrantly could let `StartHunt` emit its trailing selection message after Battle starts, but no production subscriber does this.
-- Residual risk: the active-presentation guard is value-based. A non-UI external caller could retain a command across cancel and reopening of identical content, but the serialized controller clears selection and dispatches only from the current snapshot.
+- Testing gaps and residual risks reported by reviewers: none.
 
----
+## Verification reviewed
 
-### Verdict
+- Proof-first: the old inset failed 1/1 because the longest label required `47.5px` inside `42.01px`.
+- Focused green: 1/1 after the production inset fix.
+- Action stability: two fresh runs and the strengthened final run each reported 5 passed, 0 failed, and 1 graphics-only skip out of 6.
+- Graphics capture: 1/1; 12 current non-uniform PNGs at 1280x720 and 800x600.
+- Full regression: Unity Play Mode 103 passed, 0 failed, and 2 conditional graphics skips out of 105; console 86/86 and build 0 warnings/0 errors.
+- Direct visual check: the 800x600 open and forged captures show the full `Rustheart Core` and `replay only` lines inside their rows without panel, HUD, or status overlap.
+- Untracked exclusion: 321 evidence paths remained out of the tracked review diff: 41 under the battle-panel task, 186 under `equipment-comparison`, and 94 under this task.
 
-> **Verdict:** Ready to merge and advance to QA
->
-> **Reasoning:** All five independent review passes found no actionable defect. The three prior P2 findings are covered by focused regressions and the full recorded regression suite.
->
-> **Fix order:** None.
+## Learnings and past solutions
 
-Prioritized actionable findings: None.
+- [Known Pattern] `docs/solutions/design-patterns/width-first-unity-ui-virtual-layout-floor.md`: force layout and compare production-shaped `Text.preferredHeight` with the allocated rectangle.
+- [Known Pattern] `docs/solutions/best-practices/deterministic-unity-playmode-action-contracts.md`: use serialized actions and verify focused plus full-suite isolation.
+- [Known Pattern] `docs/solutions/best-practices/unity-playmode-screenshot-evidence-validity.md`: pair geometry checks with graphics-enabled, pixel-validated, directly inspected captures.
+- [Known Pattern] `docs/solutions/workflow-issues/resume-blocked-personal-flow-qa-with-layered-environment-validation.md`: parse NUnit totals; process success with zero selected tests is not evidence.
+
+## Verdict
+
+`ready for qa`
+
+Four independent review lenses and the mechanical merge found no actionable defect. RW10 restores the U7 no-clipping contract, and RW11 removes the zero-test documentation false positive.
