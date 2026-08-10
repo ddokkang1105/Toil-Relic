@@ -2,70 +2,92 @@
 
 ## Result
 
-`rework required`
+`passed`
 
-All automated gameplay and regression checks passed. Visual inspection found one production label-clipping defect, and the documented focused-test command uses a stale category name. The task returns to `work` for RW10-RW11.
+RW10-RW11 close both findings from the previous QA round. The longest quarry summary and all completed/replay summaries fit at both captured resolutions, the focused action command selects six tests, and the complete console and Unity regressions remain green. The task can advance to `close`.
 
 ## Framework and environment
 
 - Personal Flow probe: OpenSpec CLI available without project artifacts; gstack available; Compound Engineering 3.21.4 available; OMX unavailable.
 - QA route: repository-native console and Unity validation. Browser-oriented gstack QA does not apply to this console + Unity project.
 - Unity: `6000.3.19f1`, matching `unity/ProjectSettings/ProjectVersion.txt`.
-- Branch and reviewed head at QA start: `codex/purposeful-hunt-vertical-slice` at `40fbdd60fe6d17ae100643640bed55f70127f7ed`.
+- Branch and QA head: `codex/purposeful-hunt-vertical-slice` at `9f18fa80331dba830325f9ef63ad2a256c24edd5`.
+- Unity commands were launched as hidden `Start-Process -Wait` processes where a strict fresh-process boundary was required. The effective Unity command lines are recorded below.
+
+## Commands executed
+
+```powershell
+dotnet build src/ToilRelic/ToilRelic.csproj --nologo
+dotnet test tests/ToilRelic.Tests/ToilRelic.Tests.csproj --nologo --filter 'FullyQualifiedName~PurposefulHuntContentTests|FullyQualifiedName~PurposefulHuntProjectTests|FullyQualifiedName~SaveSystemTests' --logger 'trx;LogFileName=qa-rw10-console-content-save.trx' --results-directory .flow/tasks/purposeful-hunt-vertical-slice
+dotnet test tests/ToilRelic.Tests/ToilRelic.Tests.csproj --nologo --filter 'FullyQualifiedName~GameHuntUxTests|FullyQualifiedName~GameEquipmentUxTests' --logger 'trx;LogFileName=qa-rw10-console-ux.trx' --results-directory .flow/tasks/purposeful-hunt-vertical-slice
+dotnet test tests/ToilRelic.Tests/ToilRelic.Tests.csproj --nologo --logger 'trx;LogFileName=qa-rw10-console-full.trx' --results-directory .flow/tasks/purposeful-hunt-vertical-slice
+```
+
+```powershell
+& 'C:\Program Files\Unity\Hub\Editor\6000.3.19f1\Editor\Unity.exe' -batchmode -nographics -projectPath 'C:\Toil-Relic-main\unity' -runTests -testPlatform EditMode -assemblyNames ToilRelic.EditModeTests -testResults '.flow\tasks\purposeful-hunt-vertical-slice\qa-rw10-editmode-results.xml' -logFile '.flow\tasks\purposeful-hunt-vertical-slice\qa-rw10-editmode.log'
+& 'C:\Program Files\Unity\Hub\Editor\6000.3.19f1\Editor\Unity.exe' -batchmode -nographics -projectPath 'C:\Toil-Relic-main\unity' -runTests -testPlatform PlayMode -assemblyNames ToilRelic.PlayModeTests -testCategory PurposefulHuntActionContracts -testResults '.flow\tasks\purposeful-hunt-vertical-slice\qa-rw10-actions-r1b-results.xml' -logFile '.flow\tasks\purposeful-hunt-vertical-slice\qa-rw10-actions-r1b.log'
+& 'C:\Program Files\Unity\Hub\Editor\6000.3.19f1\Editor\Unity.exe' -batchmode -nographics -projectPath 'C:\Toil-Relic-main\unity' -runTests -testPlatform PlayMode -assemblyNames ToilRelic.PlayModeTests -testCategory PurposefulHuntActionContracts -testResults '.flow\tasks\purposeful-hunt-vertical-slice\qa-rw10-actions-r2b-results.xml' -logFile '.flow\tasks\purposeful-hunt-vertical-slice\qa-rw10-actions-r2b.log'
+& 'C:\Program Files\Unity\Hub\Editor\6000.3.19f1\Editor\Unity.exe' -batchmode -nographics -projectPath 'C:\Toil-Relic-main\unity' -runTests -testPlatform PlayMode -assemblyNames ToilRelic.PlayModeTests -testResults '.flow\tasks\purposeful-hunt-vertical-slice\qa-rw10-playmode-results.xml' -logFile '.flow\tasks\purposeful-hunt-vertical-slice\qa-rw10-playmode.log'
+$env:TOIL_RELIC_LAYOUT_EVIDENCE_DIR = 'C:\Toil-Relic-main\.flow\tasks\purposeful-hunt-vertical-slice\qa-rw10-layout-evidence-final'
+& 'C:\Program Files\Unity\Hub\Editor\6000.3.19f1\Editor\Unity.exe' -batchmode -projectPath 'C:\Toil-Relic-main\unity' -runTests -testPlatform PlayMode -assemblyNames ToilRelic.PlayModeTests -testFilter 'ToilRelic.PlayModeTests.PurposefulHuntActionPlayModeTests.PurposefulHunt_CaptureLayoutEvidenceWhenRequested' -testResults '.flow\tasks\purposeful-hunt-vertical-slice\qa-rw10-capture-results.xml' -logFile '.flow\tasks\purposeful-hunt-vertical-slice\qa-rw10-capture.log'
+```
+
+The PNG verifier used the bundled Codex Python runtime with Pillow. It required exactly the six named states at both `1280x720` and `800x600`, exact image dimensions, non-zero file sizes, and more than one RGB color.
 
 ## Automated checks
 
-| Command or gate | Result | Evidence |
+| Gate | Result | Evidence |
 |---|---|---|
-| `dotnet build src/ToilRelic/ToilRelic.csproj --nologo` | Pass: 0 warnings, 0 errors | Console output captured in this QA run. |
-| Console content/save filter from the verification contract | Pass: 63/63 | `qa-console-content-save.trx` |
-| Console Hunt/equipment UX filter from the verification contract | Pass: 13/13 | `qa-console-ux.trx` |
-| Full console regression | Pass: 86/86 | `qa-console-full.trx` |
-| Unity bootstrap `ToilRelicSceneBootstrap.ConfigureSampleScene` | Pass: exit 0; generated scene was semantically validated and the QA-only fileID rewrite was restored | `qa-bootstrap.log` |
-| Unity Edit Mode `ToilRelic.EditModeTests` | Pass: 2/2 | `qa-editmode-results.xml`, `qa-editmode.log` |
-| Unity action category run 1, `PurposefulHuntActionContracts` | Pass: 5 passed, 0 failed, 1 graphics-only skip | `qa-actions-r1-results.xml`, `qa-actions-r1.log` |
-| Unity action category run 2, fresh process | Pass: 5 passed, 0 failed, 1 graphics-only skip | `qa-actions-r2-results.xml`, `qa-actions-r2.log` |
-| Full Unity Play Mode `ToilRelic.PlayModeTests` | Pass: 103 passed, 0 failed, 2 conditional graphics skips out of 105 | `qa-playmode-results.xml`, `qa-playmode.log` |
-| Graphics-enabled capture filter | Pass: 1/1 | `qa-capture-results.xml`, `qa-capture.log` |
-| PNG validity | Pass: 12/12; exact 1280x720 or 800x600 dimensions, non-zero bytes, non-uniform RGB pixels | `qa-layout-evidence/` |
+| Console compile | Pass: 0 warnings, 0 errors | Command output from this QA run. |
+| Console content/save filter | Pass: 63/63 | `qa-rw10-console-content-save.trx` |
+| Console Hunt/equipment UX filter | Pass: 13/13 | `qa-rw10-console-ux.trx` |
+| Full console regression | Pass: 86/86 | `qa-rw10-console-full.trx` |
+| Unity Edit Mode | Pass: 2/2 | `qa-rw10-editmode-results.xml`, `qa-rw10-editmode.log` |
+| Unity action category run 1 | Pass: total 6, 5 passed, 0 failed, 1 graphics-only skip | `qa-rw10-actions-r1b-results.xml`, `qa-rw10-actions-r1b.log` |
+| Unity action category run 2, fresh process | Pass: total 6, 5 passed, 0 failed, 1 graphics-only skip | `qa-rw10-actions-r2b-results.xml`, `qa-rw10-actions-r2b.log` |
+| Full Unity Play Mode | Pass: 103 passed, 0 failed, 2 conditional graphics skips out of 105 | `qa-rw10-playmode-results.xml`, `qa-rw10-playmode.log` |
+| Graphics-enabled capture filter | Pass: 1/1 | `qa-rw10-capture-results.xml`, `qa-rw10-capture.log` |
+| PNG validity | Pass: 12/12 expected files, exact dimensions, non-zero bytes, 1,268-3,186 unique RGB colors | `qa-rw10-layout-evidence-final/` |
+| Tracked worktree integrity | Pass: no tracked file changed during test execution | `git status --short --untracked-files=no` |
 
-The full console and Unity suites include both native readers for the shared content, migration, and pure command vectors. This keeps the mirrored domain contract covered without adding a parallel runtime.
+The full console and Unity suites include both native readers for the shared content, migration, and pure-command vectors. This retains the mirrored gameplay contract while the rework changes only Unity row presentation, its Action Contract assertions, and setup documentation.
 
 ## Manual and production-shaped scenarios
 
 | Scenario | Expected | Observed result |
 |---|---|---|
-| Present Contract -> Cancel -> delayed confirm from captured snapshot | Remain in Camp with no encounter, mutation, gameplay reward, or save | Pass in the focused runtime regression and full Play Mode suite. |
-| Serialized `Back to CampButton` through the live `EventSystem` | Contract closes and focus returns to `Hunt ContractButton` | Pass in both fresh action-category runs. |
-| Third distinct victory at the Ready boundary | Visible status retains Win, profile reward, `Rustheart Core`, Ready, and level-up facts; save status remains last | Pass in both fresh action-category runs and full Play Mode. |
-| Hunt open -> second quarry -> victory -> replay -> Cancel -> Ready -> Forge -> Keep -> Equip -> reload | Selected quarry remains authoritative; project and relic progress once; Forge does not auto-equip; later Equip persists | Pass through real serialized actions. |
-| Invalid Contract content and forced pre-write save failure | No invalid gameplay mutation; failure feedback remains visible and later successful save can persist in-memory progress | Pass in action and full Play Mode tests. Captures show the complete messages without HUD overlap. |
-| Six named states at 1280x720 and 800x600 | No clipping or overlap; optional reward, guaranteed contribution, replay, Ready, forged, invalid, failure, and relic-preview facts remain readable | Partial fail: 10 images pass visual inspection. In both `hunt-contract-open` images, the `Rust Golem` row truncates `Rustheart Core`. |
+| Focused category command | Select the real Purposeful Hunt action fixture and never pass with an empty selection | Pass: both fresh runs selected total 6; the capture-only case skipped without its evidence variable. |
+| Hunt Contract open at 1280x720 and 800x600 | All three rows show quarry, danger, optional profile reward, and complete guaranteed contribution | Pass: `Rustheart Core` is fully visible in both `hunt-contract-open` captures. |
+| Ready and forged rows at both resolutions | Every completed row shows the full `Completed - replay only` meaning inside its row | Pass: all three `replay only` lines remain inside their rows in four captures. |
+| Six named states at both resolutions | No panel/HUD/status overlap or clipped actionable content | Pass: all 12 current images were directly inspected after pixel validation. |
+| Hunt -> second quarry -> victory -> replay -> Cancel -> Ready -> Forge -> Keep -> Equip -> reload | Selection, progress, ownership, explicit equipment choice, focus, and persistence remain authoritative | Pass through the real serialized Action Contract in both fresh runs and the full suite. |
+| Invalid Contract and forced pre-write save failure | No invalid gameplay mutation; actionable status remains visible | Pass in the full suite and in the inspected invalid/save-failure captures. |
 
 ## Findings
 
-### Q1 - P2 - Long quarry row clips the guaranteed contribution
+None.
 
-- Location: `unity/Assets/Scripts/UI/HuntContractPanelController.cs:170`
-- Evidence: `qa-layout-evidence/hunt-contract-open-1280x720.png` and `qa-layout-evidence/hunt-contract-open-800x600.png`.
-- Observed: `35% Rustguard Plate - Guaranteed Rustheart Core` wraps beyond the fixed 52px two-line row. Unity truncates the third line, so only `Guaranteed` remains visible.
-- Impact: the overview hides which guaranteed contribution belongs to the medium quarry. This violates U7's production-long-label and no-clipping acceptance contract, even though selecting the row shows the full detail text.
-- Required response: make the worst-case row label fit at the 800px virtual floor without losing the contribution name. Add a glyph/text-bounds regression and recapture both viewports.
+### Previous Q1 disposition
 
-### Q2 - P3 - Focused QA command selects zero tests
+`resolved`
 
-- Location: `unity/UNITY_SETUP.md:69`
-- Evidence: the documented category `PurposefulHuntActions` produced a successful Unity run with `total=0`; the source category is `PurposefulHuntActionContracts`.
-- Impact: a developer following the setup guide can incorrectly treat an empty run as focused-action coverage.
-- Required response: update the documented category and keep the exact non-zero result expectation beside the command.
+The old 5px vertical inset provided approximately `42.01px` for a `47.5px` label. The 2px inset provides the required height, the regression checks every generated `Quarry_*` label with `preferredHeight <= rect.height`, and the fresh captures show the complete text at both resolutions.
+
+### Previous Q2 disposition
+
+`resolved`
+
+`unity/UNITY_SETUP.md` and the source fixture now agree on `PurposefulHuntActionContracts`. Two fresh executions each selected six tests, so the previously possible successful `total=0` false positive is removed from the documented workflow.
 
 ## Known limits
 
-- Graphics capture ran in Unity batch mode with graphics enabled. It exercised live scene controls and rendering, but it was not a free-form human play session.
-- Unity logged access-token refresh warnings, but licensing remained sufficient and all invoked test processes exited successfully.
-- Atomic replacement and prior-file durability during a true mid-write crash remain deferred to the planned Ironclad Save Envelope. This slice proves pre-write failure and later recovery only.
-- QA evidence files remain local under this task directory and are not staged with the workflow markdown commit.
+- Graphics capture ran in Unity batch mode with graphics enabled. It exercised the live serialized scene and rendering, but it was not a free-form human play session.
+- The production scene/bootstrap files were unchanged by RW10-RW11. This pass used the 2/2 Edit Mode committed/disposable equivalence checks and did not rerun the write-producing bootstrap command; the previous QA bootstrap pass remains applicable.
+- The first attempted action run started immediately after Edit Mode shutdown and hit Unity's single-project lock before producing a result XML. It was excluded and replaced by two clean fresh-process runs (`r1b`, `r2b`).
+- Unity logged an access-token refresh warning in each process, but licensing remained sufficient; every accepted process exited 0 and produced passing NUnit XML.
+- Atomic replacement and prior-file durability during a true mid-write crash remain deferred to the Ironclad Save Envelope. This slice proves pre-write failure and later recovery only.
+- QA evidence files remain local and untracked under this task directory; the workflow commit contains only `qa.md` and `state.yaml`.
 
 ## Disposition
 
-Return to `work`. Complete RW10-RW11, rerun the focused visual/action checks, then repeat review before QA.
+Advance to `close`. All acceptance-critical console, Unity behavior, deterministic category, rendered layout, and documentation checks pass with no unresolved finding.
