@@ -59,6 +59,9 @@
 4. [x] RW4 - Add feature-boundary save-failure action coverage for victory and Forge, including later exact reload.
 5. [x] RW5 - Complete the mirrored strict current-schema rejection matrix with byte-preservation assertions.
 6. [x] RW6 - Rename the new console runtime private fields to the required `_camelCase` form.
+7. [ ] RW7 - Reject delayed Hunt confirmation unless the submitted quarry and revision still belong to the actively presented Contract snapshot.
+8. [ ] RW8 - Restore Hunt-entry focus after the serialized Cancel action despite the synchronous Contract-close event.
+9. [ ] RW9 - Preserve third-victory Win, reward, Ready, and level-up facts through project publication and add focused visible-action regressions for RW7-RW9.
 
 ## Rework evidence
 
