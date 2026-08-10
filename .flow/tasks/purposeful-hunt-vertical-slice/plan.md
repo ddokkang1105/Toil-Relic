@@ -75,3 +75,8 @@
 - RW7-RW9 behavior: `GameManager` now stores the active Contract snapshot before publishing it, rejects confirmation without that matching snapshot, and clears it before the synchronous close event. Cancel restores the Hunt-entry focus before dispatching manager cancellation. Victory publishes player/project state before terminal outcome and level-up facts, preserving the detailed third-victory message while save status remains last.
 - RW7-RW9 final regression: console tests passed 86/86 and `dotnet build` completed with 0 warnings and 0 errors. Unity Edit Mode passed 2/2. Unity Play Mode passed 103 tests with 0 failures and 2 conditional graphics-capture skips out of 105. The production diff stayed below the CE simplify threshold and received a direct duplication/event-order review.
 - RW7-RW9 commit: `d4748f2`.
+
+## QA rework
+
+1. [ ] RW10 - Prevent the longest Hunt Contract quarry row from truncating its guaranteed contribution at the 800px virtual floor. Add a text/glyph-bounds regression and recapture `hunt-contract-open` at 1280x720 and 800x600.
+2. [ ] RW11 - Update `unity/UNITY_SETUP.md` to use the real `PurposefulHuntActionContracts` category and document that the focused run must select a non-zero test count.
