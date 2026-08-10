@@ -95,8 +95,8 @@ namespace ToilRelic.Unity.UI
 
         public void Cancel()
         {
-            if (gameManager != null) gameManager.CancelHunt();
             Close(restoreFocus: true);
+            if (gameManager != null) gameManager.CancelHunt();
         }
 
         public void Forge()

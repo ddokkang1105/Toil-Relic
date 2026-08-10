@@ -91,6 +91,27 @@ namespace ToilRelic.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator CancelledContract_CannotBeConfirmedFromCapturedSnapshot()
+        {
+            var manager = CreateManager(out _);
+            yield return null;
+            Invoke(manager, "StartNewGame");
+            var player = GetProperty(manager, "Player");
+            var before = JsonUtility.ToJson(player);
+            Invoke(manager, "StartHunt");
+            var snapshot = GetProperty(manager, "PresentedHuntContract");
+            var revision = (string)GetProperty(snapshot, "Revision");
+
+            Invoke(manager, "CancelHunt");
+
+            Assert.That(GetProperty(manager, "PresentedHuntContract"), Is.Null);
+            Assert.That(Invoke(manager, "ConfirmHunt", "mine-vermin", revision), Is.EqualTo(false));
+            Assert.That(GetProperty(manager, "CurrentState").ToString(), Is.EqualTo("Camp"));
+            Assert.That(GetProperty(manager, "CurrentQuarryId"), Is.Null);
+            Assert.That(JsonUtility.ToJson(player), Is.EqualTo(before));
+        }
+
+        [UnityTest]
         public IEnumerator ControllerOwnsCampLocalLifecycle_AndForgeKeepsRelicUnequipped()
         {
             var manager = CreateManager(out _);

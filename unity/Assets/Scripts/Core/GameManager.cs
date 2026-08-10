@@ -179,16 +179,21 @@ namespace ToilRelic.Unity.Core
                 return;
             }
 
-            GameEvents.RaiseHuntContractPresented(snapshot);
             presentedHuntContract = snapshot;
+            GameEvents.RaiseHuntContractPresented(snapshot);
             GameEvents.RaiseBattleLog("Choose a quarry. Profile equipment is optional; first-win project progress is guaranteed.");
         }
 
         public bool ConfirmHunt(string quarryId, string revision)
         {
+            var presentedSnapshot = presentedHuntContract;
             HuntContractSnapshot currentSnapshot = null;
             string diagnostic = null;
             if (state != GameState.Camp || string.IsNullOrEmpty(quarryId) ||
+                presentedSnapshot == null ||
+                !string.Equals(presentedSnapshot.Revision, revision, StringComparison.Ordinal) ||
+                !presentedSnapshot.Quarries.Any(quarry =>
+                    string.Equals(quarry.Id, quarryId, StringComparison.Ordinal)) ||
                 !TryBuildHuntSnapshot(out currentSnapshot, out diagnostic) ||
                 !string.Equals(currentSnapshot.Revision, revision, StringComparison.Ordinal) ||
                 !huntContract.TryGetQuarry(quarryId, out var quarry) ||
@@ -216,8 +221,8 @@ namespace ToilRelic.Unity.Core
         public void CancelHunt()
         {
             if (state != GameState.Camp) return;
-            GameEvents.RaiseHuntContractClosed();
             presentedHuntContract = null;
+            GameEvents.RaiseHuntContractClosed();
             GameEvents.RaiseBattleLog("Hunt Contract closed. No quarry was selected.");
         }
 
@@ -462,12 +467,10 @@ namespace ToilRelic.Unity.Core
 
             var outcome = $"Win. Loot: {BuildLootLog(rolled.Junk, rolled.RelicPart, rolled.HealingPotion, expReward)}. " +
                 BuildRewardFacts(reward);
-            GameEvents.RaiseBattleLog(outcome);
-            GameEvents.RaiseBattleOutcome(outcome);
+            string levelUpMessage = null;
             if (reward.LevelUp is { LeveledUp: true } levelResult)
             {
-                var levelUpMessage = $"Level up! +{levelResult.LevelsGained} -> Lv.{levelResult.NewLevel}. HP fully restored.";
-                GameEvents.RaiseLevelUp(levelUpMessage);
+                levelUpMessage = $"Level up! +{levelResult.LevelsGained} -> Lv.{levelResult.NewLevel}. HP fully restored.";
             }
             currentEnemy = null;
             ClearConfirmedQuarry();
@@ -475,6 +478,12 @@ namespace ToilRelic.Unity.Core
             ChangeState(GameState.Camp);
             ChangeBattlePhase(BattlePhase.None);
             PublishPlayer();
+            GameEvents.RaiseBattleLog(outcome);
+            GameEvents.RaiseBattleOutcome(outcome);
+            if (levelUpMessage != null)
+            {
+                GameEvents.RaiseLevelUp(levelUpMessage);
+            }
             SaveProgress();
         }
 

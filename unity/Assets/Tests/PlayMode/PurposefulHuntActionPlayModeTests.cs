@@ -96,6 +96,8 @@ namespace ToilRelic.PlayModeTests
             Click("Back to CampButton");
             yield return null;
             Assert.That(GetProperty(huntController, "IsOpen"), Is.EqualTo(false));
+            Assert.That(EventSystem.current.currentSelectedGameObject,
+                Is.EqualTo(FindButton("Hunt ContractButton").gameObject));
 
             Assert.That(Invoke(project, "TryAddContribution", "chitin-shard"), Is.EqualTo(true));
             Assert.That(Invoke(project, "TryAddContribution", "wraith-ash"), Is.EqualTo(true));
@@ -125,6 +127,39 @@ namespace ToilRelic.PlayModeTests
             Assert.That(IsEquipped(player, "toilbound-relic"), Is.True);
             var loaded = GetProperty(saveServiceType.GetMethod("Load").Invoke(null, null), "Player");
             Assert.That(IsEquipped(loaded, "toilbound-relic"), Is.True);
+        }
+
+        [UnityTest]
+        [Category(CategoryName)]
+        public IEnumerator ThirdVictory_PreservesOutcomeReadyAndLevelUpFacts()
+        {
+            var manager = FindComponent("ToilRelic.Unity.Core.GameManager");
+            var status = FindComponent("ToilRelic.Unity.UI.GameStatusController");
+            var player = GetProperty(manager, "Player");
+            var project = GetProperty(player, "RelicProject");
+            Assert.That(Invoke(project, "TryAddContribution", "chitin-shard"), Is.EqualTo(true));
+            Assert.That(Invoke(project, "TryAddContribution", "wraith-ash"), Is.EqualTo(true));
+            SetField(player, "experience", 19);
+            InvokePrivate(manager, "PublishPlayer");
+
+            Click("Hunt ContractButton");
+            yield return null;
+            Click("Quarry_rust-golem");
+            Click("Confirm HuntButton");
+            yield return null;
+            var enemy = GetField(manager, "currentEnemy");
+            Invoke(enemy, "TakeDamage", 999);
+            Click("AttackButton");
+            yield return null;
+
+            Assert.That(GetProperty(project, "IsReady"), Is.EqualTo(true));
+            Assert.That(GetProperty(player, "Level"), Is.EqualTo(2));
+            Assert.That(((Text)GetField(status, "messageText")).text,
+                Does.StartWith("Win.")
+                    .And.Contain("Rustguard Plate")
+                    .And.Contain("Project contribution acquired: Rustheart Core.")
+                    .And.Contain("Ready to forge.")
+                    .And.Contain("Level up!"));
         }
 
         [UnityTest]
