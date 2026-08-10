@@ -66,8 +66,10 @@ Focused implementation checks:
 ```powershell
 & '<Unity.exe>' -batchmode -nographics -projectPath '<repo>\unity' -runTests -testPlatform EditMode -testResults '<edit-results.xml>' -logFile '<edit.log>'
 & '<Unity.exe>' -batchmode -nographics -projectPath '<repo>\unity' -runTests -testPlatform PlayMode -testFilter 'ToilRelic.PlayModeTests.PurposefulHuntRuntimePlayModeTests' -testResults '<runtime-results.xml>' -logFile '<runtime.log>'
-& '<Unity.exe>' -batchmode -nographics -projectPath '<repo>\unity' -runTests -testPlatform PlayMode -testCategory 'PurposefulHuntActions' -testResults '<action-results.xml>' -logFile '<actions.log>'
+& '<Unity.exe>' -batchmode -nographics -projectPath '<repo>\unity' -runTests -testPlatform PlayMode -testCategory 'PurposefulHuntActionContracts' -testResults '<action-results.xml>' -logFile '<actions.log>'
 ```
+
+The Purposeful Hunt action-category run must report a non-zero test total. A successful Unity exit with `total=0` does not validate the action flow.
 
 For rendered layout evidence, set `TOIL_RELIC_LAYOUT_EVIDENCE_DIR`, run `P0_CaptureLayoutEvidenceWhenRequested` with graphics enabled, and inspect the 1280x720 and 800x600 PNGs.
 

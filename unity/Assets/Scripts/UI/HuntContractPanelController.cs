@@ -158,8 +158,8 @@ namespace ToilRelic.Unity.UI
                 var labelRect = (RectTransform)labelObject.transform;
                 labelRect.anchorMin = Vector2.zero;
                 labelRect.anchorMax = Vector2.one;
-                labelRect.offsetMin = new Vector2(12f, 5f);
-                labelRect.offsetMax = new Vector2(-12f, -5f);
+                labelRect.offsetMin = new Vector2(12f, 2f);
+                labelRect.offsetMax = new Vector2(-12f, -2f);
                 var label = labelObject.GetComponent<Text>();
                 label.font = detailsText != null ? detailsText.font : null;
                 label.fontSize = 14;

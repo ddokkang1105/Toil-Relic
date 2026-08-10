@@ -69,6 +69,9 @@ namespace ToilRelic.PlayModeTests
             yield return null;
             Assert.That(GetProperty(huntController, "IsOpen"), Is.EqualTo(true));
             Assert.That(((IEnumerable)GetProperty(huntController, "QuarryButtons")).Cast<object>().Count(), Is.EqualTo(3));
+            var rustLabel = FindButton("Quarry_rust-golem").GetComponentInChildren<Text>();
+            Assert.That(rustLabel.text, Does.Contain("Rustheart Core"));
+            AssertQuarryLabelsFit();
             Click("Quarry_rust-golem");
             Assert.That(((Text)GetField(huntController, "detailsText")).text,
                 Does.Contain("35% chance: Rustguard Plate").And.Contain("Guaranteed first-win contribution: Rustheart Core"));
@@ -360,6 +363,25 @@ namespace ToilRelic.PlayModeTests
             foreach (var name in new[] { "Back to CampButton", "Confirm HuntButton", "Forge RelicButton" })
             {
                 Assert.That(FindRect(name).sizeDelta.y, Is.GreaterThanOrEqualTo(44f));
+            }
+            AssertQuarryLabelsFit();
+        }
+
+        private static void AssertQuarryLabelsFit()
+        {
+            Canvas.ForceUpdateCanvases();
+            var quarryButtons = UnityEngine.Object
+                .FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .Where(button => button.name.StartsWith("Quarry_", StringComparison.Ordinal))
+                .ToArray();
+            Assert.That(quarryButtons, Has.Length.EqualTo(3));
+            foreach (var button in quarryButtons)
+            {
+                var label = button.GetComponentInChildren<Text>();
+                Assert.That(label, Is.Not.Null, $"{button.name} must keep its summary label.");
+                Assert.That(label.preferredHeight,
+                    Is.LessThanOrEqualTo(label.rectTransform.rect.height + 0.01f),
+                    $"{button.name} summary must fit without vertical truncation.");
             }
         }
 
