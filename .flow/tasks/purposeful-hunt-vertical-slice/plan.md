@@ -78,5 +78,17 @@
 
 ## QA rework
 
-1. [ ] RW10 - Prevent the longest Hunt Contract quarry row from truncating its guaranteed contribution at the 800px virtual floor. Add a text/glyph-bounds regression and recapture `hunt-contract-open` at 1280x720 and 800x600.
-2. [ ] RW11 - Update `unity/UNITY_SETUP.md` to use the real `PurposefulHuntActionContracts` category and document that the focused run must select a non-zero test count.
+1. [x] RW10 - Prevent the longest Hunt Contract quarry row from truncating its guaranteed contribution at the 800px virtual floor. Add a text/glyph-bounds regression and recapture `hunt-contract-open` at 1280x720 and 800x600.
+2. [x] RW11 - Update `unity/UNITY_SETUP.md` to use the real `PurposefulHuntActionContracts` category and document that the focused run must select a non-zero test count.
+
+## QA rework evidence
+
+- RW10 proof-first: the strengthened serialized journey failed 1/1 before the fix because the longest label required `47.5px` inside a `42.01px` text rectangle. Red evidence: `work-rw10-red-results.xml`.
+- RW10 implementation: dynamic quarry rows retain the complete `Guaranteed Rustheart Core` copy and 14px font. Vertical inset changed from 5px to 2px, providing a 48px text rectangle without increasing the 52px row or hiding another quarry.
+- RW10 regression: every generated `Quarry_*` label now asserts `preferredHeight <= rect.height` in the serialized journey and in open/Ready/forged capture states. Focused green evidence: `work-rw10-green-results.xml`.
+- RW10 stability: the action category passed twice in fresh processes with 5 passed, 0 failed, and 1 conditional graphics skip per run. The strengthened final category run also passed 5/0/1.
+- RW10 rendering: the graphics-enabled capture passed 1/1 and regenerated 12 valid, non-uniform PNGs at 1280x720 and 800x600 under `work-rw10-layout-evidence/`. Visual inspection confirmed `Rustheart Core` and completed `replay only` rows remain inside their bounds with no panel/HUD overlap.
+- RW11: `unity/UNITY_SETUP.md` now selects `PurposefulHuntActionContracts` and states that `total=0` is not a valid focused-action result.
+- Final regression: Unity Play Mode passed 103 tests with 0 failures and 2 conditional graphics skips out of 105. Console tests passed 86/86 and `dotnet build` completed with 0 warnings and 0 errors.
+- Simplification: skipped because the substantive production change is a two-value inset adjustment; the shared bounds helper already removes assertion duplication.
+- Implementation commit: `6a235b0`.
