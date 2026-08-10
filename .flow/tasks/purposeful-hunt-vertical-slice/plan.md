@@ -59,9 +59,9 @@
 4. [x] RW4 - Add feature-boundary save-failure action coverage for victory and Forge, including later exact reload.
 5. [x] RW5 - Complete the mirrored strict current-schema rejection matrix with byte-preservation assertions.
 6. [x] RW6 - Rename the new console runtime private fields to the required `_camelCase` form.
-7. [ ] RW7 - Reject delayed Hunt confirmation unless the submitted quarry and revision still belong to the actively presented Contract snapshot.
-8. [ ] RW8 - Restore Hunt-entry focus after the serialized Cancel action despite the synchronous Contract-close event.
-9. [ ] RW9 - Preserve third-victory Win, reward, Ready, and level-up facts through project publication and add focused visible-action regressions for RW7-RW9.
+7. [x] RW7 - Reject delayed Hunt confirmation unless the submitted quarry and revision still belong to the actively presented Contract snapshot.
+8. [x] RW8 - Restore Hunt-entry focus after the serialized Cancel action despite the synchronous Contract-close event.
+9. [x] RW9 - Preserve third-victory Win, reward, Ready, and level-up facts through project publication and add focused visible-action regressions for RW7-RW9.
 
 ## Rework evidence
 
@@ -71,3 +71,7 @@
 - Simplification: `ce-simplify-code` applied 2 reuse improvements and 4 quality improvements, including canonical save generation, shared content IDs, dead-probe removal, contract-focused action tests, common save-failure helpers, and repository brace style. Three low-value/risky suggestions were skipped: moving the schema matrix into the cross-runtime content fixture, replacing its explicit case switch with test-data indirection, and rewriting the safety scanner for one-time-load micro-optimization.
 - Final regression: console tests passed 86/86 and `dotnet build` completed with 0 warnings and 0 errors. Unity Edit Mode passed 2/2. Unity Play Mode passed 101 tests with 0 failures and 2 conditional graphics-capture skips out of 103.
 - Rework commits: `d9d8862`, `e9720dc`, `88b4268`, and `4edf29f`.
+- RW7-RW9 proof-first evidence: the cancelled-confirm runtime regression first failed because confirmation returned `true`; the serialized action run first failed because Cancel left focus on `Confirm HuntButton` and the third victory showed only the generic Ready message. After the fixes, the runtime fixture passed 4/4 and the action category passed twice in fresh processes with 5 passed, 0 failed, and 1 conditional graphics-capture skip per run.
+- RW7-RW9 behavior: `GameManager` now stores the active Contract snapshot before publishing it, rejects confirmation without that matching snapshot, and clears it before the synchronous close event. Cancel restores the Hunt-entry focus before dispatching manager cancellation. Victory publishes player/project state before terminal outcome and level-up facts, preserving the detailed third-victory message while save status remains last.
+- RW7-RW9 final regression: console tests passed 86/86 and `dotnet build` completed with 0 warnings and 0 errors. Unity Edit Mode passed 2/2. Unity Play Mode passed 103 tests with 0 failures and 2 conditional graphics-capture skips out of 105. The production diff stayed below the CE simplify threshold and received a direct duplication/event-order review.
+- RW7-RW9 commit: `d4748f2`.
