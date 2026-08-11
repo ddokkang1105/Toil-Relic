@@ -1,0 +1,731 @@
+{
+  "schemaVersion": 1,
+  "artifactRoles": ["Live", "LastKnownGood", "Stage", "Quarantine", "RecoveryMarker"],
+  "payloadLabels": [
+    "current-a",
+    "current-b",
+    "prior-lkg",
+    "valid-lkg",
+    "recovered-lkg",
+    "corrupt-live",
+    "prior-quarantine",
+    "partial-candidate",
+    "invalid-candidate",
+    "marker"
+  ],
+  "diagnosticContract": {
+    "allowedFields": ["OperationRole", "ArtifactRole", "ExceptionType", "RelativeFilename"],
+    "forbiddenFields": ["RawBytes", "PlayerFields", "AbsoluteRoot", "ExceptionMessage"]
+  },
+  "cases": [
+    {
+      "id": "01-save-stage-write-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" }
+      ],
+      "operation": "Save",
+      "checkpoint": "StageWrite",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "current-a",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "Stage", "payloadLabel": "partial-candidate" }
+      ],
+      "expectedImmediateRecoveryNoticePending": false,
+      "expectedNextRecoveryNoticePending": false,
+      "expectedDiagnostic": { "operationRole": "StageWrite", "artifactRole": "Stage", "exceptionType": "IOException", "relativeFilename": "savegame.json.stage" }
+    },
+    {
+      "id": "02-save-stage-validation-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" }
+      ],
+      "operation": "Save",
+      "checkpoint": "StageValidation",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "current-a",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "Stage", "payloadLabel": "invalid-candidate" }
+      ],
+      "expectedImmediateRecoveryNoticePending": false,
+      "expectedNextRecoveryNoticePending": false,
+      "expectedDiagnostic": { "operationRole": "StageValidation", "artifactRole": "Stage", "exceptionType": "InvalidDataException", "relativeFilename": "savegame.json.stage" }
+    },
+    {
+      "id": "03-save-lkg-preservation-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" }
+      ],
+      "operation": "Save",
+      "checkpoint": "PreserveLastKnownGood",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "current-a",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "Stage", "payloadLabel": "current-b" }
+      ],
+      "expectedImmediateRecoveryNoticePending": false,
+      "expectedNextRecoveryNoticePending": false,
+      "expectedDiagnostic": { "operationRole": "PreserveLastKnownGood", "artifactRole": "LastKnownGood", "exceptionType": "IOException", "relativeFilename": "savegame.json.lkg" }
+    },
+    {
+      "id": "04-save-live-promotion-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" }
+      ],
+      "operation": "Save",
+      "checkpoint": "PromoteLive",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "current-a",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "Stage", "payloadLabel": "current-b" }
+      ],
+      "expectedImmediateRecoveryNoticePending": false,
+      "expectedNextRecoveryNoticePending": false,
+      "expectedDiagnostic": { "operationRole": "PromoteLive", "artifactRole": "Live", "exceptionType": "IOException", "relativeFilename": "savegame.json" }
+    },
+    {
+      "id": "05-save-live-promotion-after",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" }
+      ],
+      "operation": "Save",
+      "checkpoint": "AfterLivePromotion",
+      "mutationSide": "After",
+      "expectedImmediateStatus": "Interrupted",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "current-b",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "current-b" },
+        { "role": "LastKnownGood", "payloadLabel": "current-a" }
+      ],
+      "expectedImmediateRecoveryNoticePending": false,
+      "expectedNextRecoveryNoticePending": false,
+      "expectedDiagnostic": null
+    },
+    {
+      "id": "06-recovery-promotion-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" }
+      ],
+      "operation": "Load",
+      "checkpoint": "PromoteRecovery",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Unreadable",
+      "expectedNextLoadStatus": "Recovered",
+      "expectedAuthoritativeLabel": "valid-lkg",
+      "expectedSurvivingArtifacts": [
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Stage", "payloadLabel": "valid-lkg" },
+        { "role": "Quarantine", "payloadLabel": "corrupt-live" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": false,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "PromoteRecovery", "artifactRole": "Live", "exceptionType": "IOException", "relativeFilename": "savegame.json" }
+    },
+    {
+      "id": "07-recovery-promotion-after",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" }
+      ],
+      "operation": "Load",
+      "checkpoint": "AfterRecoveryPromotion",
+      "mutationSide": "After",
+      "expectedImmediateStatus": "Interrupted",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "valid-lkg",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "valid-lkg" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Quarantine", "payloadLabel": "corrupt-live" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": null
+    },
+    {
+      "id": "08-recovery-marker-create-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" }
+      ],
+      "operation": "Load",
+      "checkpoint": "CreateRecoveryMarker",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Unreadable",
+      "expectedNextLoadStatus": "Recovered",
+      "expectedAuthoritativeLabel": "valid-lkg",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" }
+      ],
+      "expectedImmediateRecoveryNoticePending": false,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "CreateRecoveryMarker", "artifactRole": "RecoveryMarker", "exceptionType": "IOException", "relativeFilename": "savegame.json.recovery-pending" }
+    },
+    {
+      "id": "09-recovery-marker-create-after",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" }
+      ],
+      "operation": "Load",
+      "checkpoint": "CreateRecoveryMarker",
+      "mutationSide": "After",
+      "expectedImmediateStatus": "Interrupted",
+      "expectedNextLoadStatus": "Recovered",
+      "expectedAuthoritativeLabel": "valid-lkg",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": false,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": null
+    },
+    {
+      "id": "10-recovery-marker-flush-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" }
+      ],
+      "operation": "Load",
+      "checkpoint": "FlushRecoveryMarker",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Unreadable",
+      "expectedNextLoadStatus": "Recovered",
+      "expectedAuthoritativeLabel": "valid-lkg",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": false,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "FlushRecoveryMarker", "artifactRole": "RecoveryMarker", "exceptionType": "IOException", "relativeFilename": "savegame.json.recovery-pending" }
+    },
+    {
+      "id": "11-recovery-marker-flush-after",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" }
+      ],
+      "operation": "Load",
+      "checkpoint": "FlushRecoveryMarker",
+      "mutationSide": "After",
+      "expectedImmediateStatus": "Interrupted",
+      "expectedNextLoadStatus": "Recovered",
+      "expectedAuthoritativeLabel": "valid-lkg",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": false,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": null
+    },
+    {
+      "id": "12-recovery-prior-quarantine-delete-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Quarantine", "payloadLabel": "prior-quarantine" }
+      ],
+      "operation": "Load",
+      "checkpoint": "DeletePriorQuarantine",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Unreadable",
+      "expectedNextLoadStatus": "Recovered",
+      "expectedAuthoritativeLabel": "valid-lkg",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Quarantine", "payloadLabel": "prior-quarantine" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": false,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "DeletePriorQuarantine", "artifactRole": "Quarantine", "exceptionType": "IOException", "relativeFilename": "savegame.json.quarantine" }
+    },
+    {
+      "id": "13-recovery-prior-quarantine-delete-after",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Quarantine", "payloadLabel": "prior-quarantine" }
+      ],
+      "operation": "Load",
+      "checkpoint": "DeletePriorQuarantine",
+      "mutationSide": "After",
+      "expectedImmediateStatus": "Interrupted",
+      "expectedNextLoadStatus": "Recovered",
+      "expectedAuthoritativeLabel": "valid-lkg",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": false,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": null
+    },
+    {
+      "id": "14-recovery-damaged-live-move-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" }
+      ],
+      "operation": "Load",
+      "checkpoint": "MoveDamagedLive",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Unreadable",
+      "expectedNextLoadStatus": "Recovered",
+      "expectedAuthoritativeLabel": "valid-lkg",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": false,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "MoveDamagedLive", "artifactRole": "Live", "exceptionType": "IOException", "relativeFilename": "savegame.json" }
+    },
+    {
+      "id": "15-recovery-damaged-live-move-after",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" }
+      ],
+      "operation": "Load",
+      "checkpoint": "MoveDamagedLive",
+      "mutationSide": "After",
+      "expectedImmediateStatus": "Interrupted",
+      "expectedNextLoadStatus": "Recovered",
+      "expectedAuthoritativeLabel": "valid-lkg",
+      "expectedSurvivingArtifacts": [
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Quarantine", "payloadLabel": "corrupt-live" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": false,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": null
+    },
+    {
+      "id": "16-progress-marker-delete-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "recovered-lkg" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "Save",
+      "checkpoint": "DeleteRecoveryMarker",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "current-b",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "current-b" },
+        { "role": "LastKnownGood", "payloadLabel": "recovered-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "DeleteRecoveryMarker", "artifactRole": "RecoveryMarker", "exceptionType": "IOException", "relativeFilename": "savegame.json.recovery-pending" }
+    },
+    {
+      "id": "17-progress-marker-delete-after",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "recovered-lkg" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "Save",
+      "checkpoint": "DeleteRecoveryMarker",
+      "mutationSide": "After",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "current-b",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "current-b" },
+        { "role": "LastKnownGood", "payloadLabel": "recovered-lkg" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": false,
+      "expectedDiagnostic": { "operationRole": "DeleteRecoveryMarker", "artifactRole": "RecoveryMarker", "exceptionType": "IOException", "relativeFilename": "savegame.json.recovery-pending" }
+    },
+    {
+      "id": "18-newgame-classify-live-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "Stage", "payloadLabel": "partial-candidate" },
+        { "role": "Quarantine", "payloadLabel": "prior-quarantine" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "ClassifyLiveAuthority",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "current-a",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "Stage", "payloadLabel": "partial-candidate" },
+        { "role": "Quarantine", "payloadLabel": "prior-quarantine" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "ClassifyAuthority", "artifactRole": "Live", "exceptionType": "IOException", "relativeFilename": "savegame.json" }
+    },
+    {
+      "id": "19-newgame-classify-lkg-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Stage", "payloadLabel": "partial-candidate" },
+        { "role": "Quarantine", "payloadLabel": "prior-quarantine" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "ClassifyLastKnownGoodAuthority",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Recovered",
+      "expectedAuthoritativeLabel": "valid-lkg",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Stage", "payloadLabel": "partial-candidate" },
+        { "role": "Quarantine", "payloadLabel": "prior-quarantine" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "ClassifyAuthority", "artifactRole": "LastKnownGood", "exceptionType": "IOException", "relativeFilename": "savegame.json.lkg" }
+    },
+    {
+      "id": "20-newgame-delete-stage-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "Stage", "payloadLabel": "partial-candidate" },
+        { "role": "Quarantine", "payloadLabel": "prior-quarantine" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "DeleteStage",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "current-a",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "Stage", "payloadLabel": "partial-candidate" },
+        { "role": "Quarantine", "payloadLabel": "prior-quarantine" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "DeleteStage", "artifactRole": "Stage", "exceptionType": "IOException", "relativeFilename": "savegame.json.stage" }
+    },
+    {
+      "id": "21-newgame-delete-stage-after",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "Stage", "payloadLabel": "partial-candidate" },
+        { "role": "Quarantine", "payloadLabel": "prior-quarantine" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "DeleteStage",
+      "mutationSide": "After",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "current-a",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "Quarantine", "payloadLabel": "prior-quarantine" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "DeleteStage", "artifactRole": "Stage", "exceptionType": "IOException", "relativeFilename": "savegame.json.stage" }
+    },
+    {
+      "id": "22-newgame-delete-quarantine-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "Quarantine", "payloadLabel": "prior-quarantine" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "DeleteQuarantine",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "current-a",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "Quarantine", "payloadLabel": "prior-quarantine" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "DeleteQuarantine", "artifactRole": "Quarantine", "exceptionType": "IOException", "relativeFilename": "savegame.json.quarantine" }
+    },
+    {
+      "id": "23-newgame-delete-quarantine-after",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "Quarantine", "payloadLabel": "prior-quarantine" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "DeleteQuarantine",
+      "mutationSide": "After",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "current-a",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "DeleteQuarantine", "artifactRole": "Quarantine", "exceptionType": "IOException", "relativeFilename": "savegame.json.quarantine" }
+    },
+    {
+      "id": "24-newgame-delete-nonauthoritative-lkg-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "DeleteLastKnownGood",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "current-a",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "DeleteLastKnownGood", "artifactRole": "LastKnownGood", "exceptionType": "IOException", "relativeFilename": "savegame.json.lkg" }
+    },
+    {
+      "id": "25-newgame-delete-nonauthoritative-lkg-after",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "LastKnownGood", "payloadLabel": "prior-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "DeleteLastKnownGood",
+      "mutationSide": "After",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "current-a",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "DeleteLastKnownGood", "artifactRole": "LastKnownGood", "exceptionType": "IOException", "relativeFilename": "savegame.json.lkg" }
+    },
+    {
+      "id": "26-newgame-delete-invalid-live-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "DeleteLive",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Recovered",
+      "expectedAuthoritativeLabel": "valid-lkg",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "DeleteLive", "artifactRole": "Live", "exceptionType": "IOException", "relativeFilename": "savegame.json" }
+    },
+    {
+      "id": "27-newgame-delete-invalid-live-after",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "corrupt-live" },
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "DeleteLive",
+      "mutationSide": "After",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Recovered",
+      "expectedAuthoritativeLabel": "valid-lkg",
+      "expectedSurvivingArtifacts": [
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "DeleteLive", "artifactRole": "Live", "exceptionType": "IOException", "relativeFilename": "savegame.json" }
+    },
+    {
+      "id": "28-newgame-delete-authoritative-live-before",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "DeleteLive",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Loaded",
+      "expectedAuthoritativeLabel": "current-a",
+      "expectedSurvivingArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "DeleteLive", "artifactRole": "Live", "exceptionType": "IOException", "relativeFilename": "savegame.json" }
+    },
+    {
+      "id": "29-newgame-delete-authoritative-live-after",
+      "initialArtifacts": [
+        { "role": "Live", "payloadLabel": "current-a" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "DeleteLive",
+      "mutationSide": "After",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Missing",
+      "expectedAuthoritativeLabel": "None",
+      "expectedSurvivingArtifacts": [
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": false,
+      "expectedDiagnostic": { "operationRole": "DeleteLive", "artifactRole": "Live", "exceptionType": "IOException", "relativeFilename": "savegame.json" }
+    },
+    {
+      "id": "30-newgame-delete-authoritative-lkg-before",
+      "initialArtifacts": [
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "DeleteLastKnownGood",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Recovered",
+      "expectedAuthoritativeLabel": "valid-lkg",
+      "expectedSurvivingArtifacts": [
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": true,
+      "expectedDiagnostic": { "operationRole": "DeleteLastKnownGood", "artifactRole": "LastKnownGood", "exceptionType": "IOException", "relativeFilename": "savegame.json.lkg" }
+    },
+    {
+      "id": "31-newgame-delete-authoritative-lkg-after",
+      "initialArtifacts": [
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "DeleteLastKnownGood",
+      "mutationSide": "After",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Missing",
+      "expectedAuthoritativeLabel": "None",
+      "expectedSurvivingArtifacts": [
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": false,
+      "expectedDiagnostic": { "operationRole": "DeleteLastKnownGood", "artifactRole": "LastKnownGood", "exceptionType": "IOException", "relativeFilename": "savegame.json.lkg" }
+    },
+    {
+      "id": "32-newgame-delete-marker-before",
+      "initialArtifacts": [
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "DeleteRecoveryMarker",
+      "mutationSide": "Before",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Missing",
+      "expectedAuthoritativeLabel": "None",
+      "expectedSurvivingArtifacts": [
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": false,
+      "expectedDiagnostic": { "operationRole": "DeleteRecoveryMarker", "artifactRole": "RecoveryMarker", "exceptionType": "IOException", "relativeFilename": "savegame.json.recovery-pending" }
+    },
+    {
+      "id": "33-newgame-delete-marker-after",
+      "initialArtifacts": [
+        { "role": "RecoveryMarker", "payloadLabel": "marker" }
+      ],
+      "operation": "NewGame",
+      "checkpoint": "DeleteRecoveryMarker",
+      "mutationSide": "After",
+      "expectedImmediateStatus": "Failed",
+      "expectedNextLoadStatus": "Missing",
+      "expectedAuthoritativeLabel": "None",
+      "expectedSurvivingArtifacts": [],
+      "expectedImmediateRecoveryNoticePending": true,
+      "expectedNextRecoveryNoticePending": false,
+      "expectedDiagnostic": { "operationRole": "DeleteRecoveryMarker", "artifactRole": "RecoveryMarker", "exceptionType": "IOException", "relativeFilename": "savegame.json.recovery-pending" }
+    }
+  ]
+}
