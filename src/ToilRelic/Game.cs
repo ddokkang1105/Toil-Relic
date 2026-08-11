@@ -6,6 +6,8 @@ namespace ToilRelic;
 
 public sealed class Game
 {
+    private const string RecoveryNotice = "Recovered a previous valid save. Recent progress may be missing.";
+
     private Player _player = new("Wanderer");
     private readonly CraftingSystem _crafting = new();
     private readonly SaveSystem _save;
@@ -13,6 +15,8 @@ public sealed class Game
     private readonly HuntContract _huntContract;
     private readonly IReadOnlyList<EquipmentDropProfile> _huntProfiles;
     private bool _running = true;
+    private bool _recoveryNoticePending;
+    private bool _recoveryNoticeShown;
 
     public Game(
         SaveSystem save,
@@ -64,8 +68,10 @@ public sealed class Game
             var loadResult = _save.Load();
             WriteDiagnostic(loadResult.Diagnostic);
 
-            if (loadResult.Status == LoadStatus.Loaded)
+            if (loadResult.Status is LoadStatus.Loaded or LoadStatus.Recovered)
             {
+                _recoveryNoticePending = loadResult.RecoveryNoticePending;
+                ShowRecoveryNoticeOnce();
                 ConsoleUI.Section("Save", "Save found. Continue or start a new game.");
                 ConsoleUI.Menu("Start", new Dictionary<int, string> { { 1, "Continue" }, { 2, "New Game" } });
                 if (ConsoleUI.ReadInt("Select", 1, 2) == 1)
@@ -119,6 +125,7 @@ public sealed class Game
         var result = _save.Save(_player);
         if (result.Succeeded)
         {
+            _recoveryNoticePending = false;
             Console.WriteLine("Save: Saved just now");
             Console.WriteLine();
             return true;
@@ -129,6 +136,18 @@ public sealed class Game
         Console.WriteLine("Save failed. Progress may not be saved.");
         Console.WriteLine();
         return false;
+    }
+
+    private void ShowRecoveryNoticeOnce()
+    {
+        if (!_recoveryNoticePending || _recoveryNoticeShown)
+        {
+            return;
+        }
+
+        Console.WriteLine(RecoveryNotice);
+        Console.WriteLine();
+        _recoveryNoticeShown = true;
     }
 
     private static void WriteDiagnostic(string? diagnostic)

@@ -6,7 +6,12 @@ namespace ToilRelic.Unity.UI
 {
     public sealed class GameStatusController : MonoBehaviour
     {
+        private const string RecoveryNotice = "Recovered a previous valid save. Recent progress may be missing.";
         private const string SaveFailureWarning = "Save failed. Progress may not be saved.";
+        private const float DefaultStatusHeight = 120f;
+        private const float RecoveryStatusHeight = 164f;
+        private const float DefaultSaveStatusHeight = 22f;
+        private const float RecoverySaveStatusHeight = 66f;
 
         [SerializeField] private Text stateText;
         [SerializeField] private Text messageText;
@@ -14,6 +19,7 @@ namespace ToilRelic.Unity.UI
 
         private bool hasTerminalOutcome;
         private bool saveFailureActive;
+        private bool recoveryNoticePending;
         private string primaryMessage;
         private GameState currentState = GameState.Title;
         private SaveFeedbackStatus? saveStatus;
@@ -25,6 +31,7 @@ namespace ToilRelic.Unity.UI
             GameEvents.BattleOutcome += OnBattleOutcome;
             GameEvents.LevelUp += OnLevelUp;
             GameEvents.SaveStatusChanged += OnSaveStatusChanged;
+            GameEvents.RecoveryNoticeChanged += OnRecoveryNoticeChanged;
             GameEvents.RelicProjectChanged += OnProjectChanged;
         }
 
@@ -35,6 +42,7 @@ namespace ToilRelic.Unity.UI
             GameEvents.BattleOutcome -= OnBattleOutcome;
             GameEvents.LevelUp -= OnLevelUp;
             GameEvents.SaveStatusChanged -= OnSaveStatusChanged;
+            GameEvents.RecoveryNoticeChanged -= OnRecoveryNoticeChanged;
             GameEvents.RelicProjectChanged -= OnProjectChanged;
         }
 
@@ -84,6 +92,13 @@ namespace ToilRelic.Unity.UI
             RenderMessage();
         }
 
+        private void OnRecoveryNoticeChanged(bool pending)
+        {
+            recoveryNoticePending = pending;
+            UpdateSaveStatusText();
+            RenderMessage();
+        }
+
         private void OnProjectChanged(RelicProjectSnapshot project)
         {
             if (!project.Ready && !project.Forged) return;
@@ -100,13 +115,22 @@ namespace ToilRelic.Unity.UI
                 return;
             }
 
-            saveStatusText.text = saveStatus switch
+            var saveFeedback = saveStatus switch
             {
                 SaveFeedbackStatus.Succeeded => "Save: Saved just now",
                 SaveFeedbackStatus.Failed => "Save: Failed",
                 _ => string.Empty
             };
-            saveStatusText.gameObject.SetActive(currentState == GameState.Camp && saveStatus.HasValue);
+            saveStatusText.text = currentState == GameState.Camp && recoveryNoticePending
+                ? string.IsNullOrEmpty(saveFeedback)
+                    ? RecoveryNotice
+                    : $"{RecoveryNotice}\n{saveFeedback}"
+                : saveFeedback;
+
+            var showAtTitle = currentState == GameState.Title && recoveryNoticePending && saveStatus.HasValue;
+            var showAtCamp = currentState == GameState.Camp && (recoveryNoticePending || saveStatus.HasValue);
+            saveStatusText.gameObject.SetActive(showAtTitle || showAtCamp);
+            UpdateStatusGeometry(currentState == GameState.Camp && recoveryNoticePending);
         }
 
         private void RenderMessage()
@@ -116,11 +140,35 @@ namespace ToilRelic.Unity.UI
                 return;
             }
 
-            messageText.text = saveFailureActive
+            if (currentState == GameState.Title && recoveryNoticePending)
+            {
+                messageText.text = RecoveryNotice;
+                return;
+            }
+
+            var failureBelongsInPrimary = saveFailureActive &&
+                !(currentState == GameState.Camp && recoveryNoticePending);
+            messageText.text = failureBelongsInPrimary
                 ? string.IsNullOrEmpty(primaryMessage)
                     ? SaveFailureWarning
                     : $"{primaryMessage}\n{SaveFailureWarning}"
                 : primaryMessage;
+        }
+
+        private void UpdateStatusGeometry(bool recoveryAtCamp)
+        {
+            var statusRect = transform as RectTransform;
+            if (statusRect != null)
+            {
+                var size = statusRect.sizeDelta;
+                size.y = recoveryAtCamp ? RecoveryStatusHeight : DefaultStatusHeight;
+                statusRect.sizeDelta = size;
+            }
+
+            var saveRect = saveStatusText.rectTransform;
+            var saveSize = saveRect.sizeDelta;
+            saveSize.y = recoveryAtCamp ? RecoverySaveStatusHeight : DefaultSaveStatusHeight;
+            saveRect.sizeDelta = saveSize;
         }
     }
 }

@@ -6,6 +6,8 @@ namespace ToilRelic.Tests;
 [Collection(ConsoleCollection.Name)]
 public sealed class GameSaveUxTests
 {
+    private const string RecoveryNotice = "Recovered a previous valid save. Recent progress may be missing.";
+
     [Fact]
     public void Run_MissingSave_ShowsDiagnosisAndSavesBeforeQuit()
     {
@@ -145,6 +147,85 @@ public sealed class GameSaveUxTests
         Assert.False(string.IsNullOrWhiteSpace(capture.Error));
     }
 
+    [Fact]
+    public void Run_RecoveredSave_IsPlayableAndShowsSafeNoticeOnceBeforeTitle()
+    {
+        using var fixture = new GameFixture();
+        fixture.SeedRecoverableSave("Recovered Archivist");
+
+        var capture = CaptureConsole(new StringReader("1\n6\n"), () => new Game(fixture.System).Run());
+
+        Assert.Equal(1, CountOccurrences(capture.Output, RecoveryNotice));
+        Assert.True(capture.Output.IndexOf(RecoveryNotice, StringComparison.Ordinal) <
+                    capture.Output.IndexOf("Save found. Continue or start a new game.", StringComparison.Ordinal));
+        Assert.Contains("Recovered Archivist | HP", capture.Output);
+        Assert.DoesNotContain("operation=", capture.Output);
+        Assert.DoesNotContain(fixture.SavePath, capture.Output);
+        Assert.Equal(string.Empty, capture.Error);
+    }
+
+    [Fact]
+    public void Run_LoadedWithPendingNotice_IsPlayableAndDisplayDoesNotClearMarker()
+    {
+        using var fixture = new GameFixture();
+        fixture.SeedRecoverableSave("Restart Archivist");
+        Assert.Equal(LoadStatus.Recovered, fixture.System.Load().Status);
+        var markerPath = fixture.SavePath + ".recovery-pending";
+        var input = new ScriptedTextReader(new InputStep("1"));
+
+        Assert.Throws<EndOfInputException>(() =>
+            CaptureConsole(input, () => new Game(fixture.System).Run()));
+
+        Assert.Contains(RecoveryNotice, input.CapturedOutput);
+        Assert.Contains("1. Continue", input.CapturedOutput);
+        Assert.Contains("Restart Archivist | HP", input.CapturedOutput);
+        Assert.True(File.Exists(markerPath), "Rendering the notice must not clear durable recovery state.");
+    }
+
+    [Fact]
+    public void Run_FailedProgressSave_RetainsRecoveryMarkerAndKeepsDiagnosticOffPlayerCopy()
+    {
+        using var fixture = new GameFixture();
+        fixture.SeedRecoverableSave("Failure Archivist");
+        var stageWrites = 0;
+        var operations = new SaveEnvelopeFileOperations((checkpoint, side) =>
+        {
+            if (checkpoint == SaveEnvelopeCheckpoint.StageWrite &&
+                side == SaveEnvelopeMutationSide.Before &&
+                ++stageWrites == 2)
+            {
+                throw new IOException("C:\\private\\Failure Archivist\\savegame.json");
+            }
+        });
+        var system = new SaveSystem(fixture.SavePath, operations);
+        var input = new ScriptedTextReader(new InputStep("1"), new InputStep("4"), new InputStep(string.Empty));
+
+        Assert.Throws<EndOfInputException>(() => CaptureConsole(input, () => new Game(system).Run()));
+
+        Assert.Contains(RecoveryNotice, input.CapturedOutput);
+        Assert.Contains("Save: Failed", input.CapturedOutput);
+        Assert.DoesNotContain("Failure Archivist\\savegame.json", input.CapturedOutput);
+        Assert.Contains("operation=", input.CapturedError);
+        Assert.DoesNotContain("Failure Archivist", input.CapturedError);
+        Assert.True(File.Exists(fixture.SavePath + ".recovery-pending"));
+    }
+
+    [Fact]
+    public void Run_FirstSuccessfulProgressSave_ClearsRecoveryMarker()
+    {
+        using var fixture = new GameFixture();
+        fixture.SeedRecoverableSave("Cleared Archivist");
+        var markerPath = fixture.SavePath + ".recovery-pending";
+
+        var capture = CaptureConsole(
+            new StringReader("1\n4\n\n6\n"),
+            () => new Game(fixture.System).Run());
+
+        Assert.Equal(1, CountOccurrences(capture.Output, RecoveryNotice));
+        Assert.Contains("Save: Saved just now", capture.Output);
+        Assert.False(File.Exists(markerPath));
+    }
+
     private static ConsoleCapture CaptureConsole(TextReader input, Action action)
     {
         var originalIn = Console.In;
@@ -156,6 +237,7 @@ public sealed class GameSaveUxTests
         if (input is ScriptedTextReader scripted)
         {
             scripted.Output = output;
+            scripted.Error = error;
         }
 
         try
@@ -200,7 +282,9 @@ public sealed class GameSaveUxTests
         }
 
         public StringWriter? Output { private get; set; }
+        public StringWriter? Error { private get; set; }
         public string CapturedOutput => Output?.ToString() ?? string.Empty;
+        public string CapturedError => Error?.ToString() ?? string.Empty;
 
         public override string? ReadLine()
         {
@@ -243,6 +327,13 @@ public sealed class GameSaveUxTests
         public string DirectoryPath { get; }
         public string SavePath { get; }
         public SaveSystem System { get; }
+
+        public void SeedRecoverableSave(string recoveredPlayerName)
+        {
+            Assert.True(System.Save(new Player(recoveredPlayerName)).Succeeded);
+            Assert.True(System.Save(new Player("Damaged Newer Save")).Succeeded);
+            File.WriteAllText(SavePath, "{ damaged live save");
+        }
 
         public void UnblockSaveDirectory()
         {

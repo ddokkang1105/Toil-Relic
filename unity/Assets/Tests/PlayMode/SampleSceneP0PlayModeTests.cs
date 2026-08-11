@@ -28,6 +28,8 @@ namespace ToilRelic.PlayModeTests
         private const string GameEventsTypeName = "ToilRelic.Unity.Core.GameEvents";
         private const string CombatSystemTypeName = "ToilRelic.Unity.Systems.CombatSystem";
         private const string PlayModeActionContractsCategory = "PlayModeActionContracts";
+        private const string IroncladRecoveryUxCategory = "IroncladRecoveryUx";
+        private const string RecoveryNotice = "Recovered a previous valid save. Recent progress may be missing.";
         private static readonly Vector2 WidescreenVirtualSize = new Vector2(800f, 450f);
         private static readonly Vector2 StandardVirtualSize = new Vector2(800f, 600f);
         private const float MinimumTopRegionGap = 16f;
@@ -1296,6 +1298,197 @@ namespace ToilRelic.PlayModeTests
             Assert.That(continueButton.interactable, Is.True);
             Assert.That(messageText.text, Is.EqualTo("Save found. Continue or start a new game."));
             Assert.That((int)loadedPlayer.GetType().GetProperty("Level").GetValue(loadedPlayer), Is.EqualTo(3));
+        }
+
+        [UnityTest]
+        [Category(IroncladRecoveryUxCategory)]
+        public IEnumerator P0_RecoveredSaveEnablesContinueRestoresPlayerAndPublishesRetainedNotice()
+        {
+            SeedRecoverableSave(recoveredLevel: 3);
+            var eventsType = FindType(GameEventsTypeName);
+            var order = new List<string>();
+            var logMessages = new List<string>();
+            Application.LogCallback logCallback = (condition, _, _) => logMessages.Add(condition);
+            using var recoveryNotice = new ReflectedEventRecorder(eventsType, "RecoveryNoticeChanged", order);
+
+            Application.logMessageReceived += logCallback;
+            try
+            {
+                yield return ReloadSampleScene();
+            }
+            finally
+            {
+                Application.logMessageReceived -= logCallback;
+            }
+
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var titleMenu = RequireComponent(TitleMenuControllerTypeName);
+            var continueButton = GetPrivateField(titleMenu, "continueButton") as Button;
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+            var restoredPlayer = GetPrivateField(gameManager, "player");
+
+            Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(),
+                Is.EqualTo("Recovered"));
+            Assert.That((bool)gameManager.GetType().GetProperty("HasSavedGame").GetValue(gameManager), Is.True);
+            Assert.That((bool)gameManager.GetType().GetProperty("RecoveryNoticePending").GetValue(gameManager), Is.True);
+            Assert.That((int)restoredPlayer.GetType().GetProperty("Level").GetValue(restoredPlayer), Is.EqualTo(3));
+            Assert.That(continueButton.interactable, Is.True);
+            Assert.That(messageText.text, Is.EqualTo(RecoveryNotice));
+            Assert.That(recoveryNotice.Values, Is.EqualTo(new object[] { true }));
+            Assert.That(logMessages.Any(message => message.Contains("Save load failed", StringComparison.Ordinal)), Is.False,
+                "Successful recovery must not be diagnosed as a load failure.");
+            Assert.That(File.Exists(fixtureSavePath + ".recovery-pending"), Is.True,
+                "Displaying recovery must not clear the durable marker.");
+        }
+
+        [UnityTest]
+        [Category(IroncladRecoveryUxCategory)]
+        public IEnumerator P0_LoadedWithPendingNoticeRemainsPlayableAcrossRestart()
+        {
+            SeedRecoverableSave(recoveredLevel: 4);
+            yield return ReloadSampleScene();
+            Assert.That(RequireComponent(GameManagerTypeName).GetType()
+                .GetProperty("CurrentSaveLoadStatus").GetValue(RequireComponent(GameManagerTypeName)).ToString(),
+                Is.EqualTo("Recovered"));
+
+            yield return ReloadSampleScene();
+
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+            var restoredPlayer = GetPrivateField(gameManager, "player");
+            Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(),
+                Is.EqualTo("Loaded"));
+            Assert.That((bool)gameManager.GetType().GetProperty("HasSavedGame").GetValue(gameManager), Is.True);
+            Assert.That((bool)gameManager.GetType().GetProperty("RecoveryNoticePending").GetValue(gameManager), Is.True);
+            Assert.That((int)restoredPlayer.GetType().GetProperty("Level").GetValue(restoredPlayer), Is.EqualTo(4));
+            Assert.That(messageText.text, Is.EqualTo(RecoveryNotice));
+            Assert.That(File.Exists(fixtureSavePath + ".recovery-pending"), Is.True);
+        }
+
+        [UnityTest]
+        [Category(IroncladRecoveryUxCategory)]
+        public IEnumerator P0_FailedProgressSaveRetainsRecoveryAndSuccessfulRetryClearsItOnce()
+        {
+            SeedRecoverableSave(recoveredLevel: 2);
+            yield return ReloadSampleScene();
+
+            var gameManager = RequireComponent(GameManagerTypeName);
+            gameManager.GetType().GetMethod("ContinueGame").Invoke(gameManager, null);
+            yield return null;
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+            var saveStatusText = RequireSaveStatusText(status);
+            var eventsType = FindType(GameEventsTypeName);
+            var order = new List<string>();
+            using var recoveryNotice = new ReflectedEventRecorder(eventsType, "RecoveryNoticeChanged", order);
+
+            UseFailingSaveOperations(fixtureSaveServiceType);
+            LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
+            gameManager.GetType().GetMethod("Rest").Invoke(gameManager, null);
+
+            Assert.That((bool)gameManager.GetType().GetProperty("RecoveryNoticePending").GetValue(gameManager), Is.True);
+            Assert.That(recoveryNotice.Values, Is.Empty, "A failed save must not publish a semantic clear.");
+            Assert.That(File.Exists(fixtureSavePath + ".recovery-pending"), Is.True);
+            Assert.That(messageText.text, Is.EqualTo("You rest and recover to full HP."));
+            Assert.That(saveStatusText.text, Is.EqualTo($"{RecoveryNotice}\nSave: Failed"));
+            Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.True);
+
+            SetPrivateStaticField(fixtureSaveServiceType, "fileOperations", fixtureFileOperations);
+            gameManager.GetType().GetMethod("Rest").Invoke(gameManager, null);
+
+            Assert.That((bool)gameManager.GetType().GetProperty("RecoveryNoticePending").GetValue(gameManager), Is.False);
+            Assert.That(recoveryNotice.Values, Is.EqualTo(new object[] { false }));
+            Assert.That(File.Exists(fixtureSavePath + ".recovery-pending"), Is.False);
+            Assert.That(saveStatusText.text, Is.EqualTo("Save: Saved just now"));
+        }
+
+        [UnityTest]
+        [Category(IroncladRecoveryUxCategory)]
+        public IEnumerator P0_RecoveryAndSaveFailureCompositionIsEventOrderIndependentBySurface()
+        {
+            yield return null;
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+            var saveStatusText = RequireSaveStatusText(status);
+            var eventsType = FindType(GameEventsTypeName);
+
+            RaiseRecoveryNotice(eventsType, true);
+            RaiseSaveStatus(eventsType, "Failed");
+            Assert.That(messageText.text, Is.EqualTo(RecoveryNotice));
+            Assert.That(saveStatusText.text, Is.EqualTo("Save: Failed"));
+            Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.True);
+
+            RaiseRecoveryNotice(eventsType, false);
+            RaiseSaveStatus(eventsType, "Succeeded");
+            RaiseSaveStatus(eventsType, "Failed");
+            RaiseRecoveryNotice(eventsType, true);
+            Assert.That(messageText.text, Is.EqualTo(RecoveryNotice));
+            Assert.That(saveStatusText.text, Is.EqualTo("Save: Failed"));
+
+            var stateType = GetPrivateField(gameManager, "state").GetType();
+            var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
+            eventsType.GetMethod("RaiseBattleOutcome").Invoke(null, new object[] { "Win. Loot preserved." });
+            eventsType.GetMethod("RaiseLevelUp").Invoke(null, new object[] { "Level up preserved." });
+            Assert.That(messageText.text, Is.EqualTo("Win. Loot preserved.\nLevel up preserved."));
+            Assert.That(saveStatusText.text, Is.EqualTo($"{RecoveryNotice}\nSave: Failed"));
+
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Battle") });
+            Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.False);
+            Assert.That((bool)GetPrivateField(status, "recoveryNoticePending"), Is.True,
+                "Battle must retain recovery semantics without adding a persistent row.");
+            Assert.That((bool)GetPrivateField(status, "saveFailureActive"), Is.True);
+            eventsType.GetMethod("RaiseBattleLog").Invoke(null, new object[] { "Battle begins." });
+            Assert.That(messageText.text, Is.EqualTo(
+                "Battle begins.\nSave failed. Progress may not be saved."));
+        }
+
+        [UnityTest]
+        [Category(IroncladRecoveryUxCategory)]
+        public IEnumerator P0_RecoveryWorstCaseLayoutFitsTitleAndCampAtSupportedViewports()
+        {
+            var evidenceDirectory = Environment.GetEnvironmentVariable("TOIL_RELIC_IRONCLAD_LAYOUT_EVIDENCE_DIR");
+            if (string.IsNullOrWhiteSpace(evidenceDirectory))
+            {
+                Assert.Ignore("Set TOIL_RELIC_IRONCLAD_LAYOUT_EVIDENCE_DIR to capture recovery layout evidence.");
+            }
+
+            Directory.CreateDirectory(evidenceDirectory);
+            SeedRecoverableSave(recoveredLevel: 3);
+            yield return ReloadSampleScene();
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var status = RequireComponent(GameStatusControllerTypeName);
+            var messageText = GetPrivateField(status, "messageText") as Text;
+            var saveStatusText = RequireSaveStatusText(status);
+            var eventsType = FindType(GameEventsTypeName);
+            RaiseSaveStatus(eventsType, "Failed");
+            var continueButton = RequireRectTransform("ContinueButton").GetComponent<Button>();
+            Action<Canvas, int, int> assertTitle = (canvas, width, height) =>
+                AssertRecoveryRenderedLayoutAtViewport(
+                    canvas, width, height, messageText, saveStatusText, continueButton);
+
+            yield return CaptureStableScreenshot(
+                evidenceDirectory, "recovery-title-failure-1280x720.png", 1280, 720, assertTitle);
+            yield return CaptureStableScreenshot(
+                evidenceDirectory, "recovery-title-failure-800x600.png", 800, 600, assertTitle);
+
+            var stateType = GetPrivateField(gameManager, "state").GetType();
+            var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
+            changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
+            eventsType.GetMethod("RaiseBattleOutcome").Invoke(null, new object[] { "Win. Loot preserved." });
+            eventsType.GetMethod("RaiseLevelUp").Invoke(null, new object[] { "Level up preserved." });
+            var restButton = RequireRectTransform("RestButton").GetComponent<Button>();
+            Action<Canvas, int, int> assertCamp = (canvas, width, height) =>
+                AssertRecoveryRenderedLayoutAtViewport(
+                    canvas, width, height, messageText, saveStatusText, restButton);
+
+            yield return CaptureStableScreenshot(
+                evidenceDirectory, "recovery-camp-failure-levelup-1280x720.png", 1280, 720, assertCamp);
+            yield return CaptureStableScreenshot(
+                evidenceDirectory, "recovery-camp-failure-levelup-800x600.png", 800, 600, assertCamp);
         }
 
         [UnityTest]
@@ -3064,6 +3257,49 @@ namespace ToilRelic.PlayModeTests
                 $"The {width}x{height} render must keep status glyphs at least {MinimumStatusGlyphGap} virtual pixels above EnemyText glyphs.");
         }
 
+        private static void AssertRecoveryRenderedLayoutAtViewport(
+            Canvas canvas,
+            int width,
+            int height,
+            Text messageText,
+            Text saveStatusText,
+            Button primaryAction)
+        {
+            var canvasRect = canvas.GetComponent<RectTransform>();
+            var statusRect = RequireRectTransform("GameStatus");
+            Canvas.ForceUpdateCanvases();
+
+            Assert.That(messageText.text, Is.Not.Empty);
+            Assert.That(saveStatusText.text, Is.Not.Empty);
+            Assert.That(primaryAction, Is.Not.Null);
+            Assert.That(primaryAction.gameObject.activeInHierarchy, Is.True,
+                $"The primary action must remain visible at {width}x{height}.");
+            Assert.That(primaryAction.interactable, Is.True,
+                $"The primary action must remain available at {width}x{height}.");
+            AssertTextContract(messageText, requireSingleVisualLine: false);
+            AssertTextContract(saveStatusText, requireSingleVisualLine: false);
+            AssertGeneratedGlyphsInsideRect(messageText, canvasRect);
+            AssertGeneratedGlyphsInsideRect(saveStatusText, canvasRect);
+
+            var canvasBounds = canvasRect.rect;
+            var statusBounds = CalculateRectInAncestor(canvasRect, statusRect);
+            var actionBounds = CalculateRectInAncestor(canvasRect, primaryAction.GetComponent<RectTransform>());
+            const float tolerance = 1f;
+            Assert.That(statusBounds.xMin, Is.GreaterThanOrEqualTo(canvasBounds.xMin - tolerance));
+            Assert.That(statusBounds.xMax, Is.LessThanOrEqualTo(canvasBounds.xMax + tolerance));
+            Assert.That(statusBounds.yMin, Is.GreaterThanOrEqualTo(canvasBounds.yMin - tolerance));
+            Assert.That(statusBounds.yMax, Is.LessThanOrEqualTo(canvasBounds.yMax + tolerance));
+            Assert.That(actionBounds.xMin, Is.GreaterThanOrEqualTo(canvasBounds.xMin - tolerance));
+            Assert.That(actionBounds.xMax, Is.LessThanOrEqualTo(canvasBounds.xMax + tolerance));
+            Assert.That(actionBounds.yMin, Is.GreaterThanOrEqualTo(canvasBounds.yMin - tolerance));
+            Assert.That(actionBounds.yMax, Is.LessThanOrEqualTo(canvasBounds.yMax + tolerance));
+
+            var messageGlyphs = CalculateGeneratedGlyphBounds(messageText, canvasRect);
+            var saveGlyphs = CalculateGeneratedGlyphBounds(saveStatusText, canvasRect);
+            Assert.That(messageGlyphs.yMin - saveGlyphs.yMax, Is.GreaterThanOrEqualTo(0f),
+                $"Recovery/save glyphs must not overlap the primary message at {width}x{height}.");
+        }
+
         private static void AssertVerticalRectOrder(Rect upper, Rect lower, string upperName, string lowerName)
         {
             Assert.That(upper.yMin - lower.yMax, Is.GreaterThanOrEqualTo(0f),
@@ -3412,6 +3648,26 @@ namespace ToilRelic.PlayModeTests
             var raiseMethod = gameEventsType.GetMethod("RaiseSaveStatusChanged");
             Assert.That(raiseMethod, Is.Not.Null, "GameEvents must publish semantic save feedback.");
             raiseMethod.Invoke(null, new[] { Enum.Parse(saveFeedbackType, status) });
+        }
+
+        private static void RaiseRecoveryNotice(Type gameEventsType, bool pending)
+        {
+            var raiseMethod = gameEventsType.GetMethod("RaiseRecoveryNoticeChanged");
+            Assert.That(raiseMethod, Is.Not.Null, "GameEvents must publish semantic recovery notice state.");
+            raiseMethod.Invoke(null, new object[] { pending });
+        }
+
+        private void SeedRecoverableSave(int recoveredLevel)
+        {
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var player = GetPrivateField(gameManager, "player");
+            SetPrivateField(player, "level", recoveredLevel);
+            var firstSave = fixtureSaveServiceType.GetMethod("Save").Invoke(null, new[] { player });
+            Assert.That((bool)GetPublicProperty(firstSave, "Succeeded"), Is.True);
+            SetPrivateField(player, "level", recoveredLevel + 5);
+            var secondSave = fixtureSaveServiceType.GetMethod("Save").Invoke(null, new[] { player });
+            Assert.That((bool)GetPublicProperty(secondSave, "Succeeded"), Is.True);
+            File.WriteAllText(fixtureSavePath, "{ damaged live save");
         }
 
         private static Button RequireVisibleActionButton(string buttonName, string expectedMethodName)

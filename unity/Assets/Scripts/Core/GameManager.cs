@@ -96,11 +96,13 @@ namespace ToilRelic.Unity.Core
         private GameState state = GameState.Title;
         private BattlePhase battlePhase = BattlePhase.None;
         private SaveLoadStatus saveLoadStatus;
+        private bool recoveryNoticePending;
 
         public BattlePhase CurrentBattlePhase => battlePhase;
         public GameState CurrentState => state;
-        public bool HasSavedGame => saveLoadStatus == SaveLoadStatus.Loaded;
+        public bool HasSavedGame => saveLoadStatus is SaveLoadStatus.Loaded or SaveLoadStatus.Recovered;
         public SaveLoadStatus CurrentSaveLoadStatus => saveLoadStatus;
+        public bool RecoveryNoticePending => recoveryNoticePending;
         public PlayerState Player => player;
         public string CurrentQuarryId => currentQuarryId;
         public HuntContractSnapshot PresentedHuntContract => presentedHuntContract;
@@ -109,7 +111,8 @@ namespace ToilRelic.Unity.Core
         {
             var loadResult = SaveService.Load();
             saveLoadStatus = loadResult.Status;
-            if (loadResult.Status == SaveLoadStatus.Loaded)
+            recoveryNoticePending = loadResult.RecoveryNoticePending;
+            if (loadResult.Status is SaveLoadStatus.Loaded or SaveLoadStatus.Recovered)
             {
                 player = loadResult.Player;
                 player.InitDefaults();
@@ -119,7 +122,16 @@ namespace ToilRelic.Unity.Core
                 player.InitDefaults();
             }
 
-            if (!string.IsNullOrEmpty(loadResult.Diagnostic))
+            if (loadResult.Status == SaveLoadStatus.Recovered)
+            {
+                Debug.Log("Recovered a previous valid save; gameplay can continue.");
+            }
+
+            if (!string.IsNullOrEmpty(loadResult.Diagnostic) && loadResult.Status == SaveLoadStatus.Recovered)
+            {
+                Debug.LogWarning($"Save recovery diagnostic. {loadResult.Diagnostic}");
+            }
+            else if (!string.IsNullOrEmpty(loadResult.Diagnostic))
             {
                 Debug.LogError($"Save load failed. {loadResult.Diagnostic}");
             }
@@ -129,6 +141,7 @@ namespace ToilRelic.Unity.Core
         {
             ChangeState(GameState.Title);
             PublishPlayer();
+            GameEvents.RaiseRecoveryNoticeChanged(recoveryNoticePending);
             GameEvents.RaiseBattleLog(GetTitleSaveMessage());
         }
 
@@ -536,6 +549,11 @@ namespace ToilRelic.Unity.Core
             }
 
             saveLoadStatus = SaveLoadStatus.Loaded;
+            if (recoveryNoticePending)
+            {
+                recoveryNoticePending = false;
+                GameEvents.RaiseRecoveryNoticeChanged(false);
+            }
             GameEvents.RaiseSaveStatusChanged(SaveFeedbackStatus.Succeeded);
             return true;
         }
@@ -544,7 +562,7 @@ namespace ToilRelic.Unity.Core
         {
             return saveLoadStatus switch
             {
-                SaveLoadStatus.Loaded => "Save found. Continue or start a new game.",
+                SaveLoadStatus.Loaded or SaveLoadStatus.Recovered => "Save found. Continue or start a new game.",
                 SaveLoadStatus.Unreadable => "Save could not be read. Start New Game to replace it.",
                 _ => "Start a new game to begin."
             };
