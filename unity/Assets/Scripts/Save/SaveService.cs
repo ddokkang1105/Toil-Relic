@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using ToilRelic.Unity.Core;
 using UnityEngine;
@@ -21,7 +23,12 @@ namespace ToilRelic.Unity.Save
         private const int PreviousSaveVersion = 2;
         public const int CurrentSaveVersion = 3;
         private static string savePathOverride;
+        private static SaveEnvelopeFileOperations fileOperations = new SaveEnvelopeFileOperations();
         private static string SavePath => savePathOverride ?? Path.Combine(Application.persistentDataPath, "toil_relic_save.json");
+        private static string StagePath => SavePath + ".stage";
+        private static string LastKnownGoodPath => SavePath + ".lkg";
+        private static string QuarantinePath => SavePath + ".quarantine";
+        private static string RecoveryMarkerPath => SavePath + ".recovery-pending";
 
         [Serializable]
         private sealed class SaveEnvelopePresenceProbe
@@ -77,13 +84,58 @@ namespace ToilRelic.Unity.Save
         {
             try
             {
+                EnsureSaveDirectory();
                 var envelope = new SaveEnvelope { version = CurrentSaveVersion, player = player };
-                File.WriteAllText(SavePath, JsonUtility.ToJson(envelope, prettyPrint: false));
+                var candidateBytes = Encoding.UTF8.GetBytes(JsonUtility.ToJson(envelope, prettyPrint: false));
+                fileOperations.WriteDurableStage(StagePath, candidateBytes, "StageWrite");
+
+                fileOperations.ValidateStageCheckpoint(StagePath, "Before");
+                var stagedCandidate = ValidateCandidate(StagePath, "Stage");
+                if (stagedCandidate.State != CandidateState.Valid)
+                {
+                    return SaveOperationResult.Failure(CreateDiagnostic(
+                        "StageValidation",
+                        "Stage",
+                        nameof(InvalidDataException),
+                        StagePath));
+                }
+
+                fileOperations.ValidateStageCheckpoint(StagePath, "After");
+                var liveCandidate = ValidateCandidate(SavePath, "Live");
+                switch (liveCandidate.State)
+                {
+                    case CandidateState.Valid:
+                        fileOperations.ReplaceLiveWithBackup(StagePath, SavePath, LastKnownGoodPath);
+                        break;
+                    case CandidateState.Missing:
+                        fileOperations.PromoteNewLive(StagePath, SavePath);
+                        break;
+                    default:
+                        return SaveOperationResult.Failure(liveCandidate.Diagnostic ?? CreateDiagnostic(
+                            "ValidateLiveForSave",
+                            "Live",
+                            nameof(InvalidDataException),
+                            SavePath));
+                }
+
+                fileOperations.DeleteRecoveryMarker(RecoveryMarkerPath);
                 return SaveOperationResult.Success();
+            }
+            catch (SaveEnvelopeInterruptionException)
+            {
+                throw;
+            }
+            catch (SaveEnvelopeOperationException exception)
+            {
+                return SaveOperationResult.Failure(exception.ToDiagnostic());
             }
             catch (Exception exception)
             {
-                return SaveOperationResult.Failure(exception.ToString());
+                return SaveOperationResult.Failure(CreateDiagnostic(
+                    "SaveEnvelope",
+                    "Stage",
+                    exception.GetType().Name,
+                    StagePath));
             }
         }
 
@@ -91,25 +143,137 @@ namespace ToilRelic.Unity.Save
         {
             try
             {
-                var json = File.ReadAllText(SavePath);
+                var liveCandidate = ValidateCandidate(SavePath, "Live");
+                if (liveCandidate.State == CandidateState.Valid)
+                {
+                    return SaveLoadResult.Loaded(
+                        liveCandidate.Player,
+                        recoveryNoticePending: fileOperations.FileExists(RecoveryMarkerPath));
+                }
+
+                var lastKnownGoodCandidate = ValidateCandidate(LastKnownGoodPath, "LastKnownGood");
+                if (lastKnownGoodCandidate.State == CandidateState.Valid)
+                {
+                    return Recover(liveCandidate, lastKnownGoodCandidate);
+                }
+
+                if (liveCandidate.State == CandidateState.Missing &&
+                    lastKnownGoodCandidate.State == CandidateState.Missing)
+                {
+                    return SaveLoadResult.Missing();
+                }
+
+                return SaveLoadResult.Unreadable(
+                    liveCandidate.State == CandidateState.Invalid
+                        ? liveCandidate.Diagnostic
+                        : lastKnownGoodCandidate.Diagnostic);
+            }
+            catch (SaveEnvelopeInterruptionException)
+            {
+                throw;
+            }
+            catch (SaveEnvelopeOperationException exception)
+            {
+                return SaveLoadResult.Unreadable(exception.ToDiagnostic());
+            }
+            catch (Exception exception)
+            {
+                return SaveLoadResult.Unreadable(CreateDiagnostic(
+                    "LoadEnvelope",
+                    "Live",
+                    exception.GetType().Name,
+                    SavePath));
+            }
+        }
+
+        private static SaveLoadResult Recover(
+            CandidateValidation liveCandidate,
+            CandidateValidation lastKnownGoodCandidate)
+        {
+            fileOperations.WriteDurableStage(
+                StagePath,
+                lastKnownGoodCandidate.Bytes,
+                "WriteRecoveryStage");
+
+            var recoveryStage = ValidateCandidate(StagePath, "Stage");
+            if (recoveryStage.State != CandidateState.Valid ||
+                !recoveryStage.Bytes.SequenceEqual(lastKnownGoodCandidate.Bytes))
+            {
+                return SaveLoadResult.Unreadable(CreateDiagnostic(
+                    "ValidateRecoveryStage",
+                    "Stage",
+                    nameof(InvalidDataException),
+                    StagePath));
+            }
+
+            fileOperations.CreateDurableRecoveryMarker(RecoveryMarkerPath);
+            if (liveCandidate.State == CandidateState.Invalid)
+            {
+                fileOperations.DeletePriorQuarantine(QuarantinePath);
+                fileOperations.MoveDamagedLive(SavePath, QuarantinePath);
+            }
+
+            fileOperations.PromoteRecovery(StagePath, SavePath);
+            return SaveLoadResult.Recovered(recoveryStage.Player);
+        }
+
+        private static CandidateValidation ValidateCandidate(string path, string artifactRole)
+        {
+            if (!fileOperations.FileExists(path))
+            {
+                if (fileOperations.DirectoryExists(path))
+                {
+                    return CandidateValidation.Invalid(CreateDiagnostic(
+                        "ValidateCandidate",
+                        artifactRole,
+                        nameof(IOException),
+                        path));
+                }
+
+                return CandidateValidation.Missing();
+            }
+
+            byte[] bytes;
+            try
+            {
+                bytes = fileOperations.ReadAllBytes(path);
+            }
+            catch (Exception exception)
+            {
+                return CandidateValidation.Invalid(CreateDiagnostic(
+                    "ReadCandidate",
+                    artifactRole,
+                    exception.GetType().Name,
+                    path));
+            }
+
+            try
+            {
+                var json = Encoding.UTF8.GetString(bytes);
                 var presenceProbe = JsonUtility.FromJson<SaveEnvelopePresenceProbe>(json);
                 var envelope = JsonUtility.FromJson<SaveEnvelope>(json);
-                if (envelope == null || envelope.player == null || presenceProbe?.player == null)
+                if (envelope == null || envelope.player == null || presenceProbe?.player == null ||
+                    !IsSupportedVersion(envelope.version))
                 {
-                    return SaveLoadResult.Unreadable("The save did not contain player data.");
+                    return CandidateValidation.Invalid(CreateDiagnostic(
+                        "ValidateCandidate",
+                        artifactRole,
+                        nameof(InvalidDataException),
+                        path));
                 }
 
-                if (!IsSupportedVersion(envelope.version))
-                {
-                    return SaveLoadResult.Unreadable($"Unsupported save version: {envelope.version}.");
-                }
-
-                var isCurrent = presenceProbe.version == CurrentSaveVersion && envelope.version == CurrentSaveVersion;
+                var isCurrent = presenceProbe.version == CurrentSaveVersion &&
+                    envelope.version == CurrentSaveVersion;
                 if (isCurrent)
                 {
-                    if (!HasCurrentRequiredFields(json, presenceProbe.player) || !envelope.player.HasValidCurrentSaveData())
+                    if (!HasCurrentRequiredFields(json, presenceProbe.player) ||
+                        !envelope.player.HasValidCurrentSaveData())
                     {
-                        return SaveLoadResult.Unreadable("The current save did not contain valid project and player data.");
+                        return CandidateValidation.Invalid(CreateDiagnostic(
+                            "ValidateCandidate",
+                            artifactRole,
+                            nameof(InvalidDataException),
+                            path));
                     }
                 }
                 else
@@ -120,26 +284,88 @@ namespace ToilRelic.Unity.Save
                         envelope.player.HasLegacyRelicState() ||
                         !envelope.player.HasValidSaveData())
                     {
-                        return SaveLoadResult.Unreadable("The legacy save did not contain valid player data.");
+                        return CandidateValidation.Invalid(CreateDiagnostic(
+                            "ValidateCandidate",
+                            artifactRole,
+                            nameof(InvalidDataException),
+                            path));
                     }
 
                     envelope.player.EnsureLegacyProject();
                 }
 
-                return SaveLoadResult.Loaded(envelope.player);
+                return CandidateValidation.Valid(envelope.player, bytes);
             }
-            catch (FileNotFoundException)
+            catch (Exception exception) when (!(exception is SaveEnvelopeInterruptionException))
             {
-                return SaveLoadResult.Missing();
+                return CandidateValidation.Invalid(CreateDiagnostic(
+                    "ValidateCandidate",
+                    artifactRole,
+                    exception.GetType().Name,
+                    path));
             }
-            catch (DirectoryNotFoundException)
+        }
+
+        private static void EnsureSaveDirectory()
+        {
+            var directory = Path.GetDirectoryName(SavePath);
+            if (string.IsNullOrWhiteSpace(directory)) return;
+
+            try
             {
-                return SaveLoadResult.Missing();
+                Directory.CreateDirectory(directory);
             }
             catch (Exception exception)
             {
-                return SaveLoadResult.Unreadable(exception.ToString());
+                throw new SaveEnvelopeOperationException(
+                    "PrepareSaveDirectory",
+                    "Stage",
+                    exception.GetType().Name,
+                    Path.GetFileName(StagePath));
             }
+        }
+
+        private static string CreateDiagnostic(
+            string operationRole,
+            string artifactRole,
+            string exceptionType,
+            string path) =>
+            $"operation={operationRole}; artifact={artifactRole}; exception={exceptionType}; file={Path.GetFileName(path)}";
+
+        private enum CandidateState
+        {
+            Missing,
+            Valid,
+            Invalid
+        }
+
+        private sealed class CandidateValidation
+        {
+            private CandidateValidation(
+                CandidateState state,
+                PlayerState player,
+                byte[] bytes,
+                string diagnostic)
+            {
+                State = state;
+                Player = player;
+                Bytes = bytes;
+                Diagnostic = diagnostic;
+            }
+
+            public CandidateState State { get; }
+            public PlayerState Player { get; }
+            public byte[] Bytes { get; }
+            public string Diagnostic { get; }
+
+            public static CandidateValidation Missing() =>
+                new CandidateValidation(CandidateState.Missing, null, null, null);
+
+            public static CandidateValidation Valid(PlayerState player, byte[] bytes) =>
+                new CandidateValidation(CandidateState.Valid, player, bytes, null);
+
+            public static CandidateValidation Invalid(string diagnostic) =>
+                new CandidateValidation(CandidateState.Invalid, null, null, diagnostic);
         }
 
         private static bool IsSupportedVersion(int version) =>

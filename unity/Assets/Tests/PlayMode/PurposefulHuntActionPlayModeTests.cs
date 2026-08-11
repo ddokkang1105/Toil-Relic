@@ -19,6 +19,8 @@ namespace ToilRelic.PlayModeTests
         private readonly List<UnityEngine.Object> fixtureObjects = new();
         private Type saveServiceType;
         private object previousSavePathOverride;
+        private object previousFileOperations;
+        private object fixtureFileOperations;
         private string saveDirectory;
         private string savePath;
         private UnityEngine.Random.State randomState;
@@ -26,18 +28,34 @@ namespace ToilRelic.PlayModeTests
         [UnitySetUp]
         public IEnumerator SetUp()
         {
-            randomState = UnityEngine.Random.state;
-            saveServiceType = FindType("ToilRelic.Unity.Save.SaveService");
-            var saveOverride = saveServiceType.GetField("savePathOverride", BindingFlags.Static | BindingFlags.NonPublic);
-            previousSavePathOverride = saveOverride.GetValue(null);
-            saveDirectory = Path.Combine(Path.GetTempPath(), $"toil-relic-actions-{Guid.NewGuid():N}");
-            Directory.CreateDirectory(saveDirectory);
-            savePath = Path.Combine(saveDirectory, "save.json");
-            saveOverride.SetValue(null, savePath);
-            yield return SceneManager.LoadSceneAsync("SampleScene", LoadSceneMode.Single);
-            yield return null;
-            Click("New GameButton");
-            yield return null;
+            var setupCompleted = false;
+            try
+            {
+                randomState = UnityEngine.Random.state;
+                saveServiceType = FindType("ToilRelic.Unity.Save.SaveService");
+                var saveOverride = saveServiceType.GetField("savePathOverride", BindingFlags.Static | BindingFlags.NonPublic);
+                var operations = saveServiceType.GetField("fileOperations", BindingFlags.Static | BindingFlags.NonPublic);
+                previousSavePathOverride = saveOverride.GetValue(null);
+                previousFileOperations = operations.GetValue(null);
+                fixtureFileOperations = CreateSaveFileOperations(null);
+                operations.SetValue(null, fixtureFileOperations);
+                saveDirectory = Path.Combine(Path.GetTempPath(), $"toil-relic-actions-{Guid.NewGuid():N}");
+                Directory.CreateDirectory(saveDirectory);
+                savePath = Path.Combine(saveDirectory, "save.json");
+                saveOverride.SetValue(null, savePath);
+                yield return SceneManager.LoadSceneAsync("SampleScene", LoadSceneMode.Single);
+                yield return null;
+                Click("New GameButton");
+                yield return null;
+                setupCompleted = true;
+            }
+            finally
+            {
+                if (!setupCompleted)
+                {
+                    RestoreSaveFixtureState();
+                }
+            }
         }
 
         [UnityTearDown]
@@ -45,8 +63,7 @@ namespace ToilRelic.PlayModeTests
         {
             EventSystem.current?.SetSelectedGameObject(null);
             UnityEngine.Random.state = randomState;
-            saveServiceType.GetField("savePathOverride", BindingFlags.Static | BindingFlags.NonPublic)
-                .SetValue(null, previousSavePathOverride);
+            RestoreSaveFixtureState();
             foreach (var instance in fixtureObjects.Where(item => item != null).Reverse())
             {
                 UnityEngine.Object.DestroyImmediate(instance);
@@ -201,14 +218,14 @@ namespace ToilRelic.PlayModeTests
             var enemy = GetField(manager, "currentEnemy");
             Invoke(enemy, "TakeDamage", 999);
 
-            UseFailingSavePath();
+            UseFailingSaveOperations();
             Click("AttackButton");
             yield return null;
             Assert.That(GetProperty(manager, "CurrentState").ToString(), Is.EqualTo("Camp"));
             Assert.That(Completed(GetProperty(player, "RelicProject")), Is.EqualTo(new[] { quarry.contributionId }));
             AssertSaveFailureStatus(status);
 
-            RestoreSavePath();
+            RestoreSaveOperations();
             Click("RestButton");
             yield return null;
             var loaded = saveServiceType.GetMethod("Load").Invoke(null, null);
@@ -236,7 +253,7 @@ namespace ToilRelic.PlayModeTests
             yield return null;
             Assert.That(FindButton("Forge RelicButton").interactable, Is.True);
 
-            UseFailingSavePath();
+            UseFailingSaveOperations();
             Click("Forge RelicButton");
             yield return null;
 
@@ -246,7 +263,7 @@ namespace ToilRelic.PlayModeTests
             Assert.That(GetProperty(equipmentController, "IsOpen"), Is.EqualTo(false));
             AssertSaveFailureStatus(status);
 
-            RestoreSavePath();
+            RestoreSaveOperations();
             Click("RestButton");
             yield return null;
             var loaded = GetProperty(saveServiceType.GetMethod("Load").Invoke(null, null), "Player");
@@ -292,7 +309,7 @@ namespace ToilRelic.PlayModeTests
             yield return CapturePair(evidenceDirectory, "hunt-contract-invalid", assertContractLayout: false);
             SetField(manager, "huntContract", contract);
 
-            UseFailingSavePath();
+            UseFailingSaveOperations();
             Click("RestButton");
             yield return null;
             yield return CapturePair(evidenceDirectory, "hunt-contract-save-failure", assertContractLayout: false);
@@ -419,17 +436,43 @@ namespace ToilRelic.PlayModeTests
         private static IReadOnlyList<string> Owned(object player) =>
             ((IEnumerable)GetProperty(player, "OwnedEquipmentIds")).Cast<string>().ToArray();
 
-        private void UseFailingSavePath()
+        private void UseFailingSaveOperations()
         {
-            SetSavePath(Path.Combine(saveDirectory, "missing", "save.json"));
+            var operations = CreateSaveFileOperations((checkpoint, side) =>
+            {
+                if (checkpoint == "StageWrite" && side == "Before")
+                {
+                    throw new IOException("Injected action save failure.");
+                }
+            });
+            saveServiceType.GetField("fileOperations", BindingFlags.Static | BindingFlags.NonPublic)
+                .SetValue(null, operations);
             LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
         }
 
-        private void RestoreSavePath() => SetSavePath(savePath);
+        private void RestoreSaveOperations() => saveServiceType
+            .GetField("fileOperations", BindingFlags.Static | BindingFlags.NonPublic)
+            .SetValue(null, fixtureFileOperations);
 
-        private void SetSavePath(string path) => saveServiceType
-            .GetField("savePathOverride", BindingFlags.Static | BindingFlags.NonPublic)
-            .SetValue(null, path);
+        private object CreateSaveFileOperations(Action<string, string> checkpoint)
+        {
+            var operationsType = saveServiceType
+                .GetField("fileOperations", BindingFlags.Static | BindingFlags.NonPublic)
+                .FieldType;
+            var constructor = operationsType.GetConstructors(
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .Single(candidate => candidate.GetParameters().Length == 1);
+            return constructor.Invoke(new object[] { checkpoint });
+        }
+
+        private void RestoreSaveFixtureState()
+        {
+            if (saveServiceType == null) return;
+            saveServiceType.GetField("fileOperations", BindingFlags.Static | BindingFlags.NonPublic)
+                .SetValue(null, previousFileOperations);
+            saveServiceType.GetField("savePathOverride", BindingFlags.Static | BindingFlags.NonPublic)
+                .SetValue(null, previousSavePathOverride);
+        }
 
         private static void AssertSaveFailureStatus(Component status) =>
             Assert.That(((Text)GetField(status, "messageText")).text,

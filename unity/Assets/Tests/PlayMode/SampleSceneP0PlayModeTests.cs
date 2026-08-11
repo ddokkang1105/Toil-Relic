@@ -36,6 +36,8 @@ namespace ToilRelic.PlayModeTests
         private readonly List<UnityEngine.Object> fixtureObjects = new();
         private Type fixtureSaveServiceType;
         private object previousSavePathOverride;
+        private object previousFileOperations;
+        private object fixtureFileOperations;
         private string fixtureSaveDirectory;
         private string fixtureSavePath;
         private bool fixtureOverrideInstalled;
@@ -285,11 +287,14 @@ namespace ToilRelic.PlayModeTests
                 fixtureSaveServiceType = FindType(SaveServiceTypeName);
                 Assert.That(fixtureSaveServiceType, Is.Not.Null, "SaveService must be loaded before scene setup.");
                 previousSavePathOverride = GetPrivateStaticField(fixtureSaveServiceType, "savePathOverride");
+                previousFileOperations = GetPrivateStaticField(fixtureSaveServiceType, "fileOperations");
+                fixtureFileOperations = CreateSaveFileOperations(fixtureSaveServiceType, null);
                 fixtureSaveDirectory = Path.Combine(Path.GetTempPath(), $"toil-relic-unity-tests-{Guid.NewGuid():N}");
                 Directory.CreateDirectory(fixtureSaveDirectory);
                 fixtureSavePath = Path.Combine(fixtureSaveDirectory, "toil_relic_save.json");
-                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", fixtureSavePath);
                 fixtureOverrideInstalled = true;
+                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", fixtureSavePath);
+                SetPrivateStaticField(fixtureSaveServiceType, "fileOperations", fixtureFileOperations);
 
                 var operation = SceneManager.LoadSceneAsync("SampleScene", LoadSceneMode.Single);
                 Assert.That(operation, Is.Not.Null, "SampleScene must be included in the project.");
@@ -511,20 +516,19 @@ namespace ToilRelic.PlayModeTests
             using var stateChanged = new ReflectedEventRecorder(eventsType, "StateChanged", order);
             using var battleLog = new ReflectedEventRecorder(eventsType, "BattleLog", order);
             using var saveStatus = new ReflectedEventRecorder(eventsType, "SaveStatusChanged", order);
-            var originalSavePath = GetPrivateStaticField(fixtureSaveServiceType, "savePathOverride");
+            var originalFileOperations = GetPrivateStaticField(fixtureSaveServiceType, "fileOperations");
             object outcome;
 
             try
             {
-                var invalidSavePath = Path.Combine(Application.temporaryCachePath, Guid.NewGuid().ToString(), "toil_relic_save.json");
-                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", invalidSavePath);
+                UseFailingSaveOperations(fixtureSaveServiceType);
                 LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
                 outcome = gameManager.GetType().GetMethod("EquipEquipment", new[] { slotType, typeof(string) })
                     .Invoke(gameManager, new[] { primaryWeapon, "reward-weapon" });
             }
             finally
             {
-                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", originalSavePath);
+                SetPrivateStaticField(fixtureSaveServiceType, "fileOperations", originalFileOperations);
             }
 
             Assert.That(GetPublicProperty(outcome, "Applied"), Is.True);
@@ -647,20 +651,19 @@ namespace ToilRelic.PlayModeTests
             using var stateChanged = new ReflectedEventRecorder(eventsType, "StateChanged", order);
             using var battleLog = new ReflectedEventRecorder(eventsType, "BattleLog", order);
             using var saveStatus = new ReflectedEventRecorder(eventsType, "SaveStatusChanged", order);
-            var originalSavePath = GetPrivateStaticField(fixtureSaveServiceType, "savePathOverride");
+            var originalFileOperations = GetPrivateStaticField(fixtureSaveServiceType, "fileOperations");
             object outcome;
 
             try
             {
-                var invalidSavePath = Path.Combine(Application.temporaryCachePath, Guid.NewGuid().ToString(), "toil_relic_save.json");
-                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", invalidSavePath);
+                UseFailingSaveOperations(fixtureSaveServiceType);
                 LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
                 outcome = gameManager.GetType().GetMethod("UnequipEquipment", new[] { slotType })
                     .Invoke(gameManager, new[] { ring1 });
             }
             finally
             {
-                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", originalSavePath);
+                SetPrivateStaticField(fixtureSaveServiceType, "fileOperations", originalFileOperations);
             }
 
             Assert.That(GetPublicProperty(outcome, "Applied"), Is.True);
@@ -2487,9 +2490,7 @@ namespace ToilRelic.PlayModeTests
                 yield return CaptureStableScreenshot(
                     evidenceDirectory, "equipment-success-800x600.png", 800, 600);
 
-                var invalidSavePath = Path.Combine(
-                    Application.temporaryCachePath, Guid.NewGuid().ToString("N"), "toil_relic_save.json");
-                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", invalidSavePath);
+                UseFailingSaveOperations(fixtureSaveServiceType);
                 equipmentController.GetType().GetMethod("SelectCandidate").Invoke(
                     equipmentController, new object[] { "all-stat-ring" });
                 LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
@@ -2501,7 +2502,7 @@ namespace ToilRelic.PlayModeTests
             }
             finally
             {
-                SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", fixtureSavePath);
+                SetPrivateStaticField(fixtureSaveServiceType, "fileOperations", fixtureFileOperations);
                 equipmentController.GetType().GetMethod("BackToCamp").Invoke(equipmentController, null);
                 equipmentCatalogScope.Dispose();
                 equipmentCatalogScope = null;
@@ -2667,21 +2668,20 @@ namespace ToilRelic.PlayModeTests
             var messageText = GetPrivateField(status, "messageText") as Text;
             var attackButton = GetPrivateField(battlePanel, "attackButton") as Button;
             var saveServiceType = fixtureSaveServiceType;
-            var originalSavePath = GetPrivateStaticField(saveServiceType, "savePathOverride");
+            var originalFileOperations = GetPrivateStaticField(saveServiceType, "fileOperations");
 
             yield return EnterBattle();
             var enemy = GetPrivateField(gameManager, "currentEnemy");
             try
             {
-                var invalidSavePath = Path.Combine(Application.temporaryCachePath, Guid.NewGuid().ToString(), "toil_relic_save.json");
-                SetPrivateStaticField(saveServiceType, "savePathOverride", invalidSavePath);
+                UseFailingSaveOperations(saveServiceType);
                 LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
                 enemy.GetType().GetMethod("TakeDamage").Invoke(enemy, new object[] { 999 });
                 gameManager.GetType().GetMethod("Attack").Invoke(gameManager, null);
             }
             finally
             {
-                SetPrivateStaticField(saveServiceType, "savePathOverride", originalSavePath);
+                SetPrivateStaticField(saveServiceType, "fileOperations", originalFileOperations);
             }
             yield return null;
 
@@ -2697,21 +2697,20 @@ namespace ToilRelic.PlayModeTests
             var status = RequireComponent(GameStatusControllerTypeName);
             var messageText = GetPrivateField(status, "messageText") as Text;
             var saveServiceType = fixtureSaveServiceType;
-            var originalSavePath = GetPrivateStaticField(saveServiceType, "savePathOverride");
+            var originalFileOperations = GetPrivateStaticField(saveServiceType, "fileOperations");
             var stateType = GetPrivateField(gameManager, "state").GetType();
             var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
 
             changeState.Invoke(gameManager, new[] { Enum.Parse(stateType, "Camp") });
             try
             {
-                var invalidSavePath = Path.Combine(Application.temporaryCachePath, Guid.NewGuid().ToString(), "toil_relic_save.json");
-                SetPrivateStaticField(saveServiceType, "savePathOverride", invalidSavePath);
+                UseFailingSaveOperations(saveServiceType);
                 LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
                 gameManager.GetType().GetMethod("Rest").Invoke(gameManager, null);
             }
             finally
             {
-                SetPrivateStaticField(saveServiceType, "savePathOverride", originalSavePath);
+                SetPrivateStaticField(saveServiceType, "fileOperations", originalFileOperations);
             }
             yield return null;
 
@@ -2727,7 +2726,7 @@ namespace ToilRelic.PlayModeTests
             var status = RequireComponent(GameStatusControllerTypeName);
             var messageText = GetPrivateField(status, "messageText") as Text;
             var saveServiceType = fixtureSaveServiceType;
-            var originalSavePath = GetPrivateStaticField(saveServiceType, "savePathOverride");
+            var originalFileOperations = GetPrivateStaticField(saveServiceType, "fileOperations");
             var stateType = GetPrivateField(gameManager, "state").GetType();
             var changeState = gameManager.GetType().GetMethod("ChangeState", BindingFlags.Instance | BindingFlags.NonPublic);
 
@@ -2736,8 +2735,7 @@ namespace ToilRelic.PlayModeTests
             Assert.That((bool)player.GetType().GetMethod("GrantEquipment").Invoke(player, new object[] { "reward-weapon" }), Is.True);
             try
             {
-                var invalidSavePath = Path.Combine(Application.temporaryCachePath, Guid.NewGuid().ToString(), "toil_relic_save.json");
-                SetPrivateStaticField(saveServiceType, "savePathOverride", invalidSavePath);
+                UseFailingSaveOperations(saveServiceType);
                 LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save write failed"));
                 var slotType = gameManager.GetType().Assembly.GetType("ToilRelic.Unity.Core.EquipmentSlot");
                 gameManager.GetType().GetMethod("EquipEquipment").Invoke(
@@ -2746,7 +2744,7 @@ namespace ToilRelic.PlayModeTests
             }
             finally
             {
-                SetPrivateStaticField(saveServiceType, "savePathOverride", originalSavePath);
+                SetPrivateStaticField(saveServiceType, "fileOperations", originalFileOperations);
             }
             yield return null;
 
@@ -3391,7 +3389,9 @@ namespace ToilRelic.PlayModeTests
 
             if (fixtureOverrideInstalled)
             {
+                SetPrivateStaticField(fixtureSaveServiceType, "fileOperations", previousFileOperations);
                 SetPrivateStaticField(fixtureSaveServiceType, "savePathOverride", previousSavePathOverride);
+                Assert.That(GetPrivateStaticField(fixtureSaveServiceType, "fileOperations"), Is.SameAs(previousFileOperations));
                 Assert.That(GetPrivateStaticField(fixtureSaveServiceType, "savePathOverride"), Is.EqualTo(previousSavePathOverride));
                 fixtureOverrideInstalled = false;
             }
@@ -3690,6 +3690,32 @@ namespace ToilRelic.PlayModeTests
             var field = type.GetField(name, BindingFlags.Static | BindingFlags.NonPublic);
             Assert.That(field, Is.Not.Null, $"Expected private static field '{name}' was not found on {type.FullName}.");
             return field.GetValue(null);
+        }
+
+        private static object CreateSaveFileOperations(
+            Type saveServiceType,
+            Action<string, string> checkpoint)
+        {
+            var field = saveServiceType.GetField(
+                "fileOperations",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, "SaveService.fileOperations must remain a private static test seam.");
+            var constructor = field.FieldType.GetConstructors(
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .Single(candidate => candidate.GetParameters().Length == 1);
+            return constructor.Invoke(new object[] { checkpoint });
+        }
+
+        private static void UseFailingSaveOperations(Type saveServiceType)
+        {
+            var operations = CreateSaveFileOperations(saveServiceType, (checkpoint, side) =>
+            {
+                if (checkpoint == "StageWrite" && side == "Before")
+                {
+                    throw new IOException("Injected production-action save failure.");
+                }
+            });
+            SetPrivateStaticField(saveServiceType, "fileOperations", operations);
         }
 
         private static void SetPrivateStaticField(Type type, string name, object value)
