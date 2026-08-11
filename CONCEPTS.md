@@ -16,7 +16,15 @@ Battle Phase is separate from Game State so presentation can wait for animation,
 
 ### Save Load Status
 
-The classification of the startup save-load attempt that governs whether progress can continue normally or must be replaced through New Game.
+The classification of the startup save-load attempt that distinguishes missing, normally loaded, automatically recovered, and unreadable progress.
+
+An automatically recovered load continues with a validated Last-Known-Good Save while making the possible loss of recent progress visible to the player.
+
+### Last-Known-Good Save
+
+The single rotating copy of the most recent prior live save that passed current validation and is eligible for automatic recovery.
+
+Staging and unreadable payloads are never Last-Known-Good Saves.
 
 ### Equipment Comparison Preview
 
