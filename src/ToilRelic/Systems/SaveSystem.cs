@@ -8,28 +8,88 @@ public sealed class SaveSystem
     public const int CurrentSchemaVersion = 1;
     private const string SaveFileName = "savegame.json";
     private readonly string _savePath;
+    private readonly string _stagePath;
+    private readonly string _lastKnownGoodPath;
+    private readonly string _quarantinePath;
+    private readonly string _recoveryMarkerPath;
+    private readonly SaveEnvelopeFileOperations _fileOperations;
     private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
 
     public SaveSystem(string? savePath = null)
+        : this(
+            savePath ?? Path.Combine(Directory.GetCurrentDirectory(), SaveFileName),
+            new SaveEnvelopeFileOperations())
     {
-        _savePath = savePath ?? Path.Combine(Directory.GetCurrentDirectory(), SaveFileName);
+    }
+
+    internal SaveSystem(string savePath, SaveEnvelopeFileOperations fileOperations)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(savePath);
+        _savePath = savePath;
+        _stagePath = savePath + ".stage";
+        _lastKnownGoodPath = savePath + ".lkg";
+        _quarantinePath = savePath + ".quarantine";
+        _recoveryMarkerPath = savePath + ".recovery-pending";
+        _fileOperations = fileOperations ?? throw new ArgumentNullException(nameof(fileOperations));
     }
 
     public PersistenceResult Save(Player player)
     {
+        ArgumentNullException.ThrowIfNull(player);
+
         try
         {
-            var directory = Path.GetDirectoryName(_savePath);
-            if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
-            var json = JsonSerializer.Serialize(player.ToSaveData(), _jsonOptions);
-            var tempPath = $"{_savePath}.tmp";
-            File.WriteAllText(tempPath, json);
-            File.Move(tempPath, _savePath, true);
+            EnsureSaveDirectory();
+            var candidateBytes = JsonSerializer.SerializeToUtf8Bytes(player.ToSaveData(), _jsonOptions);
+            _fileOperations.WriteDurableStage(_stagePath, candidateBytes, "StageWrite");
+
+            _fileOperations.ValidateStageCheckpoint(_stagePath, SaveEnvelopeMutationSide.Before);
+            var stagedCandidate = ValidateCandidate(_stagePath, "Stage");
+            if (stagedCandidate.State != CandidateState.Valid)
+            {
+                return PersistenceResult.Failure(CreateDiagnostic(
+                    "StageValidation",
+                    "Stage",
+                    nameof(InvalidDataException),
+                    _stagePath));
+            }
+
+            _fileOperations.ValidateStageCheckpoint(_stagePath, SaveEnvelopeMutationSide.After);
+            var liveCandidate = ValidateCandidate(_savePath, "Live");
+            switch (liveCandidate.State)
+            {
+                case CandidateState.Valid:
+                    _fileOperations.ReplaceLiveWithBackup(_stagePath, _savePath, _lastKnownGoodPath);
+                    break;
+                case CandidateState.Missing:
+                    _fileOperations.PromoteNewLive(_stagePath, _savePath);
+                    break;
+                default:
+                    return PersistenceResult.Failure(liveCandidate.Diagnostic ?? CreateDiagnostic(
+                        "ValidateLiveForSave",
+                        "Live",
+                        nameof(InvalidDataException),
+                        _savePath));
+            }
+
+            _fileOperations.DeleteRecoveryMarker(_recoveryMarkerPath);
             return PersistenceResult.Success();
+        }
+        catch (SaveEnvelopeInterruptionException)
+        {
+            throw;
+        }
+        catch (SaveEnvelopeOperationException ex)
+        {
+            return PersistenceResult.Failure(ex.ToDiagnostic());
         }
         catch (Exception ex)
         {
-            return PersistenceResult.Failure(ex.ToString());
+            return PersistenceResult.Failure(CreateDiagnostic(
+                "SaveEnvelope",
+                "Stage",
+                ex.GetType().Name,
+                _stagePath));
         }
     }
 
@@ -37,8 +97,128 @@ public sealed class SaveSystem
     {
         try
         {
-            var json = File.ReadAllText(_savePath);
-            using var document = JsonDocument.Parse(json);
+            var liveCandidate = ValidateCandidate(_savePath, "Live");
+            if (liveCandidate.State == CandidateState.Valid)
+            {
+                return LoadResult.Loaded(
+                    liveCandidate.Player!,
+                    recoveryNoticePending: _fileOperations.FileExists(_recoveryMarkerPath));
+            }
+
+            var lastKnownGoodCandidate = ValidateCandidate(_lastKnownGoodPath, "LastKnownGood");
+            if (lastKnownGoodCandidate.State == CandidateState.Valid)
+            {
+                return Recover(liveCandidate, lastKnownGoodCandidate);
+            }
+
+            if (liveCandidate.State == CandidateState.Missing &&
+                lastKnownGoodCandidate.State == CandidateState.Missing)
+            {
+                return LoadResult.Missing();
+            }
+
+            return LoadResult.Unreadable(
+                liveCandidate.State == CandidateState.Invalid
+                    ? liveCandidate.Diagnostic
+                    : lastKnownGoodCandidate.Diagnostic);
+        }
+        catch (SaveEnvelopeInterruptionException)
+        {
+            throw;
+        }
+        catch (SaveEnvelopeOperationException ex)
+        {
+            return LoadResult.Unreadable(ex.ToDiagnostic());
+        }
+        catch (Exception ex)
+        {
+            return LoadResult.Unreadable(CreateDiagnostic(
+                "LoadEnvelope",
+                "Live",
+                ex.GetType().Name,
+                _savePath));
+        }
+    }
+
+    public PersistenceResult Delete()
+    {
+        try
+        {
+            File.Delete(_savePath);
+            return PersistenceResult.Success();
+        }
+        catch (Exception ex)
+        {
+            return PersistenceResult.Failure(CreateDiagnostic(
+                "DeleteLive",
+                "Live",
+                ex.GetType().Name,
+                _savePath));
+        }
+    }
+
+    private LoadResult Recover(CandidateValidation liveCandidate, CandidateValidation lastKnownGoodCandidate)
+    {
+        _fileOperations.WriteDurableStage(
+            _stagePath,
+            lastKnownGoodCandidate.Bytes!,
+            "WriteRecoveryStage");
+
+        var recoveryStage = ValidateCandidate(_stagePath, "Stage");
+        if (recoveryStage.State != CandidateState.Valid ||
+            !recoveryStage.Bytes!.AsSpan().SequenceEqual(lastKnownGoodCandidate.Bytes))
+        {
+            return LoadResult.Unreadable(CreateDiagnostic(
+                "ValidateRecoveryStage",
+                "Stage",
+                nameof(InvalidDataException),
+                _stagePath));
+        }
+
+        _fileOperations.CreateDurableRecoveryMarker(_recoveryMarkerPath);
+        if (liveCandidate.State == CandidateState.Invalid)
+        {
+            _fileOperations.DeletePriorQuarantine(_quarantinePath);
+            _fileOperations.MoveDamagedLive(_savePath, _quarantinePath);
+        }
+
+        _fileOperations.PromoteRecovery(_stagePath, _savePath);
+        return LoadResult.Recovered(recoveryStage.Player!);
+    }
+
+    private CandidateValidation ValidateCandidate(string path, string artifactRole)
+    {
+        if (!_fileOperations.FileExists(path))
+        {
+            if (_fileOperations.DirectoryExists(path))
+            {
+                return CandidateValidation.Invalid(CreateDiagnostic(
+                    "ValidateCandidate",
+                    artifactRole,
+                    nameof(IOException),
+                    path));
+            }
+
+            return CandidateValidation.Missing();
+        }
+
+        byte[] bytes;
+        try
+        {
+            bytes = _fileOperations.ReadAllBytes(path);
+        }
+        catch (Exception ex)
+        {
+            return CandidateValidation.Invalid(CreateDiagnostic(
+                "ReadCandidate",
+                artifactRole,
+                ex.GetType().Name,
+                path));
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(bytes);
             var root = document.RootElement;
             var isCurrent = root.TryGetProperty(nameof(PlayerSaveData.SchemaVersion), out var versionElement);
             if (isCurrent)
@@ -48,37 +228,72 @@ public sealed class SaveSystem
                     version != CurrentSchemaVersion ||
                     !HasCurrentSaveShape(root))
                 {
-                    return LoadResult.Unreadable("The save file does not match the current player save format.");
+                    return CandidateValidation.Invalid(CreateDiagnostic(
+                        "ValidateCandidate",
+                        artifactRole,
+                        nameof(InvalidDataException),
+                        path));
                 }
             }
             else if (root.TryGetProperty(nameof(PlayerSaveData.RelicProject), out _) || !HasCoreSaveShape(root))
             {
-                return LoadResult.Unreadable("The save file does not match the supported legacy player save format.");
+                return CandidateValidation.Invalid(CreateDiagnostic(
+                    "ValidateCandidate",
+                    artifactRole,
+                    nameof(InvalidDataException),
+                    path));
             }
 
-            var saveData = root.Deserialize<PlayerSaveData>(_jsonOptions)!;
-            if (!HasValidCoreValues(saveData) ||
+            var saveData = root.Deserialize<PlayerSaveData>(_jsonOptions);
+            if (saveData is null ||
+                !HasValidCoreValues(saveData) ||
                 isCurrent && !HasValidCurrentState(saveData) ||
                 !isCurrent && ContainsRelicState(saveData))
             {
-                return LoadResult.Unreadable("The save file contains unsupported player values.");
+                return CandidateValidation.Invalid(CreateDiagnostic(
+                    "ValidateCandidate",
+                    artifactRole,
+                    nameof(InvalidDataException),
+                    path));
             }
 
-            return LoadResult.Loaded(Player.FromSaveData(saveData));
+            return CandidateValidation.Valid(Player.FromSaveData(saveData), bytes);
         }
-        catch (FileNotFoundException)
+        catch (Exception ex) when (ex is not SaveEnvelopeInterruptionException)
         {
-            return LoadResult.Missing();
+            return CandidateValidation.Invalid(CreateDiagnostic(
+                "ValidateCandidate",
+                artifactRole,
+                ex.GetType().Name,
+                path));
         }
-        catch (DirectoryNotFoundException)
+    }
+
+    private void EnsureSaveDirectory()
+    {
+        var directory = Path.GetDirectoryName(_savePath);
+        if (string.IsNullOrWhiteSpace(directory)) return;
+
+        try
         {
-            return LoadResult.Missing();
+            Directory.CreateDirectory(directory);
         }
         catch (Exception ex)
         {
-            return LoadResult.Unreadable(ex.ToString());
+            throw new SaveEnvelopeOperationException(
+                "PrepareSaveDirectory",
+                "Stage",
+                ex.GetType().Name,
+                Path.GetFileName(_stagePath));
         }
     }
+
+    private static string CreateDiagnostic(
+        string operationRole,
+        string artifactRole,
+        string exceptionType,
+        string path) =>
+        $"operation={operationRole}; artifact={artifactRole}; exception={exceptionType}; file={Path.GetFileName(path)}";
 
     private static bool HasCurrentSaveShape(JsonElement root) =>
         HasCoreSaveShape(root) &&
@@ -151,7 +366,10 @@ public sealed class SaveSystem
         }
 
         if (!equippedSlots.Contains(EquipmentSlot.PrimaryWeapon)) return false;
-        return RelicProjectState.HasValidSaveState(saveData.RelicProject, saveData.OwnedEquipmentIds, saveData.EquippedEquipment);
+        return RelicProjectState.HasValidSaveState(
+            saveData.RelicProject,
+            saveData.OwnedEquipmentIds,
+            saveData.EquippedEquipment);
     }
 
     private static bool ContainsRelicState(PlayerSaveData saveData) =>
@@ -159,16 +377,23 @@ public sealed class SaveSystem
         saveData.EquippedEquipment?.Any(entry =>
             string.Equals(entry.EquipmentId, EquipmentCatalog.ToilboundRelicId, StringComparison.Ordinal)) == true;
 
-    public PersistenceResult Delete()
+    private enum CandidateState
     {
-        try
-        {
-            File.Delete(_savePath);
-            return PersistenceResult.Success();
-        }
-        catch (Exception ex)
-        {
-            return PersistenceResult.Failure(ex.ToString());
-        }
+        Missing,
+        Valid,
+        Invalid
+    }
+
+    private sealed record CandidateValidation(
+        CandidateState State,
+        Player? Player,
+        byte[]? Bytes,
+        string? Diagnostic)
+    {
+        public static CandidateValidation Missing() => new(CandidateState.Missing, null, null, null);
+        public static CandidateValidation Valid(Player player, byte[] bytes) =>
+            new(CandidateState.Valid, player, bytes, null);
+        public static CandidateValidation Invalid(string diagnostic) =>
+            new(CandidateState.Invalid, null, null, diagnostic);
     }
 }

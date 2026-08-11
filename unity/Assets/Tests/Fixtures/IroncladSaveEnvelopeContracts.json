@@ -180,7 +180,8 @@
       "expectedAuthoritativeLabel": "valid-lkg",
       "expectedSurvivingArtifacts": [
         { "role": "Live", "payloadLabel": "corrupt-live" },
-        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" }
+        { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Stage", "payloadLabel": "valid-lkg" }
       ],
       "expectedImmediateRecoveryNoticePending": false,
       "expectedNextRecoveryNoticePending": true,
@@ -201,6 +202,7 @@
       "expectedSurvivingArtifacts": [
         { "role": "Live", "payloadLabel": "corrupt-live" },
         { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Stage", "payloadLabel": "valid-lkg" },
         { "role": "RecoveryMarker", "payloadLabel": "marker" }
       ],
       "expectedImmediateRecoveryNoticePending": false,
@@ -222,6 +224,7 @@
       "expectedSurvivingArtifacts": [
         { "role": "Live", "payloadLabel": "corrupt-live" },
         { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Stage", "payloadLabel": "valid-lkg" },
         { "role": "RecoveryMarker", "payloadLabel": "marker" }
       ],
       "expectedImmediateRecoveryNoticePending": false,
@@ -243,6 +246,7 @@
       "expectedSurvivingArtifacts": [
         { "role": "Live", "payloadLabel": "corrupt-live" },
         { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Stage", "payloadLabel": "valid-lkg" },
         { "role": "RecoveryMarker", "payloadLabel": "marker" }
       ],
       "expectedImmediateRecoveryNoticePending": false,
@@ -265,6 +269,7 @@
       "expectedSurvivingArtifacts": [
         { "role": "Live", "payloadLabel": "corrupt-live" },
         { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Stage", "payloadLabel": "valid-lkg" },
         { "role": "Quarantine", "payloadLabel": "prior-quarantine" },
         { "role": "RecoveryMarker", "payloadLabel": "marker" }
       ],
@@ -288,6 +293,7 @@
       "expectedSurvivingArtifacts": [
         { "role": "Live", "payloadLabel": "corrupt-live" },
         { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Stage", "payloadLabel": "valid-lkg" },
         { "role": "RecoveryMarker", "payloadLabel": "marker" }
       ],
       "expectedImmediateRecoveryNoticePending": false,
@@ -309,6 +315,7 @@
       "expectedSurvivingArtifacts": [
         { "role": "Live", "payloadLabel": "corrupt-live" },
         { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Stage", "payloadLabel": "valid-lkg" },
         { "role": "RecoveryMarker", "payloadLabel": "marker" }
       ],
       "expectedImmediateRecoveryNoticePending": false,
@@ -329,6 +336,7 @@
       "expectedAuthoritativeLabel": "valid-lkg",
       "expectedSurvivingArtifacts": [
         { "role": "LastKnownGood", "payloadLabel": "valid-lkg" },
+        { "role": "Stage", "payloadLabel": "valid-lkg" },
         { "role": "Quarantine", "payloadLabel": "corrupt-live" },
         { "role": "RecoveryMarker", "payloadLabel": "marker" }
       ],
