@@ -20,6 +20,7 @@ internal enum SaveEnvelopeCheckpoint
     DeleteRecoveryMarker,
     ClassifyLiveAuthority,
     ClassifyLastKnownGoodAuthority,
+    InspectArtifactForDeletion,
     DeleteStage,
     DeleteQuarantine,
     DeleteLastKnownGood,
@@ -244,25 +245,8 @@ internal sealed class SaveEnvelopeFileOperations
 
     public void DeletePriorQuarantine(string quarantinePath)
     {
-        if (!File.Exists(quarantinePath) && !Directory.Exists(quarantinePath)) return;
-        InvokeCheckpoint(
+        DeleteEnvelopeArtifact(
             SaveEnvelopeCheckpoint.DeletePriorQuarantine,
-            SaveEnvelopeMutationSide.Before,
-            "DeletePriorQuarantine",
-            "Quarantine",
-            quarantinePath);
-        try
-        {
-            File.Delete(quarantinePath);
-        }
-        catch (Exception ex)
-        {
-            throw Wrap("DeletePriorQuarantine", "Quarantine", quarantinePath, ex);
-        }
-
-        InvokeCheckpoint(
-            SaveEnvelopeCheckpoint.DeletePriorQuarantine,
-            SaveEnvelopeMutationSide.After,
             "DeletePriorQuarantine",
             "Quarantine",
             quarantinePath);
@@ -372,7 +356,7 @@ internal sealed class SaveEnvelopeFileOperations
         string artifactRole,
         string path)
     {
-        if (!File.Exists(path) && !Directory.Exists(path)) return;
+        if (!PathExistsForDeletion(operationRole, artifactRole, path)) return;
         InvokeCheckpoint(
             checkpoint,
             SaveEnvelopeMutationSide.Before,
@@ -394,6 +378,33 @@ internal sealed class SaveEnvelopeFileOperations
             operationRole,
             artifactRole,
             path);
+    }
+
+    private bool PathExistsForDeletion(string operationRole, string artifactRole, string path)
+    {
+        InvokeCheckpoint(
+            SaveEnvelopeCheckpoint.InspectArtifactForDeletion,
+            SaveEnvelopeMutationSide.Before,
+            operationRole,
+            artifactRole,
+            path);
+        try
+        {
+            _ = File.GetAttributes(path);
+            return true;
+        }
+        catch (FileNotFoundException)
+        {
+            return false;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            throw Wrap(operationRole, artifactRole, path, ex);
+        }
     }
 
     private void InvokeCheckpoint(

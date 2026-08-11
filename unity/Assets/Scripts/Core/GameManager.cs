@@ -166,6 +166,8 @@ namespace ToilRelic.Unity.Core
             if (!deleteResult.Succeeded)
             {
                 Debug.LogError($"Save delete failed. {deleteResult.Diagnostic}");
+                ReconcileSaveAvailabilityAfterDeleteFailure();
+                ChangeState(GameState.Title);
                 GameEvents.RaiseBattleLog(GetTitleSaveMessage());
                 return;
             }
@@ -180,6 +182,23 @@ namespace ToilRelic.Unity.Core
             player.InitDefaults();
             saveLoadStatus = SaveLoadStatus.Missing;
             EnterCamp("A new expedition begins. Hunt, craft, and survive.");
+        }
+
+        private void ReconcileSaveAvailabilityAfterDeleteFailure()
+        {
+            var loadResult = SaveService.Load();
+            saveLoadStatus = loadResult.Status;
+            if (loadResult.Status is SaveLoadStatus.Loaded or SaveLoadStatus.Recovered)
+            {
+                player = loadResult.Player;
+                player.InitDefaults();
+            }
+
+            if (!recoveryNoticePending && loadResult.RecoveryNoticePending)
+            {
+                recoveryNoticePending = true;
+                GameEvents.RaiseRecoveryNoticeChanged(true);
+            }
         }
 
         public void StartHunt()

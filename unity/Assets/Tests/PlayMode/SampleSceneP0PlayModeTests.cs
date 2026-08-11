@@ -1738,8 +1738,15 @@ namespace ToilRelic.PlayModeTests
 
             Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Title"));
             Assert.That(GetPrivateField(gameManager, "player"), Is.SameAs(originalPlayer));
+            Assert.That((bool)gameManager.GetType().GetProperty("HasSavedGame").GetValue(gameManager), Is.False);
+            Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(),
+                Is.EqualTo("Missing"));
             Assert.That((bool)gameManager.GetType().GetProperty("RecoveryNoticePending").GetValue(gameManager), Is.True);
             Assert.That(recoveryNotice.Values, Is.Empty);
+            var continueButton = RequireRectTransform("ContinueButton").GetComponent<Button>();
+            Assert.That(continueButton.interactable, Is.False);
+            gameManager.GetType().GetMethod("ContinueGame").Invoke(gameManager, null);
+            Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Title"));
             foreach (var suffix in new[] { "", ".lkg", ".stage", ".quarantine" })
             {
                 Assert.That(File.Exists(fixtureSavePath + suffix), Is.False, suffix);

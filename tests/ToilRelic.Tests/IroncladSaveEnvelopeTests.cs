@@ -78,12 +78,12 @@ public sealed class IroncladSaveEnvelopeTests
 
     public static IEnumerable<object[]> SharedSaveAndRecoveryCases() =>
         IroncladSaveEnvelopeContractFixture.Load().Cases
-            .Take(17)
+            .Where(testCase => testCase.Operation is "Save" or "Load")
             .Select(testCase => new object[] { testCase.Id });
 
     public static IEnumerable<object[]> SharedNewGameCases() =>
         IroncladSaveEnvelopeContractFixture.Load().Cases
-            .Skip(17)
+            .Where(testCase => testCase.Operation == "NewGame")
             .Select(testCase => new object[] { testCase.Id });
 
     [Theory]
@@ -477,6 +477,64 @@ public sealed class IroncladSaveEnvelopeTests
         Assert.Equal(
             checkpoint == SaveEnvelopeCheckpoint.PromoteRecovery,
             nextLoad.RecoveryNoticePending);
+    }
+
+    [Theory]
+    [InlineData("Before")]
+    [InlineData("After")]
+    public void Save_MissingLivePromotionFailure_IsSettledByFreshValidatingLoad(
+        string mutationSideName)
+    {
+        using var fixture = new EnvelopeFixture();
+        var mutationSide = Enum.Parse<SaveEnvelopeMutationSide>(mutationSideName);
+        var operations = new SaveEnvelopeFileOperations((checkpoint, side) =>
+        {
+            if (checkpoint == SaveEnvelopeCheckpoint.PromoteLive && side == mutationSide)
+            {
+                throw new IOException("missing-live promotion fault");
+            }
+        });
+        var faulted = new SaveSystem(fixture.LivePath, operations);
+
+        var result = faulted.Save(fixture.Player("Current B"));
+
+        Assert.False(result.Succeeded);
+        Assert.False(File.Exists(fixture.LastKnownGoodPath));
+        if (mutationSide == SaveEnvelopeMutationSide.Before)
+        {
+            Assert.False(File.Exists(fixture.LivePath));
+            Assert.True(File.Exists(fixture.StagePath));
+            Assert.Equal(LoadStatus.Missing, fixture.FreshSystem().Load().Status);
+        }
+        else
+        {
+            Assert.False(File.Exists(fixture.StagePath));
+            var nextLoad = fixture.FreshSystem().Load();
+            Assert.Equal(LoadStatus.Loaded, nextLoad.Status);
+            Assert.Equal("Current B", nextLoad.Player!.Name);
+        }
+    }
+
+    [Fact]
+    public void Delete_WhenArtifactMetadataProbeFails_DoesNotClaimSuccess()
+    {
+        using var fixture = new EnvelopeFixture();
+        File.WriteAllBytes(fixture.StagePath, fixture.PayloadBytes("partial-candidate"));
+        var operations = new SaveEnvelopeFileOperations((checkpoint, side) =>
+        {
+            if (checkpoint == SaveEnvelopeCheckpoint.InspectArtifactForDeletion &&
+                side == SaveEnvelopeMutationSide.Before)
+            {
+                throw new IOException("metadata probe fault");
+            }
+        });
+        var system = new SaveSystem(fixture.LivePath, operations);
+
+        var result = system.Delete();
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("operation=DeleteStage", result.Diagnostic);
+        Assert.True(File.Exists(fixture.StagePath));
     }
 
     private static bool DetermineImmediateNoticeState(

@@ -85,14 +85,14 @@ namespace ToilRelic.PlayModeTests
         public static IEnumerable SharedSaveAndRecoveryCases()
         {
             return IroncladSaveEnvelopeContractFixture.Load().cases
-                .Take(17)
+                .Where(testCase => testCase.operation == "Save" || testCase.operation == "Load")
                 .Select(testCase => new TestCaseData(testCase.id).SetName($"SharedCase_{testCase.id}"));
         }
 
         public static IEnumerable SharedNewGameCases()
         {
             return IroncladSaveEnvelopeContractFixture.Load().cases
-                .Skip(17)
+                .Where(testCase => testCase.operation == "NewGame")
                 .Select(testCase => new TestCaseData(testCase.id).SetName($"SharedNewGameCase_{testCase.id}"));
         }
 
@@ -520,6 +520,59 @@ namespace ToilRelic.PlayModeTests
             Assert.That(
                 Read(nextLoad, "RecoveryNoticePending"),
                 Is.EqualTo(checkpointName == "PromoteRecovery"));
+        }
+
+        [TestCase("Before")]
+        [TestCase("After")]
+        [Category(CategoryName)]
+        public void Save_MissingLivePromotionFailure_IsSettledByFreshValidatingLoad(string mutationSide)
+        {
+            operationsField.SetValue(null, NewOperations((checkpoint, side) =>
+            {
+                if (checkpoint == "PromoteLive" && side == mutationSide)
+                {
+                    throw new IOException("missing-live promotion fault");
+                }
+            }));
+
+            var result = InvokeStatic("Save", Player("current-b"));
+
+            Assert.That(Read(result, "Succeeded"), Is.False);
+            Assert.That(File.Exists(LastKnownGoodPath), Is.False);
+            operationsField.SetValue(null, NewOperations(null));
+            if (mutationSide == "Before")
+            {
+                Assert.That(File.Exists(livePath), Is.False);
+                Assert.That(File.Exists(StagePath), Is.True);
+                Assert.That(Read(InvokeStatic("Load"), "Status").ToString(), Is.EqualTo("Missing"));
+            }
+            else
+            {
+                Assert.That(File.Exists(StagePath), Is.False);
+                var nextLoad = InvokeStatic("Load");
+                Assert.That(Read(nextLoad, "Status").ToString(), Is.EqualTo("Loaded"));
+                Assert.That(PlayerTreasure(Read(nextLoad, "Player")), Is.EqualTo(PayloadTreasure("current-b")));
+            }
+        }
+
+        [Test]
+        [Category(CategoryName)]
+        public void Delete_WhenArtifactMetadataProbeFails_DoesNotClaimSuccess()
+        {
+            File.WriteAllBytes(StagePath, PayloadBytes("partial-candidate"));
+            operationsField.SetValue(null, NewOperations((checkpoint, side) =>
+            {
+                if (checkpoint == "InspectArtifactForDeletion" && side == "Before")
+                {
+                    throw new IOException("metadata probe fault");
+                }
+            }));
+
+            var result = InvokeStatic("Delete");
+
+            Assert.That(Read(result, "Succeeded"), Is.False);
+            Assert.That(Read(result, "Diagnostic") as string, Does.Contain("operation=DeleteStage"));
+            Assert.That(File.Exists(StagePath), Is.True);
         }
 
         [Test]

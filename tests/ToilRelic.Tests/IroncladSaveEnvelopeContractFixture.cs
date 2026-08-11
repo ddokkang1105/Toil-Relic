@@ -102,6 +102,53 @@ internal sealed class IroncladSaveEnvelopeFixture
         "DeleteLive"
     ];
 
+    private static readonly string[] RequiredCaseIds =
+    [
+        "01-save-stage-write-before",
+        "02-save-stage-validation-before",
+        "03-save-lkg-preservation-before",
+        "04-save-live-promotion-before",
+        "05-save-live-promotion-after",
+        "06-recovery-promotion-before",
+        "07-recovery-promotion-after",
+        "08-recovery-marker-create-before",
+        "09-recovery-marker-create-after",
+        "10-recovery-marker-flush-before",
+        "11-recovery-marker-flush-after",
+        "12-recovery-prior-quarantine-delete-before",
+        "13-recovery-prior-quarantine-delete-after",
+        "14-recovery-damaged-live-move-before",
+        "15-recovery-damaged-live-move-after",
+        "16-progress-marker-delete-before",
+        "17-progress-marker-delete-after",
+        "18-newgame-classify-live-before",
+        "19-newgame-classify-lkg-before",
+        "20-newgame-delete-stage-before",
+        "21-newgame-delete-stage-after",
+        "22-newgame-delete-quarantine-before",
+        "23-newgame-delete-quarantine-after",
+        "24-newgame-delete-nonauthoritative-lkg-before",
+        "25-newgame-delete-nonauthoritative-lkg-after",
+        "26-newgame-delete-invalid-live-before",
+        "27-newgame-delete-invalid-live-after",
+        "28-newgame-delete-authoritative-live-before",
+        "29-newgame-delete-authoritative-live-after",
+        "30-newgame-delete-authoritative-lkg-before",
+        "31-newgame-delete-authoritative-lkg-after",
+        "32-newgame-delete-marker-before",
+        "33-newgame-delete-marker-after"
+    ];
+
+    private static readonly string[] RequiredOperations =
+    [
+        "Save", "Save", "Save", "Save", "Save",
+        "Load", "Load", "Load", "Load", "Load", "Load", "Load", "Load", "Load", "Load",
+        "Save", "Save",
+        "NewGame", "NewGame", "NewGame", "NewGame", "NewGame", "NewGame", "NewGame",
+        "NewGame", "NewGame", "NewGame", "NewGame", "NewGame", "NewGame", "NewGame",
+        "NewGame", "NewGame"
+    ];
+
     public int SchemaVersion { get; set; }
     public string[] ArtifactRoles { get; set; } = [];
     public string[] PayloadLabels { get; set; } = [];
@@ -123,10 +170,10 @@ internal sealed class IroncladSaveEnvelopeFixture
             "diagnosticContract.allowedFields must match the allowlist.");
         Require(DiagnosticContract.ForbiddenFields.SequenceEqual(RequiredForbiddenDiagnosticFields),
             "diagnosticContract.forbiddenFields must match the denylist.");
-        Require(Cases.Length > 0, "cases must not be empty.");
-        Require(OrderedCaseIds.All(IsPresent), "Every case requires an id.");
-        Require(OrderedCaseIds.Distinct(StringComparer.Ordinal).Count() == OrderedCaseIds.Count,
-            "Case ids must be unique.");
+        Require(OrderedCaseIds.SequenceEqual(RequiredCaseIds),
+            "cases must match the canonical ordered 33-case manifest.");
+        Require(Cases.Select(testCase => testCase.Operation).SequenceEqual(RequiredOperations),
+            "case operations must match the canonical Save/Load/NewGame partition.");
         Require(RequiredCheckpoints.All(required => Cases.Any(testCase => testCase.Checkpoint == required)),
             "cases must cover every required save-envelope checkpoint.");
 
@@ -258,6 +305,16 @@ public sealed class IroncladSaveEnvelopeContractTests
         forbiddenDiagnostic["cases"]![0]!["expectedDiagnostic"]!["rawBytes"] = "secret";
         Assert.Throws<InvalidDataException>(() =>
             IroncladSaveEnvelopeContractFixture.Parse(forbiddenDiagnostic.ToJsonString()));
+
+        var missingCase = root.DeepClone().AsObject();
+        missingCase["cases"]!.AsArray().RemoveAt(0);
+        Assert.Throws<InvalidDataException>(() =>
+            IroncladSaveEnvelopeContractFixture.Parse(missingCase.ToJsonString()));
+
+        var wrongOperation = root.DeepClone().AsObject();
+        wrongOperation["cases"]![0]!["operation"] = "Load";
+        Assert.Throws<InvalidDataException>(() =>
+            IroncladSaveEnvelopeContractFixture.Parse(wrongOperation.ToJsonString()));
     }
 
     [Fact]

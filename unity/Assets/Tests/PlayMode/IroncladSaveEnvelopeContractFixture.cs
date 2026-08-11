@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -22,17 +23,7 @@ namespace ToilRelic.PlayModeTests
 
         public static IroncladSaveEnvelopeFixture Parse(string json)
         {
-            var forbiddenDiagnosticProperties = new[]
-            {
-                "\"rawBytes\"",
-                "\"playerFields\"",
-                "\"absoluteRoot\"",
-                "\"exceptionMessage\""
-            };
-            if (forbiddenDiagnosticProperties.Any(property => json.Contains(property)))
-            {
-                throw new InvalidDataException("expectedDiagnostic contains a non-allowlisted field.");
-            }
+            RejectUnexpectedDiagnosticFields(json);
 
             var fixture = JsonUtility.FromJson<IroncladSaveEnvelopeFixture>(json);
             if (fixture == null)
@@ -42,6 +33,41 @@ namespace ToilRelic.PlayModeTests
 
             fixture.Validate();
             return fixture;
+        }
+
+        private static void RejectUnexpectedDiagnosticFields(string json)
+        {
+            var allowed = new HashSet<string>(StringComparer.Ordinal)
+            {
+                "operationRole",
+                "artifactRole",
+                "exceptionType",
+                "relativeFilename"
+            };
+            var diagnosticKeyCount = Regex.Matches(json, "\"expectedDiagnostic\"\\s*:").Count;
+            var diagnosticObjects = Regex.Matches(
+                json,
+                "\"expectedDiagnostic\"\\s*:\\s*\\{(?<body>(?:\"(?:\\\\.|[^\"\\\\])*\"|[^{}])*)\\}",
+                RegexOptions.Singleline);
+            var nullDiagnosticCount = Regex.Matches(
+                json,
+                "\"expectedDiagnostic\"\\s*:\\s*null").Count;
+            if (diagnosticObjects.Count + nullDiagnosticCount != diagnosticKeyCount)
+            {
+                throw new InvalidDataException("expectedDiagnostic must be a flat JSON object.");
+            }
+
+            foreach (Match diagnosticObject in diagnosticObjects)
+            {
+                var properties = Regex.Matches(
+                    diagnosticObject.Groups["body"].Value,
+                    "\"(?<name>(?:\\\\.|[^\"\\\\])*)\"\\s*:");
+                if (properties.Cast<Match>().Any(property =>
+                        !allowed.Contains(property.Groups["name"].Value)))
+                {
+                    throw new InvalidDataException("expectedDiagnostic contains a non-allowlisted field.");
+                }
+            }
         }
     }
 
@@ -95,6 +121,53 @@ namespace ToilRelic.PlayModeTests
             "DeleteLive"
         };
 
+        private static readonly string[] RequiredCaseIds =
+        {
+            "01-save-stage-write-before",
+            "02-save-stage-validation-before",
+            "03-save-lkg-preservation-before",
+            "04-save-live-promotion-before",
+            "05-save-live-promotion-after",
+            "06-recovery-promotion-before",
+            "07-recovery-promotion-after",
+            "08-recovery-marker-create-before",
+            "09-recovery-marker-create-after",
+            "10-recovery-marker-flush-before",
+            "11-recovery-marker-flush-after",
+            "12-recovery-prior-quarantine-delete-before",
+            "13-recovery-prior-quarantine-delete-after",
+            "14-recovery-damaged-live-move-before",
+            "15-recovery-damaged-live-move-after",
+            "16-progress-marker-delete-before",
+            "17-progress-marker-delete-after",
+            "18-newgame-classify-live-before",
+            "19-newgame-classify-lkg-before",
+            "20-newgame-delete-stage-before",
+            "21-newgame-delete-stage-after",
+            "22-newgame-delete-quarantine-before",
+            "23-newgame-delete-quarantine-after",
+            "24-newgame-delete-nonauthoritative-lkg-before",
+            "25-newgame-delete-nonauthoritative-lkg-after",
+            "26-newgame-delete-invalid-live-before",
+            "27-newgame-delete-invalid-live-after",
+            "28-newgame-delete-authoritative-live-before",
+            "29-newgame-delete-authoritative-live-after",
+            "30-newgame-delete-authoritative-lkg-before",
+            "31-newgame-delete-authoritative-lkg-after",
+            "32-newgame-delete-marker-before",
+            "33-newgame-delete-marker-after"
+        };
+
+        private static readonly string[] RequiredOperations =
+        {
+            "Save", "Save", "Save", "Save", "Save",
+            "Load", "Load", "Load", "Load", "Load", "Load", "Load", "Load", "Load", "Load",
+            "Save", "Save",
+            "NewGame", "NewGame", "NewGame", "NewGame", "NewGame", "NewGame", "NewGame",
+            "NewGame", "NewGame", "NewGame", "NewGame", "NewGame", "NewGame", "NewGame",
+            "NewGame", "NewGame"
+        };
+
         public int schemaVersion;
         public string[] artifactRoles;
         public string[] payloadLabels;
@@ -118,10 +191,10 @@ namespace ToilRelic.PlayModeTests
                 "diagnosticContract.allowedFields must match the allowlist.");
             Require((diagnosticContract.forbiddenFields ?? Array.Empty<string>()).SequenceEqual(RequiredForbiddenDiagnosticFields),
                 "diagnosticContract.forbiddenFields must match the denylist.");
-            Require(cases != null && cases.Length > 0, "cases must not be empty.");
-            Require(OrderedCaseIds.All(IsPresent), "Every case requires an id.");
-            Require(OrderedCaseIds.Distinct(StringComparer.Ordinal).Count() == OrderedCaseIds.Count,
-                "Case ids must be unique.");
+            Require(OrderedCaseIds.SequenceEqual(RequiredCaseIds),
+                "cases must match the canonical ordered 33-case manifest.");
+            Require(cases.Select(testCase => testCase.operation).SequenceEqual(RequiredOperations),
+                "case operations must match the canonical Save/Load/NewGame partition.");
             Require(RequiredCheckpoints.All(required => cases.Any(testCase => testCase.checkpoint == required)),
                 "cases must cover every required save-envelope checkpoint.");
 
@@ -270,6 +343,27 @@ namespace ToilRelic.PlayModeTests
                 IroncladSaveEnvelopeContractFixture.Parse(json.Replace(
                     "\"operationRole\": \"StageWrite\"",
                     "\"operationRole\": \"StageWrite\", \"rawBytes\": \"secret\"")));
+            Assert.Throws<InvalidDataException>(() =>
+                IroncladSaveEnvelopeContractFixture.Parse(json.Replace(
+                    "\"operationRole\": \"StageWrite\"",
+                    "\"operationRole\": \"StageWrite\", \"diagnosticCode\": \"E_WRITE\"")));
+
+            var normalizedJson = json.Replace("\r\n", "\n");
+            var firstCaseStart = normalizedJson.IndexOf(
+                "    {\n      \"id\": \"01-save-stage-write-before\"",
+                StringComparison.Ordinal);
+            var secondCaseStart = normalizedJson.IndexOf(
+                "    {\n      \"id\": \"02-save-stage-validation-before\"",
+                StringComparison.Ordinal);
+            Assert.That(firstCaseStart, Is.GreaterThanOrEqualTo(0));
+            Assert.That(secondCaseStart, Is.GreaterThan(firstCaseStart));
+            Assert.Throws<InvalidDataException>(() =>
+                IroncladSaveEnvelopeContractFixture.Parse(
+                    normalizedJson.Remove(firstCaseStart, secondCaseStart - firstCaseStart)));
+            Assert.Throws<InvalidDataException>(() =>
+                IroncladSaveEnvelopeContractFixture.Parse(json.Replace(
+                    "\"operation\": \"Save\"",
+                    "\"operation\": \"Load\"")));
         }
 
         [Test]

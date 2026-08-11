@@ -19,6 +19,7 @@ namespace ToilRelic.Unity.Save
         DeleteRecoveryMarker,
         ClassifyLiveAuthority,
         ClassifyLastKnownGoodAuthority,
+        InspectArtifactForDeletion,
         DeleteStage,
         DeleteQuarantine,
         DeleteLastKnownGood,
@@ -254,25 +255,8 @@ namespace ToilRelic.Unity.Save
 
         public void DeletePriorQuarantine(string quarantinePath)
         {
-            if (!File.Exists(quarantinePath) && !Directory.Exists(quarantinePath)) return;
-            InvokeCheckpoint(
+            DeleteEnvelopeArtifact(
                 SaveEnvelopeCheckpoint.DeletePriorQuarantine,
-                SaveEnvelopeMutationSide.Before,
-                "DeletePriorQuarantine",
-                "Quarantine",
-                quarantinePath);
-            try
-            {
-                File.Delete(quarantinePath);
-            }
-            catch (Exception exception)
-            {
-                throw Wrap("DeletePriorQuarantine", "Quarantine", quarantinePath, exception);
-            }
-
-            InvokeCheckpoint(
-                SaveEnvelopeCheckpoint.DeletePriorQuarantine,
-                SaveEnvelopeMutationSide.After,
                 "DeletePriorQuarantine",
                 "Quarantine",
                 quarantinePath);
@@ -387,7 +371,7 @@ namespace ToilRelic.Unity.Save
             string artifactRole,
             string path)
         {
-            if (!File.Exists(path) && !Directory.Exists(path)) return;
+            if (!PathExistsForDeletion(operationRole, artifactRole, path)) return;
             InvokeCheckpoint(
                 checkpointName,
                 SaveEnvelopeMutationSide.Before,
@@ -409,6 +393,33 @@ namespace ToilRelic.Unity.Save
                 operationRole,
                 artifactRole,
                 path);
+        }
+
+        private bool PathExistsForDeletion(string operationRole, string artifactRole, string path)
+        {
+            InvokeCheckpoint(
+                SaveEnvelopeCheckpoint.InspectArtifactForDeletion,
+                SaveEnvelopeMutationSide.Before,
+                operationRole,
+                artifactRole,
+                path);
+            try
+            {
+                File.GetAttributes(path);
+                return true;
+            }
+            catch (FileNotFoundException)
+            {
+                return false;
+            }
+            catch (DirectoryNotFoundException)
+            {
+                return false;
+            }
+            catch (Exception exception)
+            {
+                throw Wrap(operationRole, artifactRole, path, exception);
+            }
         }
 
         private void InvokeCheckpoint(
