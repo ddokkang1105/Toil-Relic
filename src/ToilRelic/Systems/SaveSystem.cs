@@ -167,12 +167,12 @@ public sealed class SaveSystem
                 return PersistenceResult.Failure(lastKnownGoodCandidate.Diagnostic!);
             }
 
-            DeleteEnvelopeArtifact(
+            _fileOperations.DeleteEnvelopeArtifact(
                 SaveEnvelopeCheckpoint.DeleteStage,
                 "DeleteStage",
                 "Stage",
                 _stagePath);
-            DeleteEnvelopeArtifact(
+            _fileOperations.DeleteEnvelopeArtifact(
                 SaveEnvelopeCheckpoint.DeleteQuarantine,
                 "DeleteQuarantine",
                 "Quarantine",
@@ -180,12 +180,12 @@ public sealed class SaveSystem
 
             if (liveCandidate.State == CandidateState.Valid)
             {
-                DeleteEnvelopeArtifact(
+                _fileOperations.DeleteEnvelopeArtifact(
                     SaveEnvelopeCheckpoint.DeleteLastKnownGood,
                     "DeleteLastKnownGood",
                     "LastKnownGood",
                     _lastKnownGoodPath);
-                DeleteEnvelopeArtifact(
+                _fileOperations.DeleteEnvelopeArtifact(
                     SaveEnvelopeCheckpoint.DeleteLive,
                     "DeleteLive",
                     "Live",
@@ -193,12 +193,12 @@ public sealed class SaveSystem
             }
             else
             {
-                DeleteEnvelopeArtifact(
+                _fileOperations.DeleteEnvelopeArtifact(
                     SaveEnvelopeCheckpoint.DeleteLive,
                     "DeleteLive",
                     "Live",
                     _savePath);
-                DeleteEnvelopeArtifact(
+                _fileOperations.DeleteEnvelopeArtifact(
                     SaveEnvelopeCheckpoint.DeleteLastKnownGood,
                     "DeleteLastKnownGood",
                     "LastKnownGood",
@@ -245,17 +245,6 @@ public sealed class SaveSystem
 
         return candidate;
     }
-
-    private void DeleteEnvelopeArtifact(
-        SaveEnvelopeCheckpoint checkpoint,
-        string operationRole,
-        string artifactRole,
-        string path) =>
-        _fileOperations.DeleteEnvelopeArtifact(
-            checkpoint,
-            operationRole,
-            artifactRole,
-            path);
 
     private LoadResult Recover(CandidateValidation liveCandidate, CandidateValidation lastKnownGoodCandidate)
     {

@@ -3,6 +3,34 @@ using System.IO;
 
 namespace ToilRelic.Unity.Save
 {
+    internal enum SaveEnvelopeCheckpoint
+    {
+        StageWrite,
+        StageValidation,
+        PreserveLastKnownGood,
+        PromoteLive,
+        AfterLivePromotion,
+        PromoteRecovery,
+        AfterRecoveryPromotion,
+        CreateRecoveryMarker,
+        FlushRecoveryMarker,
+        DeletePriorQuarantine,
+        MoveDamagedLive,
+        DeleteRecoveryMarker,
+        ClassifyLiveAuthority,
+        ClassifyLastKnownGoodAuthority,
+        DeleteStage,
+        DeleteQuarantine,
+        DeleteLastKnownGood,
+        DeleteLive
+    }
+
+    internal enum SaveEnvelopeMutationSide
+    {
+        Before,
+        After
+    }
+
     internal sealed class SaveEnvelopeInterruptionException : IOException
     {
         public SaveEnvelopeInterruptionException(string checkpoint)
@@ -36,8 +64,6 @@ namespace ToilRelic.Unity.Save
 
     internal sealed class SaveEnvelopeFileOperations
     {
-        private const string Before = "Before";
-        private const string After = "After";
         private readonly Action<string, string> checkpoint;
 
         public SaveEnvelopeFileOperations(Action<string, string> checkpoint = null)
@@ -51,7 +77,12 @@ namespace ToilRelic.Unity.Save
 
         public void WriteDurableStage(string path, byte[] bytes, string operationRole)
         {
-            InvokeCheckpoint("StageWrite", Before, operationRole, "Stage", path);
+            InvokeCheckpoint(
+                SaveEnvelopeCheckpoint.StageWrite,
+                SaveEnvelopeMutationSide.Before,
+                operationRole,
+                "Stage",
+                path);
             try
             {
                 using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
@@ -71,21 +102,36 @@ namespace ToilRelic.Unity.Save
                 throw Wrap(operationRole, "Stage", path, exception);
             }
 
-            InvokeCheckpoint("StageWrite", After, operationRole, "Stage", path);
+            InvokeCheckpoint(
+                SaveEnvelopeCheckpoint.StageWrite,
+                SaveEnvelopeMutationSide.After,
+                operationRole,
+                "Stage",
+                path);
         }
 
-        public void ValidateStageCheckpoint(string path, string side) =>
-            InvokeCheckpoint("StageValidation", side, "StageValidation", "Stage", path);
+        public void ValidateStageCheckpoint(string path, SaveEnvelopeMutationSide side) =>
+            InvokeCheckpoint(
+                SaveEnvelopeCheckpoint.StageValidation,
+                side,
+                "StageValidation",
+                "Stage",
+                path);
 
         public void ReplaceLiveWithBackup(string stagePath, string livePath, string lastKnownGoodPath)
         {
             InvokeCheckpoint(
-                "PreserveLastKnownGood",
-                Before,
+                SaveEnvelopeCheckpoint.PreserveLastKnownGood,
+                SaveEnvelopeMutationSide.Before,
                 "PreserveLastKnownGood",
                 "LastKnownGood",
                 lastKnownGoodPath);
-            InvokeCheckpoint("PromoteLive", Before, "PromoteLive", "Live", livePath);
+            InvokeCheckpoint(
+                SaveEnvelopeCheckpoint.PromoteLive,
+                SaveEnvelopeMutationSide.Before,
+                "PromoteLive",
+                "Live",
+                livePath);
             try
             {
                 File.Replace(stagePath, livePath, lastKnownGoodPath);
@@ -95,13 +141,28 @@ namespace ToilRelic.Unity.Save
                 throw Wrap("PromoteLive", "Live", livePath, exception);
             }
 
-            InvokeCheckpoint("PromoteLive", After, "PromoteLive", "Live", livePath);
-            InvokeCheckpoint("AfterLivePromotion", After, "AfterLivePromotion", "Live", livePath);
+            InvokeCheckpoint(
+                SaveEnvelopeCheckpoint.PromoteLive,
+                SaveEnvelopeMutationSide.After,
+                "PromoteLive",
+                "Live",
+                livePath);
+            InvokeCheckpoint(
+                SaveEnvelopeCheckpoint.AfterLivePromotion,
+                SaveEnvelopeMutationSide.After,
+                "AfterLivePromotion",
+                "Live",
+                livePath);
         }
 
         public void PromoteNewLive(string stagePath, string livePath)
         {
-            InvokeCheckpoint("PromoteLive", Before, "PromoteLive", "Live", livePath);
+            InvokeCheckpoint(
+                SaveEnvelopeCheckpoint.PromoteLive,
+                SaveEnvelopeMutationSide.Before,
+                "PromoteLive",
+                "Live",
+                livePath);
             try
             {
                 File.Move(stagePath, livePath);
@@ -111,8 +172,18 @@ namespace ToilRelic.Unity.Save
                 throw Wrap("PromoteLive", "Live", livePath, exception);
             }
 
-            InvokeCheckpoint("PromoteLive", After, "PromoteLive", "Live", livePath);
-            InvokeCheckpoint("AfterLivePromotion", After, "AfterLivePromotion", "Live", livePath);
+            InvokeCheckpoint(
+                SaveEnvelopeCheckpoint.PromoteLive,
+                SaveEnvelopeMutationSide.After,
+                "PromoteLive",
+                "Live",
+                livePath);
+            InvokeCheckpoint(
+                SaveEnvelopeCheckpoint.AfterLivePromotion,
+                SaveEnvelopeMutationSide.After,
+                "AfterLivePromotion",
+                "Live",
+                livePath);
         }
 
         public void CreateDurableRecoveryMarker(string markerPath)
@@ -128,8 +199,8 @@ namespace ToilRelic.Unity.Save
             }
 
             InvokeCheckpoint(
-                "CreateRecoveryMarker",
-                Before,
+                SaveEnvelopeCheckpoint.CreateRecoveryMarker,
+                SaveEnvelopeMutationSide.Before,
                 "CreateRecoveryMarker",
                 "RecoveryMarker",
                 markerPath);
@@ -141,14 +212,14 @@ namespace ToilRelic.Unity.Save
                     FileAccess.Write,
                     FileShare.None);
                 InvokeCheckpoint(
-                    "CreateRecoveryMarker",
-                    After,
+                    SaveEnvelopeCheckpoint.CreateRecoveryMarker,
+                    SaveEnvelopeMutationSide.After,
                     "CreateRecoveryMarker",
                     "RecoveryMarker",
                     markerPath);
                 InvokeCheckpoint(
-                    "FlushRecoveryMarker",
-                    Before,
+                    SaveEnvelopeCheckpoint.FlushRecoveryMarker,
+                    SaveEnvelopeMutationSide.Before,
                     "FlushRecoveryMarker",
                     "RecoveryMarker",
                     markerPath);
@@ -161,8 +232,8 @@ namespace ToilRelic.Unity.Save
                     throw Wrap("FlushRecoveryMarker", "RecoveryMarker", markerPath, exception);
                 }
                 InvokeCheckpoint(
-                    "FlushRecoveryMarker",
-                    After,
+                    SaveEnvelopeCheckpoint.FlushRecoveryMarker,
+                    SaveEnvelopeMutationSide.After,
                     "FlushRecoveryMarker",
                     "RecoveryMarker",
                     markerPath);
@@ -185,8 +256,8 @@ namespace ToilRelic.Unity.Save
         {
             if (!File.Exists(quarantinePath) && !Directory.Exists(quarantinePath)) return;
             InvokeCheckpoint(
-                "DeletePriorQuarantine",
-                Before,
+                SaveEnvelopeCheckpoint.DeletePriorQuarantine,
+                SaveEnvelopeMutationSide.Before,
                 "DeletePriorQuarantine",
                 "Quarantine",
                 quarantinePath);
@@ -200,8 +271,8 @@ namespace ToilRelic.Unity.Save
             }
 
             InvokeCheckpoint(
-                "DeletePriorQuarantine",
-                After,
+                SaveEnvelopeCheckpoint.DeletePriorQuarantine,
+                SaveEnvelopeMutationSide.After,
                 "DeletePriorQuarantine",
                 "Quarantine",
                 quarantinePath);
@@ -209,7 +280,12 @@ namespace ToilRelic.Unity.Save
 
         public void MoveDamagedLive(string livePath, string quarantinePath)
         {
-            InvokeCheckpoint("MoveDamagedLive", Before, "MoveDamagedLive", "Live", livePath);
+            InvokeCheckpoint(
+                SaveEnvelopeCheckpoint.MoveDamagedLive,
+                SaveEnvelopeMutationSide.Before,
+                "MoveDamagedLive",
+                "Live",
+                livePath);
             try
             {
                 File.Move(livePath, quarantinePath);
@@ -219,12 +295,22 @@ namespace ToilRelic.Unity.Save
                 throw Wrap("MoveDamagedLive", "Live", livePath, exception);
             }
 
-            InvokeCheckpoint("MoveDamagedLive", After, "MoveDamagedLive", "Live", livePath);
+            InvokeCheckpoint(
+                SaveEnvelopeCheckpoint.MoveDamagedLive,
+                SaveEnvelopeMutationSide.After,
+                "MoveDamagedLive",
+                "Live",
+                livePath);
         }
 
         public void PromoteRecovery(string stagePath, string livePath)
         {
-            InvokeCheckpoint("PromoteRecovery", Before, "PromoteRecovery", "Live", livePath);
+            InvokeCheckpoint(
+                SaveEnvelopeCheckpoint.PromoteRecovery,
+                SaveEnvelopeMutationSide.Before,
+                "PromoteRecovery",
+                "Live",
+                livePath);
             try
             {
                 File.Move(stagePath, livePath);
@@ -234,10 +320,15 @@ namespace ToilRelic.Unity.Save
                 throw Wrap("PromoteRecovery", "Live", livePath, exception);
             }
 
-            InvokeCheckpoint("PromoteRecovery", After, "PromoteRecovery", "Live", livePath);
             InvokeCheckpoint(
-                "AfterRecoveryPromotion",
-                After,
+                SaveEnvelopeCheckpoint.PromoteRecovery,
+                SaveEnvelopeMutationSide.After,
+                "PromoteRecovery",
+                "Live",
+                livePath);
+            InvokeCheckpoint(
+                SaveEnvelopeCheckpoint.AfterRecoveryPromotion,
+                SaveEnvelopeMutationSide.After,
                 "AfterRecoveryPromotion",
                 "Live",
                 livePath);
@@ -246,20 +337,20 @@ namespace ToilRelic.Unity.Save
         public void DeleteRecoveryMarker(string markerPath)
         {
             DeleteEnvelopeArtifact(
-                "DeleteRecoveryMarker",
+                SaveEnvelopeCheckpoint.DeleteRecoveryMarker,
                 "DeleteRecoveryMarker",
                 "RecoveryMarker",
                 markerPath);
         }
 
         public void ClassifyAuthorityCheckpoint(
-            string checkpointName,
-            string mutationSide,
+            SaveEnvelopeCheckpoint checkpointName,
+            SaveEnvelopeMutationSide mutationSide,
             string artifactRole,
             string path)
         {
-            if (checkpointName != "ClassifyLiveAuthority" &&
-                checkpointName != "ClassifyLastKnownGoodAuthority")
+            if (checkpointName != SaveEnvelopeCheckpoint.ClassifyLiveAuthority &&
+                checkpointName != SaveEnvelopeCheckpoint.ClassifyLastKnownGoodAuthority)
             {
                 throw new ArgumentOutOfRangeException(nameof(checkpointName));
             }
@@ -291,7 +382,7 @@ namespace ToilRelic.Unity.Save
         }
 
         public void DeleteEnvelopeArtifact(
-            string checkpointName,
+            SaveEnvelopeCheckpoint checkpointName,
             string operationRole,
             string artifactRole,
             string path)
@@ -299,7 +390,7 @@ namespace ToilRelic.Unity.Save
             if (!File.Exists(path) && !Directory.Exists(path)) return;
             InvokeCheckpoint(
                 checkpointName,
-                Before,
+                SaveEnvelopeMutationSide.Before,
                 operationRole,
                 artifactRole,
                 path);
@@ -314,22 +405,22 @@ namespace ToilRelic.Unity.Save
 
             InvokeCheckpoint(
                 checkpointName,
-                After,
+                SaveEnvelopeMutationSide.After,
                 operationRole,
                 artifactRole,
                 path);
         }
 
         private void InvokeCheckpoint(
-            string checkpointName,
-            string mutationSide,
+            SaveEnvelopeCheckpoint checkpointName,
+            SaveEnvelopeMutationSide mutationSide,
             string operationRole,
             string artifactRole,
             string path)
         {
             try
             {
-                checkpoint?.Invoke(checkpointName, mutationSide);
+                checkpoint?.Invoke(checkpointName.ToString(), mutationSide.ToString());
             }
             catch (SaveEnvelopeInterruptionException)
             {

@@ -74,7 +74,7 @@ namespace ToilRelic.Unity.Save
                 var liveCandidate = ClassifyAuthorityCandidate(
                     SavePath,
                     "Live",
-                    "ClassifyLiveAuthority");
+                    SaveEnvelopeCheckpoint.ClassifyLiveAuthority);
                 if (liveCandidate.State == CandidateState.Inaccessible)
                 {
                     return SaveOperationResult.Failure(liveCandidate.Diagnostic);
@@ -83,33 +83,45 @@ namespace ToilRelic.Unity.Save
                 var lastKnownGoodCandidate = ClassifyAuthorityCandidate(
                     LastKnownGoodPath,
                     "LastKnownGood",
-                    "ClassifyLastKnownGoodAuthority");
+                    SaveEnvelopeCheckpoint.ClassifyLastKnownGoodAuthority);
                 if (lastKnownGoodCandidate.State == CandidateState.Inaccessible)
                 {
                     return SaveOperationResult.Failure(lastKnownGoodCandidate.Diagnostic);
                 }
 
-                DeleteEnvelopeArtifact("DeleteStage", "DeleteStage", "Stage", StagePath);
-                DeleteEnvelopeArtifact(
-                    "DeleteQuarantine",
+                fileOperations.DeleteEnvelopeArtifact(
+                    SaveEnvelopeCheckpoint.DeleteStage,
+                    "DeleteStage",
+                    "Stage",
+                    StagePath);
+                fileOperations.DeleteEnvelopeArtifact(
+                    SaveEnvelopeCheckpoint.DeleteQuarantine,
                     "DeleteQuarantine",
                     "Quarantine",
                     QuarantinePath);
 
                 if (liveCandidate.State == CandidateState.Valid)
                 {
-                    DeleteEnvelopeArtifact(
-                        "DeleteLastKnownGood",
+                    fileOperations.DeleteEnvelopeArtifact(
+                        SaveEnvelopeCheckpoint.DeleteLastKnownGood,
                         "DeleteLastKnownGood",
                         "LastKnownGood",
                         LastKnownGoodPath);
-                    DeleteEnvelopeArtifact("DeleteLive", "DeleteLive", "Live", SavePath);
+                    fileOperations.DeleteEnvelopeArtifact(
+                        SaveEnvelopeCheckpoint.DeleteLive,
+                        "DeleteLive",
+                        "Live",
+                        SavePath);
                 }
                 else
                 {
-                    DeleteEnvelopeArtifact("DeleteLive", "DeleteLive", "Live", SavePath);
-                    DeleteEnvelopeArtifact(
-                        "DeleteLastKnownGood",
+                    fileOperations.DeleteEnvelopeArtifact(
+                        SaveEnvelopeCheckpoint.DeleteLive,
+                        "DeleteLive",
+                        "Live",
+                        SavePath);
+                    fileOperations.DeleteEnvelopeArtifact(
+                        SaveEnvelopeCheckpoint.DeleteLastKnownGood,
                         "DeleteLastKnownGood",
                         "LastKnownGood",
                         LastKnownGoodPath);
@@ -135,11 +147,11 @@ namespace ToilRelic.Unity.Save
         private static CandidateValidation ClassifyAuthorityCandidate(
             string path,
             string artifactRole,
-            string checkpointName)
+            SaveEnvelopeCheckpoint checkpointName)
         {
             fileOperations.ClassifyAuthorityCheckpoint(
                 checkpointName,
-                "Before",
+                SaveEnvelopeMutationSide.Before,
                 artifactRole,
                 path);
             fileOperations.ProbeAuthorityClassification(path, artifactRole);
@@ -148,24 +160,13 @@ namespace ToilRelic.Unity.Save
             {
                 fileOperations.ClassifyAuthorityCheckpoint(
                     checkpointName,
-                    "After",
+                    SaveEnvelopeMutationSide.After,
                     artifactRole,
                     path);
             }
 
             return candidate;
         }
-
-        private static void DeleteEnvelopeArtifact(
-            string checkpointName,
-            string operationRole,
-            string artifactRole,
-            string path) =>
-            fileOperations.DeleteEnvelopeArtifact(
-                checkpointName,
-                operationRole,
-                artifactRole,
-                path);
 
         public static SaveOperationResult Save(PlayerState player)
         {
@@ -176,7 +177,9 @@ namespace ToilRelic.Unity.Save
                 var candidateBytes = Encoding.UTF8.GetBytes(JsonUtility.ToJson(envelope, prettyPrint: false));
                 fileOperations.WriteDurableStage(StagePath, candidateBytes, "StageWrite");
 
-                fileOperations.ValidateStageCheckpoint(StagePath, "Before");
+                fileOperations.ValidateStageCheckpoint(
+                    StagePath,
+                    SaveEnvelopeMutationSide.Before);
                 var stagedCandidate = ValidateCandidate(StagePath, "Stage");
                 if (stagedCandidate.State != CandidateState.Valid)
                 {
@@ -187,7 +190,9 @@ namespace ToilRelic.Unity.Save
                         StagePath));
                 }
 
-                fileOperations.ValidateStageCheckpoint(StagePath, "After");
+                fileOperations.ValidateStageCheckpoint(
+                    StagePath,
+                    SaveEnvelopeMutationSide.After);
                 var liveCandidate = ValidateCandidate(SavePath, "Live");
                 switch (liveCandidate.State)
                 {
