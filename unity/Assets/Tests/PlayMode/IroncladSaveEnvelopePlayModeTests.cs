@@ -89,6 +89,13 @@ namespace ToilRelic.PlayModeTests
                 .Select(testCase => new TestCaseData(testCase.id).SetName($"SharedCase_{testCase.id}"));
         }
 
+        public static IEnumerable SharedNewGameCases()
+        {
+            return IroncladSaveEnvelopeContractFixture.Load().cases
+                .Skip(17)
+                .Select(testCase => new TestCaseData(testCase.id).SetName($"SharedNewGameCase_{testCase.id}"));
+        }
+
         [TestCaseSource(nameof(SharedSaveAndRecoveryCases))]
         [Category(CategoryName)]
         public void SharedCase_ExecutesWithExactArtifactsAndNextLoad(string caseId)
@@ -184,6 +191,107 @@ namespace ToilRelic.PlayModeTests
             Assert.That(PlayerTreasure(Read(nextLoad, "Player")),
                 Is.EqualTo(PayloadTreasure(testCase.expectedAuthoritativeLabel)),
                 testCase.id);
+        }
+
+        [TestCaseSource(nameof(SharedNewGameCases))]
+        [Category(CategoryName)]
+        public void SharedNewGameCase_PreservesDataEdgeAndRetriesIdempotently(string caseId)
+        {
+            var testCase = IroncladSaveEnvelopeContractFixture.Load().cases
+                .Single(item => item.id == caseId);
+            Seed(testCase.initialArtifacts);
+            operationsField.SetValue(null, NewOperations((checkpoint, mutationSide) =>
+            {
+                if (checkpoint == testCase.checkpoint && mutationSide == testCase.mutationSide)
+                {
+                    throw new IOException("secret player and absolute root: " + directoryPath);
+                }
+            }));
+
+            var result = InvokeStatic("Delete");
+
+            Assert.That(Read(result, "Succeeded"), Is.False, testCase.id);
+            AssertDiagnostic(testCase, Read(result, "Diagnostic") as string);
+            Assert.That(
+                testCase.initialArtifacts.Any(artifact => artifact.role == "RecoveryMarker"),
+                Is.EqualTo(testCase.expectedImmediateRecoveryNoticePending),
+                testCase.id);
+            AssertExactArtifacts(testCase.expectedSurvivingArtifacts);
+
+            operationsField.SetValue(null, NewOperations(null));
+            var nextLoad = InvokeStatic("Load");
+            Assert.That(Read(nextLoad, "Status").ToString(),
+                Is.EqualTo(testCase.expectedNextLoadStatus), testCase.id);
+            Assert.That(Read(nextLoad, "RecoveryNoticePending"),
+                Is.EqualTo(testCase.expectedNextRecoveryNoticePending), testCase.id);
+            if (testCase.expectedAuthoritativeLabel == "None")
+            {
+                Assert.That(Read(nextLoad, "Player"), Is.Null, testCase.id);
+                Assert.That(File.Exists(livePath), Is.False, testCase.id);
+            }
+            else
+            {
+                Assert.That(File.ReadAllBytes(livePath),
+                    Is.EqualTo(PayloadBytes(testCase.expectedAuthoritativeLabel)), testCase.id);
+                Assert.That(PlayerTreasure(Read(nextLoad, "Player")),
+                    Is.EqualTo(PayloadTreasure(testCase.expectedAuthoritativeLabel)), testCase.id);
+            }
+
+            var retry = InvokeStatic("Delete");
+            Assert.That(Read(retry, "Succeeded"), Is.True, Read(retry, "Diagnostic") as string);
+            AssertExactArtifacts(Array.Empty<ArtifactPayloadFixture>());
+            Assert.That(Read(InvokeStatic("Load"), "Status").ToString(), Is.EqualTo("Missing"));
+        }
+
+        [Test]
+        [Category(CategoryName)]
+        public void Delete_WithEveryArtifact_RemovesCompleteEnvelopeAndRestartsMissing()
+        {
+            Seed(new[]
+            {
+                new ArtifactPayloadFixture { role = "Live", payloadLabel = "current-a" },
+                new ArtifactPayloadFixture { role = "LastKnownGood", payloadLabel = "prior-lkg" },
+                new ArtifactPayloadFixture { role = "Stage", payloadLabel = "partial-candidate" },
+                new ArtifactPayloadFixture { role = "Quarantine", payloadLabel = "prior-quarantine" },
+                new ArtifactPayloadFixture { role = "RecoveryMarker", payloadLabel = "marker" }
+            });
+
+            var result = InvokeStatic("Delete");
+
+            Assert.That(Read(result, "Succeeded"), Is.True, Read(result, "Diagnostic") as string);
+            AssertExactArtifacts(Array.Empty<ArtifactPayloadFixture>());
+            Assert.That(Read(InvokeStatic("Load"), "Status").ToString(), Is.EqualTo("Missing"));
+        }
+
+        [TestCase("Live")]
+        [TestCase("LastKnownGood")]
+        [Category(CategoryName)]
+        public void Delete_WhenAuthorityReadFails_LeavesEveryArtifactByteForByteUnchanged(string lockedRole)
+        {
+            var initial = new[]
+            {
+                new ArtifactPayloadFixture { role = "Live", payloadLabel = "current-a" },
+                new ArtifactPayloadFixture { role = "LastKnownGood", payloadLabel = "prior-lkg" },
+                new ArtifactPayloadFixture { role = "Stage", payloadLabel = "partial-candidate" },
+                new ArtifactPayloadFixture { role = "Quarantine", payloadLabel = "prior-quarantine" },
+                new ArtifactPayloadFixture { role = "RecoveryMarker", payloadLabel = "marker" }
+            };
+            Seed(initial);
+            object result;
+            using (var liveLock = new FileStream(
+                ArtifactPath(lockedRole),
+                FileMode.Open,
+                FileAccess.ReadWrite,
+                FileShare.None))
+            {
+                result = InvokeStatic("Delete");
+            }
+
+            Assert.That(Read(result, "Succeeded"), Is.False);
+            Assert.That(Read(result, "Diagnostic"), Is.EqualTo(
+                $"operation=ClassifyAuthority; artifact={lockedRole}; exception=IOException; " +
+                $"file={Path.GetFileName(ArtifactPath(lockedRole))}"));
+            AssertExactArtifacts(initial);
         }
 
         [Test]

@@ -71,14 +71,101 @@ namespace ToilRelic.Unity.Save
         {
             try
             {
-                File.Delete(SavePath);
+                var liveCandidate = ClassifyAuthorityCandidate(
+                    SavePath,
+                    "Live",
+                    "ClassifyLiveAuthority");
+                if (liveCandidate.State == CandidateState.Inaccessible)
+                {
+                    return SaveOperationResult.Failure(liveCandidate.Diagnostic);
+                }
+
+                var lastKnownGoodCandidate = ClassifyAuthorityCandidate(
+                    LastKnownGoodPath,
+                    "LastKnownGood",
+                    "ClassifyLastKnownGoodAuthority");
+                if (lastKnownGoodCandidate.State == CandidateState.Inaccessible)
+                {
+                    return SaveOperationResult.Failure(lastKnownGoodCandidate.Diagnostic);
+                }
+
+                DeleteEnvelopeArtifact("DeleteStage", "DeleteStage", "Stage", StagePath);
+                DeleteEnvelopeArtifact(
+                    "DeleteQuarantine",
+                    "DeleteQuarantine",
+                    "Quarantine",
+                    QuarantinePath);
+
+                if (liveCandidate.State == CandidateState.Valid)
+                {
+                    DeleteEnvelopeArtifact(
+                        "DeleteLastKnownGood",
+                        "DeleteLastKnownGood",
+                        "LastKnownGood",
+                        LastKnownGoodPath);
+                    DeleteEnvelopeArtifact("DeleteLive", "DeleteLive", "Live", SavePath);
+                }
+                else
+                {
+                    DeleteEnvelopeArtifact("DeleteLive", "DeleteLive", "Live", SavePath);
+                    DeleteEnvelopeArtifact(
+                        "DeleteLastKnownGood",
+                        "DeleteLastKnownGood",
+                        "LastKnownGood",
+                        LastKnownGoodPath);
+                }
+
+                fileOperations.DeleteRecoveryMarker(RecoveryMarkerPath);
                 return SaveOperationResult.Success();
+            }
+            catch (SaveEnvelopeOperationException exception)
+            {
+                return SaveOperationResult.Failure(exception.ToDiagnostic());
             }
             catch (Exception exception)
             {
-                return SaveOperationResult.Failure(exception.ToString());
+                return SaveOperationResult.Failure(CreateDiagnostic(
+                    "InvalidateEnvelope",
+                    "Live",
+                    exception.GetType().Name,
+                    SavePath));
             }
         }
+
+        private static CandidateValidation ClassifyAuthorityCandidate(
+            string path,
+            string artifactRole,
+            string checkpointName)
+        {
+            fileOperations.ClassifyAuthorityCheckpoint(
+                checkpointName,
+                "Before",
+                artifactRole,
+                path);
+            fileOperations.ProbeAuthorityClassification(path, artifactRole);
+            var candidate = ValidateCandidate(path, artifactRole, "ClassifyAuthority");
+            if (candidate.State != CandidateState.Inaccessible)
+            {
+                fileOperations.ClassifyAuthorityCheckpoint(
+                    checkpointName,
+                    "After",
+                    artifactRole,
+                    path);
+            }
+
+            return candidate;
+        }
+
+        private static void DeleteEnvelopeArtifact(
+            string checkpointName,
+            string operationRole,
+            string artifactRole,
+            string path) =>
+            fileOperations.DeleteEnvelopeArtifact(
+                checkpointName,
+                operationRole,
+                artifactRole,
+                path);
 
         public static SaveOperationResult Save(PlayerState player)
         {
@@ -151,6 +238,11 @@ namespace ToilRelic.Unity.Save
                         recoveryNoticePending: fileOperations.FileExists(RecoveryMarkerPath));
                 }
 
+                if (liveCandidate.State == CandidateState.Inaccessible)
+                {
+                    return SaveLoadResult.Unreadable(liveCandidate.Diagnostic);
+                }
+
                 var lastKnownGoodCandidate = ValidateCandidate(LastKnownGoodPath, "LastKnownGood");
                 if (lastKnownGoodCandidate.State == CandidateState.Valid)
                 {
@@ -217,7 +309,10 @@ namespace ToilRelic.Unity.Save
             return SaveLoadResult.Recovered(recoveryStage.Player);
         }
 
-        private static CandidateValidation ValidateCandidate(string path, string artifactRole)
+        private static CandidateValidation ValidateCandidate(
+            string path,
+            string artifactRole,
+            string readFailureOperationRole = "ReadCandidate")
         {
             if (!fileOperations.FileExists(path))
             {
@@ -240,8 +335,8 @@ namespace ToilRelic.Unity.Save
             }
             catch (Exception exception)
             {
-                return CandidateValidation.Invalid(CreateDiagnostic(
-                    "ReadCandidate",
+                return CandidateValidation.Inaccessible(CreateDiagnostic(
+                    readFailureOperationRole,
                     artifactRole,
                     exception.GetType().Name,
                     path));
@@ -336,7 +431,8 @@ namespace ToilRelic.Unity.Save
         {
             Missing,
             Valid,
-            Invalid
+            Invalid,
+            Inaccessible
         }
 
         private sealed class CandidateValidation
@@ -366,6 +462,9 @@ namespace ToilRelic.Unity.Save
 
             public static CandidateValidation Invalid(string diagnostic) =>
                 new CandidateValidation(CandidateState.Invalid, null, null, diagnostic);
+
+            public static CandidateValidation Inaccessible(string diagnostic) =>
+                new CandidateValidation(CandidateState.Inaccessible, null, null, diagnostic);
         }
 
         private static bool IsSupportedVersion(int version) =>

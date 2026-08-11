@@ -81,6 +81,11 @@ public sealed class IroncladSaveEnvelopeTests
             .Take(17)
             .Select(testCase => new object[] { testCase.Id });
 
+    public static IEnumerable<object[]> SharedNewGameCases() =>
+        IroncladSaveEnvelopeContractFixture.Load().Cases
+            .Skip(17)
+            .Select(testCase => new object[] { testCase.Id });
+
     [Theory]
     [MemberData(nameof(SharedSaveAndRecoveryCases))]
     public void SharedCase_ExecutesWithExactArtifactsAndNextLoad(string caseId)
@@ -168,6 +173,110 @@ public sealed class IroncladSaveEnvelopeTests
         Assert.Equal(
             fixture.PayloadPlayerName(testCase.ExpectedAuthoritativeLabel),
             nextLoad.Player!.Name);
+    }
+
+    [Theory]
+    [MemberData(nameof(SharedNewGameCases))]
+    public void SharedNewGameCase_PreservesDataEdgeAndRetriesIdempotently(string caseId)
+    {
+        var testCase = IroncladSaveEnvelopeContractFixture.Load().Cases.Single(item => item.Id == caseId);
+        using var fixture = new EnvelopeFixture();
+        fixture.Seed(testCase.InitialArtifacts);
+        var checkpoint = Enum.Parse<SaveEnvelopeCheckpoint>(testCase.Checkpoint);
+        var mutationSide = Enum.Parse<SaveEnvelopeMutationSide>(testCase.MutationSide);
+        var operations = new SaveEnvelopeFileOperations((actualCheckpoint, actualSide) =>
+        {
+            if (actualCheckpoint == checkpoint && actualSide == mutationSide)
+            {
+                throw new IOException("secret player and absolute root: " + fixture.DirectoryPath);
+            }
+        });
+        var faultedSystem = new SaveSystem(fixture.LivePath, operations);
+
+        var result = faultedSystem.Delete();
+
+        Assert.False(result.Succeeded);
+        AssertDiagnostic(testCase, result.Diagnostic, fixture.DirectoryPath);
+        Assert.Equal(
+            testCase.ExpectedImmediateRecoveryNoticePending,
+            testCase.InitialArtifacts.Any(artifact => artifact.Role == "RecoveryMarker"));
+        fixture.AssertExactArtifacts(testCase.ExpectedSurvivingArtifacts);
+
+        var nextLoad = fixture.FreshSystem().Load();
+        Assert.Equal(Enum.Parse<LoadStatus>(testCase.ExpectedNextLoadStatus), nextLoad.Status);
+        Assert.Equal(testCase.ExpectedNextRecoveryNoticePending, nextLoad.RecoveryNoticePending);
+        if (testCase.ExpectedAuthoritativeLabel == "None")
+        {
+            Assert.Null(nextLoad.Player);
+            Assert.False(File.Exists(fixture.LivePath));
+        }
+        else
+        {
+            Assert.Equal(
+                fixture.PayloadBytes(testCase.ExpectedAuthoritativeLabel),
+                File.ReadAllBytes(fixture.LivePath));
+            Assert.Equal(
+                fixture.PayloadPlayerName(testCase.ExpectedAuthoritativeLabel),
+                nextLoad.Player!.Name);
+        }
+
+        var retry = fixture.FreshSystem().Delete();
+        Assert.True(retry.Succeeded, retry.Diagnostic);
+        fixture.AssertExactArtifacts([]);
+        Assert.Equal(LoadStatus.Missing, fixture.FreshSystem().Load().Status);
+    }
+
+    [Fact]
+    public void Delete_WithEveryArtifact_RemovesCompleteEnvelopeAndRestartsMissing()
+    {
+        using var fixture = new EnvelopeFixture();
+        fixture.Seed(
+        [
+            new ArtifactPayloadFixture { Role = "Live", PayloadLabel = "current-a" },
+            new ArtifactPayloadFixture { Role = "LastKnownGood", PayloadLabel = "prior-lkg" },
+            new ArtifactPayloadFixture { Role = "Stage", PayloadLabel = "partial-candidate" },
+            new ArtifactPayloadFixture { Role = "Quarantine", PayloadLabel = "prior-quarantine" },
+            new ArtifactPayloadFixture { Role = "RecoveryMarker", PayloadLabel = "marker" }
+        ]);
+
+        var result = fixture.System.Delete();
+
+        Assert.True(result.Succeeded, result.Diagnostic);
+        fixture.AssertExactArtifacts([]);
+        Assert.Equal(LoadStatus.Missing, fixture.FreshSystem().Load().Status);
+    }
+
+    [Theory]
+    [InlineData("Live")]
+    [InlineData("LastKnownGood")]
+    public void Delete_WhenAuthorityReadFails_LeavesEveryArtifactByteForByteUnchanged(string lockedRole)
+    {
+        using var fixture = new EnvelopeFixture();
+        var initial = new[]
+        {
+            new ArtifactPayloadFixture { Role = "Live", PayloadLabel = "current-a" },
+            new ArtifactPayloadFixture { Role = "LastKnownGood", PayloadLabel = "prior-lkg" },
+            new ArtifactPayloadFixture { Role = "Stage", PayloadLabel = "partial-candidate" },
+            new ArtifactPayloadFixture { Role = "Quarantine", PayloadLabel = "prior-quarantine" },
+            new ArtifactPayloadFixture { Role = "RecoveryMarker", PayloadLabel = "marker" }
+        };
+        fixture.Seed(initial);
+        PersistenceResult result;
+        using (var liveLock = new FileStream(
+            fixture.ArtifactPath(lockedRole),
+            FileMode.Open,
+            FileAccess.ReadWrite,
+            FileShare.None))
+        {
+            result = fixture.System.Delete();
+        }
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(
+            $"operation=ClassifyAuthority; artifact={lockedRole}; exception=IOException; " +
+            $"file={Path.GetFileName(fixture.ArtifactPath(lockedRole))}",
+            result.Diagnostic);
+        fixture.AssertExactArtifacts(initial);
     }
 
     [Fact]

@@ -29,6 +29,7 @@ namespace ToilRelic.PlayModeTests
         private const string CombatSystemTypeName = "ToilRelic.Unity.Systems.CombatSystem";
         private const string PlayModeActionContractsCategory = "PlayModeActionContracts";
         private const string IroncladRecoveryUxCategory = "IroncladRecoveryUx";
+        private const string IroncladNewGameUxCategory = "IroncladNewGameUx";
         private const string RecoveryNotice = "Recovered a previous valid save. Recent progress may be missing.";
         private static readonly Vector2 WidescreenVirtualSize = new Vector2(800f, 450f);
         private static readonly Vector2 StandardVirtualSize = new Vector2(800f, 600f);
@@ -1662,7 +1663,102 @@ namespace ToilRelic.PlayModeTests
         }
 
         [UnityTest]
+        [Category(IroncladNewGameUxCategory)]
+        public IEnumerator P0_MissingNewGameStillRequiresMarkerInvalidation()
+        {
+            File.WriteAllBytes(fixtureSavePath + ".recovery-pending", Array.Empty<byte>());
+            SetPrivateStaticField(fixtureSaveServiceType, "fileOperations",
+                CreateSaveFileOperations(fixtureSaveServiceType, (checkpoint, side) =>
+                {
+                    if (checkpoint == "DeleteRecoveryMarker" && side == "Before")
+                    {
+                        throw new IOException("marker delete fault");
+                    }
+                }));
+            var gameManager = RequireComponent(GameManagerTypeName);
+
+            LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save delete failed"));
+            gameManager.GetType().GetMethod("StartNewGame").Invoke(gameManager, null);
+            yield return null;
+
+            Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Title"));
+            Assert.That(gameManager.GetType().GetProperty("CurrentSaveLoadStatus").GetValue(gameManager).ToString(),
+                Is.EqualTo("Missing"));
+            Assert.That(File.Exists(fixtureSavePath + ".recovery-pending"), Is.True);
+        }
+
+        [UnityTest]
+        [Category(IroncladNewGameUxCategory)]
+        public IEnumerator P0_RecoveredNewGameClearsNoticeOnceOnlyAfterCompleteInvalidation()
+        {
+            SeedRecoverableSave(recoveredLevel: 3);
+            yield return ReloadSampleScene();
+
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var eventsType = FindType(GameEventsTypeName);
+            var order = new List<string>();
+            using var recoveryNotice = new ReflectedEventRecorder(eventsType, "RecoveryNoticeChanged", order);
+
+            gameManager.GetType().GetMethod("StartNewGame").Invoke(gameManager, null);
+            yield return null;
+
+            Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Camp"));
+            Assert.That((bool)gameManager.GetType().GetProperty("RecoveryNoticePending").GetValue(gameManager), Is.False);
+            Assert.That(recoveryNotice.Values, Is.EqualTo(new object[] { false }));
+            foreach (var suffix in new[] { "", ".lkg", ".stage", ".quarantine", ".recovery-pending" })
+            {
+                Assert.That(File.Exists(fixtureSavePath + suffix), Is.False, suffix);
+            }
+        }
+
+        [UnityTest]
+        [Category(IroncladNewGameUxCategory)]
+        public IEnumerator P0_MarkerDeleteFailureAfterDataEdgeRetainsNoticeAndRetriesIdempotently()
+        {
+            SeedRecoverableSave(recoveredLevel: 3);
+            yield return ReloadSampleScene();
+
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var originalPlayer = GetPrivateField(gameManager, "player");
+            var eventsType = FindType(GameEventsTypeName);
+            var order = new List<string>();
+            using var recoveryNotice = new ReflectedEventRecorder(eventsType, "RecoveryNoticeChanged", order);
+            SetPrivateStaticField(fixtureSaveServiceType, "fileOperations",
+                CreateSaveFileOperations(fixtureSaveServiceType, (checkpoint, side) =>
+                {
+                    if (checkpoint == "DeleteRecoveryMarker" && side == "Before")
+                    {
+                        throw new IOException("marker delete fault");
+                    }
+                }));
+
+            LogAssert.Expect(LogType.Error, new System.Text.RegularExpressions.Regex("Save delete failed"));
+            gameManager.GetType().GetMethod("StartNewGame").Invoke(gameManager, null);
+            yield return null;
+
+            Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Title"));
+            Assert.That(GetPrivateField(gameManager, "player"), Is.SameAs(originalPlayer));
+            Assert.That((bool)gameManager.GetType().GetProperty("RecoveryNoticePending").GetValue(gameManager), Is.True);
+            Assert.That(recoveryNotice.Values, Is.Empty);
+            foreach (var suffix in new[] { "", ".lkg", ".stage", ".quarantine" })
+            {
+                Assert.That(File.Exists(fixtureSavePath + suffix), Is.False, suffix);
+            }
+            Assert.That(File.Exists(fixtureSavePath + ".recovery-pending"), Is.True);
+
+            SetPrivateStaticField(fixtureSaveServiceType, "fileOperations", fixtureFileOperations);
+            gameManager.GetType().GetMethod("StartNewGame").Invoke(gameManager, null);
+            yield return null;
+
+            Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Camp"));
+            Assert.That((bool)gameManager.GetType().GetProperty("RecoveryNoticePending").GetValue(gameManager), Is.False);
+            Assert.That(recoveryNotice.Values, Is.EqualTo(new object[] { false }));
+            Assert.That(File.Exists(fixtureSavePath + ".recovery-pending"), Is.False);
+        }
+
+        [UnityTest]
         [Category(PlayModeActionContractsCategory)]
+        [Category(IroncladNewGameUxCategory)]
         public IEnumerator P0_NewGameButtonReplacesValidFixtureSave()
         {
             var gameManager = RequireComponent(GameManagerTypeName);

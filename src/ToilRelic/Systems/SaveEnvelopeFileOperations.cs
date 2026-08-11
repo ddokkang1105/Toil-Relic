@@ -17,7 +17,13 @@ internal enum SaveEnvelopeCheckpoint
     FlushRecoveryMarker,
     DeletePriorQuarantine,
     MoveDamagedLive,
-    DeleteRecoveryMarker
+    DeleteRecoveryMarker,
+    ClassifyLiveAuthority,
+    ClassifyLastKnownGoodAuthority,
+    DeleteStage,
+    DeleteQuarantine,
+    DeleteLastKnownGood,
+    DeleteLive
 }
 
 internal enum SaveEnvelopeMutationSide
@@ -320,28 +326,74 @@ internal sealed class SaveEnvelopeFileOperations
 
     public void DeleteRecoveryMarker(string markerPath)
     {
-        if (!File.Exists(markerPath) && !Directory.Exists(markerPath)) return;
-        InvokeCheckpoint(
+        DeleteEnvelopeArtifact(
             SaveEnvelopeCheckpoint.DeleteRecoveryMarker,
-            SaveEnvelopeMutationSide.Before,
             "DeleteRecoveryMarker",
             "RecoveryMarker",
             markerPath);
+    }
+
+    public void ClassifyAuthorityCheckpoint(
+        SaveEnvelopeCheckpoint checkpoint,
+        SaveEnvelopeMutationSide side,
+        string artifactRole,
+        string path)
+    {
+        if (checkpoint is not SaveEnvelopeCheckpoint.ClassifyLiveAuthority and
+            not SaveEnvelopeCheckpoint.ClassifyLastKnownGoodAuthority)
+        {
+            throw new ArgumentOutOfRangeException(nameof(checkpoint));
+        }
+
+        InvokeCheckpoint(checkpoint, side, "ClassifyAuthority", artifactRole, path);
+    }
+
+    public void ProbeAuthorityClassification(string path, string artifactRole)
+    {
         try
         {
-            File.Delete(markerPath);
+            _ = File.GetAttributes(path);
+        }
+        catch (FileNotFoundException)
+        {
+        }
+        catch (DirectoryNotFoundException)
+        {
         }
         catch (Exception ex)
         {
-            throw Wrap("DeleteRecoveryMarker", "RecoveryMarker", markerPath, ex);
+            throw Wrap("ClassifyAuthority", artifactRole, path, ex);
+        }
+    }
+
+    public void DeleteEnvelopeArtifact(
+        SaveEnvelopeCheckpoint checkpoint,
+        string operationRole,
+        string artifactRole,
+        string path)
+    {
+        if (!File.Exists(path) && !Directory.Exists(path)) return;
+        InvokeCheckpoint(
+            checkpoint,
+            SaveEnvelopeMutationSide.Before,
+            operationRole,
+            artifactRole,
+            path);
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception ex)
+        {
+            throw Wrap(operationRole, artifactRole, path, ex);
         }
 
         InvokeCheckpoint(
-            SaveEnvelopeCheckpoint.DeleteRecoveryMarker,
+            checkpoint,
             SaveEnvelopeMutationSide.After,
-            "DeleteRecoveryMarker",
-            "RecoveryMarker",
-            markerPath);
+            operationRole,
+            artifactRole,
+            path);
     }
 
     private void InvokeCheckpoint(

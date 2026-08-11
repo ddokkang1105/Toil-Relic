@@ -93,8 +93,12 @@ public sealed class Game
                 ConsoleUI.Section("Save", "Start a new game to begin.");
                 ConsoleUI.Menu("Start", new Dictionary<int, string> { { 1, "New Game" } });
                 ConsoleUI.ReadInt("Select", 1, 1);
-                _player = new Player("Wanderer");
-                return;
+                if (TryStartNewGame())
+                {
+                    return;
+                }
+
+                continue;
             }
 
             ConsoleUI.Section("Save", "Save could not be read. Start New Game to replace it.");
@@ -117,6 +121,7 @@ public sealed class Game
         }
 
         _player = new Player("Wanderer");
+        _recoveryNoticePending = false;
         return true;
     }
 

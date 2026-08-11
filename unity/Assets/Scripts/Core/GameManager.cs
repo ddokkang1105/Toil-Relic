@@ -162,15 +162,18 @@ namespace ToilRelic.Unity.Core
                 return;
             }
 
-            if (saveLoadStatus != SaveLoadStatus.Missing)
+            var deleteResult = SaveService.Delete();
+            if (!deleteResult.Succeeded)
             {
-                var deleteResult = SaveService.Delete();
-                if (!deleteResult.Succeeded)
-                {
-                    Debug.LogError($"Save delete failed. {deleteResult.Diagnostic}");
-                    GameEvents.RaiseBattleLog(GetTitleSaveMessage());
-                    return;
-                }
+                Debug.LogError($"Save delete failed. {deleteResult.Diagnostic}");
+                GameEvents.RaiseBattleLog(GetTitleSaveMessage());
+                return;
+            }
+
+            if (recoveryNoticePending)
+            {
+                recoveryNoticePending = false;
+                GameEvents.RaiseRecoveryNoticeChanged(false);
             }
 
             player = new PlayerState();

@@ -105,6 +105,11 @@ public sealed class SaveSystem
                     recoveryNoticePending: _fileOperations.FileExists(_recoveryMarkerPath));
             }
 
+            if (liveCandidate.State == CandidateState.Inaccessible)
+            {
+                return LoadResult.Unreadable(liveCandidate.Diagnostic);
+            }
+
             var lastKnownGoodCandidate = ValidateCandidate(_lastKnownGoodPath, "LastKnownGood");
             if (lastKnownGoodCandidate.State == CandidateState.Valid)
             {
@@ -144,18 +149,113 @@ public sealed class SaveSystem
     {
         try
         {
-            File.Delete(_savePath);
+            var liveCandidate = ClassifyAuthorityCandidate(
+                _savePath,
+                "Live",
+                SaveEnvelopeCheckpoint.ClassifyLiveAuthority);
+            if (liveCandidate.State == CandidateState.Inaccessible)
+            {
+                return PersistenceResult.Failure(liveCandidate.Diagnostic!);
+            }
+
+            var lastKnownGoodCandidate = ClassifyAuthorityCandidate(
+                _lastKnownGoodPath,
+                "LastKnownGood",
+                SaveEnvelopeCheckpoint.ClassifyLastKnownGoodAuthority);
+            if (lastKnownGoodCandidate.State == CandidateState.Inaccessible)
+            {
+                return PersistenceResult.Failure(lastKnownGoodCandidate.Diagnostic!);
+            }
+
+            DeleteEnvelopeArtifact(
+                SaveEnvelopeCheckpoint.DeleteStage,
+                "DeleteStage",
+                "Stage",
+                _stagePath);
+            DeleteEnvelopeArtifact(
+                SaveEnvelopeCheckpoint.DeleteQuarantine,
+                "DeleteQuarantine",
+                "Quarantine",
+                _quarantinePath);
+
+            if (liveCandidate.State == CandidateState.Valid)
+            {
+                DeleteEnvelopeArtifact(
+                    SaveEnvelopeCheckpoint.DeleteLastKnownGood,
+                    "DeleteLastKnownGood",
+                    "LastKnownGood",
+                    _lastKnownGoodPath);
+                DeleteEnvelopeArtifact(
+                    SaveEnvelopeCheckpoint.DeleteLive,
+                    "DeleteLive",
+                    "Live",
+                    _savePath);
+            }
+            else
+            {
+                DeleteEnvelopeArtifact(
+                    SaveEnvelopeCheckpoint.DeleteLive,
+                    "DeleteLive",
+                    "Live",
+                    _savePath);
+                DeleteEnvelopeArtifact(
+                    SaveEnvelopeCheckpoint.DeleteLastKnownGood,
+                    "DeleteLastKnownGood",
+                    "LastKnownGood",
+                    _lastKnownGoodPath);
+            }
+
+            _fileOperations.DeleteRecoveryMarker(_recoveryMarkerPath);
             return PersistenceResult.Success();
+        }
+        catch (SaveEnvelopeOperationException ex)
+        {
+            return PersistenceResult.Failure(ex.ToDiagnostic());
         }
         catch (Exception ex)
         {
             return PersistenceResult.Failure(CreateDiagnostic(
-                "DeleteLive",
+                "InvalidateEnvelope",
                 "Live",
                 ex.GetType().Name,
                 _savePath));
         }
     }
+
+    private CandidateValidation ClassifyAuthorityCandidate(
+        string path,
+        string artifactRole,
+        SaveEnvelopeCheckpoint checkpoint)
+    {
+        _fileOperations.ClassifyAuthorityCheckpoint(
+            checkpoint,
+            SaveEnvelopeMutationSide.Before,
+            artifactRole,
+            path);
+        _fileOperations.ProbeAuthorityClassification(path, artifactRole);
+        var candidate = ValidateCandidate(path, artifactRole, "ClassifyAuthority");
+        if (candidate.State != CandidateState.Inaccessible)
+        {
+            _fileOperations.ClassifyAuthorityCheckpoint(
+                checkpoint,
+                SaveEnvelopeMutationSide.After,
+                artifactRole,
+                path);
+        }
+
+        return candidate;
+    }
+
+    private void DeleteEnvelopeArtifact(
+        SaveEnvelopeCheckpoint checkpoint,
+        string operationRole,
+        string artifactRole,
+        string path) =>
+        _fileOperations.DeleteEnvelopeArtifact(
+            checkpoint,
+            operationRole,
+            artifactRole,
+            path);
 
     private LoadResult Recover(CandidateValidation liveCandidate, CandidateValidation lastKnownGoodCandidate)
     {
@@ -186,7 +286,10 @@ public sealed class SaveSystem
         return LoadResult.Recovered(recoveryStage.Player!);
     }
 
-    private CandidateValidation ValidateCandidate(string path, string artifactRole)
+    private CandidateValidation ValidateCandidate(
+        string path,
+        string artifactRole,
+        string readFailureOperationRole = "ReadCandidate")
     {
         if (!_fileOperations.FileExists(path))
         {
@@ -209,8 +312,8 @@ public sealed class SaveSystem
         }
         catch (Exception ex)
         {
-            return CandidateValidation.Invalid(CreateDiagnostic(
-                "ReadCandidate",
+            return CandidateValidation.Inaccessible(CreateDiagnostic(
+                readFailureOperationRole,
                 artifactRole,
                 ex.GetType().Name,
                 path));
@@ -381,7 +484,8 @@ public sealed class SaveSystem
     {
         Missing,
         Valid,
-        Invalid
+        Invalid,
+        Inaccessible
     }
 
     private sealed record CandidateValidation(
@@ -395,5 +499,7 @@ public sealed class SaveSystem
             new(CandidateState.Valid, player, bytes, null);
         public static CandidateValidation Invalid(string diagnostic) =>
             new(CandidateState.Invalid, null, null, diagnostic);
+        public static CandidateValidation Inaccessible(string diagnostic) =>
+            new(CandidateState.Inaccessible, null, null, diagnostic);
     }
 }

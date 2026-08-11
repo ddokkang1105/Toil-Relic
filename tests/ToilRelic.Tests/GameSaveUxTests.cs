@@ -226,6 +226,76 @@ public sealed class GameSaveUxTests
         Assert.False(File.Exists(markerPath));
     }
 
+    [Fact]
+    public void Run_MissingSaveStillRequiresCompleteEnvelopeInvalidation()
+    {
+        using var fixture = new GameFixture();
+        var markerPath = fixture.SavePath + ".recovery-pending";
+        File.WriteAllBytes(markerPath, []);
+        var operations = new SaveEnvelopeFileOperations((checkpoint, side) =>
+        {
+            if (checkpoint == SaveEnvelopeCheckpoint.DeleteRecoveryMarker &&
+                side == SaveEnvelopeMutationSide.Before)
+            {
+                throw new IOException("private root: " + fixture.DirectoryPath);
+            }
+        });
+        var system = new SaveSystem(fixture.SavePath, operations);
+        var input = new ScriptedTextReader(new InputStep("1"));
+
+        Assert.Throws<EndOfInputException>(() =>
+            CaptureConsole(input, () => new Game(system).Run()));
+
+        Assert.Equal(2, CountOccurrences(input.CapturedOutput, "Start a new game to begin."));
+        Assert.True(File.Exists(markerPath));
+        Assert.Contains("operation=DeleteRecoveryMarker", input.CapturedError);
+        Assert.DoesNotContain(fixture.DirectoryPath, input.CapturedError);
+    }
+
+    [Fact]
+    public void Run_RecoveredNewGameClearsRetainedNoticeOnlyAfterFullInvalidation()
+    {
+        using var fixture = new GameFixture();
+        fixture.SeedRecoverableSave("Replace Recovered");
+        var game = new Game(fixture.System);
+        var input = new ScriptedTextReader(new InputStep("2"));
+
+        Assert.Throws<EndOfInputException>(() => CaptureConsole(input, game.Run));
+
+        Assert.False(GetRecoveryNoticePending(game));
+        Assert.False(File.Exists(fixture.SavePath));
+        Assert.False(File.Exists(fixture.SavePath + ".lkg"));
+        Assert.False(File.Exists(fixture.SavePath + ".stage"));
+        Assert.False(File.Exists(fixture.SavePath + ".quarantine"));
+        Assert.False(File.Exists(fixture.SavePath + ".recovery-pending"));
+    }
+
+    [Fact]
+    public void Run_MarkerDeleteFailureAfterDataEdgeRetainsCurrentCallNoticeAndTitle()
+    {
+        using var fixture = new GameFixture();
+        fixture.SeedRecoverableSave("Retained Recovered");
+        var operations = new SaveEnvelopeFileOperations((checkpoint, side) =>
+        {
+            if (checkpoint == SaveEnvelopeCheckpoint.DeleteRecoveryMarker &&
+                side == SaveEnvelopeMutationSide.Before)
+            {
+                throw new IOException("marker delete fault");
+            }
+        });
+        var game = new Game(new SaveSystem(fixture.SavePath, operations));
+        var input = new ScriptedTextReader(new InputStep("2"));
+
+        Assert.Throws<EndOfInputException>(() => CaptureConsole(input, game.Run));
+
+        Assert.True(GetRecoveryNoticePending(game));
+        Assert.False(File.Exists(fixture.SavePath));
+        Assert.False(File.Exists(fixture.SavePath + ".lkg"));
+        Assert.True(File.Exists(fixture.SavePath + ".recovery-pending"));
+        Assert.Contains("Start a new game to begin.", input.CapturedOutput);
+        Assert.Contains("operation=DeleteRecoveryMarker", input.CapturedError);
+    }
+
     private static ConsoleCapture CaptureConsole(TextReader input, Action action)
     {
         var originalIn = Console.In;
@@ -268,6 +338,12 @@ public sealed class GameSaveUxTests
 
         return count;
     }
+
+    private static bool GetRecoveryNoticePending(Game game) =>
+        (bool)typeof(Game).GetField(
+            "_recoveryNoticePending",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(game)!;
 
     private sealed record ConsoleCapture(string Output, string Error);
     private sealed record InputStep(string Value, Action? BeforeRead = null);

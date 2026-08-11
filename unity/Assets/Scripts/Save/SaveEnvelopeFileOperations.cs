@@ -245,28 +245,79 @@ namespace ToilRelic.Unity.Save
 
         public void DeleteRecoveryMarker(string markerPath)
         {
-            if (!File.Exists(markerPath) && !Directory.Exists(markerPath)) return;
-            InvokeCheckpoint(
+            DeleteEnvelopeArtifact(
                 "DeleteRecoveryMarker",
-                Before,
                 "DeleteRecoveryMarker",
                 "RecoveryMarker",
                 markerPath);
-            try
+        }
+
+        public void ClassifyAuthorityCheckpoint(
+            string checkpointName,
+            string mutationSide,
+            string artifactRole,
+            string path)
+        {
+            if (checkpointName != "ClassifyLiveAuthority" &&
+                checkpointName != "ClassifyLastKnownGoodAuthority")
             {
-                File.Delete(markerPath);
-            }
-            catch (Exception exception)
-            {
-                throw Wrap("DeleteRecoveryMarker", "RecoveryMarker", markerPath, exception);
+                throw new ArgumentOutOfRangeException(nameof(checkpointName));
             }
 
             InvokeCheckpoint(
-                "DeleteRecoveryMarker",
+                checkpointName,
+                mutationSide,
+                "ClassifyAuthority",
+                artifactRole,
+                path);
+        }
+
+        public void ProbeAuthorityClassification(string path, string artifactRole)
+        {
+            try
+            {
+                File.GetAttributes(path);
+            }
+            catch (FileNotFoundException)
+            {
+            }
+            catch (DirectoryNotFoundException)
+            {
+            }
+            catch (Exception exception)
+            {
+                throw Wrap("ClassifyAuthority", artifactRole, path, exception);
+            }
+        }
+
+        public void DeleteEnvelopeArtifact(
+            string checkpointName,
+            string operationRole,
+            string artifactRole,
+            string path)
+        {
+            if (!File.Exists(path) && !Directory.Exists(path)) return;
+            InvokeCheckpoint(
+                checkpointName,
+                Before,
+                operationRole,
+                artifactRole,
+                path);
+            try
+            {
+                File.Delete(path);
+            }
+            catch (Exception exception)
+            {
+                throw Wrap(operationRole, artifactRole, path, exception);
+            }
+
+            InvokeCheckpoint(
+                checkpointName,
                 After,
-                "DeleteRecoveryMarker",
-                "RecoveryMarker",
-                markerPath);
+                operationRole,
+                artifactRole,
+                path);
         }
 
         private void InvokeCheckpoint(
