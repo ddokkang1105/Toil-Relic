@@ -20,10 +20,14 @@ namespace ToilRelic.Unity.UI
 
         private readonly StringBuilder logBuffer = new();
         private readonly Queue<string> logicalLogLines = new();
+        private string currentIntentLabel;
+        private string currentIntentMarker;
+        private string currentIntentCue;
 
         private void OnEnable()
         {
             GameEvents.EnemyChanged += OnEnemyChanged;
+            GameEvents.EnemyIntentChanged += OnEnemyIntentChanged;
             GameEvents.BattleLog += OnBattleLog;
             GameEvents.StateChanged += OnStateChanged;
             GameEvents.BattlePhaseChanged += OnBattlePhaseChanged;
@@ -33,6 +37,7 @@ namespace ToilRelic.Unity.UI
         private void OnDisable()
         {
             GameEvents.EnemyChanged -= OnEnemyChanged;
+            GameEvents.EnemyIntentChanged -= OnEnemyIntentChanged;
             GameEvents.BattleLog -= OnBattleLog;
             GameEvents.StateChanged -= OnStateChanged;
             GameEvents.BattlePhaseChanged -= OnBattlePhaseChanged;
@@ -52,6 +57,14 @@ namespace ToilRelic.Unity.UI
             AppendLog(message);
         }
 
+        private void OnEnemyIntentChanged(string label, string marker, string cue)
+        {
+            currentIntentLabel = label;
+            currentIntentMarker = marker;
+            currentIntentCue = cue;
+            RenderPhase(gameManager != null ? gameManager.CurrentBattlePhase : BattlePhase.None);
+        }
+
         private void OnStateChanged(GameState state)
         {
             if (state != GameState.Battle)
@@ -65,18 +78,26 @@ namespace ToilRelic.Unity.UI
 
         private void OnBattlePhaseChanged(BattlePhase phase)
         {
-            if (phaseText != null)
+            RenderPhase(phase);
+            UpdateActionAvailability();
+        }
+
+        private void RenderPhase(BattlePhase phase)
+        {
+            if (phaseText == null)
             {
-                phaseText.text = phase switch
-                {
-                    BattlePhase.PlayerAction => "Your turn — choose an action.",
-                    BattlePhase.EnemyAction => "Enemy turn — resolving attack.",
-                    BattlePhase.Resolving => "Resolving battle result...",
-                    _ => string.Empty
-                };
+                return;
             }
 
-            UpdateActionAvailability();
+            phaseText.text = phase switch
+            {
+                BattlePhase.PlayerAction when !string.IsNullOrEmpty(currentIntentLabel) =>
+                    $"Your turn | {currentIntentLabel} {currentIntentMarker} | {currentIntentCue}",
+                BattlePhase.PlayerAction => "Your turn — choose an action.",
+                BattlePhase.EnemyAction => "Enemy turn — resolving intent.",
+                BattlePhase.Resolving => "Resolving battle result...",
+                _ => string.Empty
+            };
         }
 
         private void AppendLog(string message)
@@ -158,6 +179,9 @@ namespace ToilRelic.Unity.UI
 
         private void ClearBattleSurface()
         {
+            currentIntentLabel = string.Empty;
+            currentIntentMarker = string.Empty;
+            currentIntentCue = string.Empty;
             if (enemyText != null)
             {
                 enemyText.text = "Enemy: -";

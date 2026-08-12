@@ -30,7 +30,7 @@ The generated canvas contains:
   - `CampActionMenu`: Hunt Contract, Rest, Craft Treasure, and Equipment.
   - `HuntContractPanel`: three generated quarry rows, selected-quarry detail, Back, Confirm Hunt, and Ready-gated Forge Relic.
   - `EquipmentPanel`: the dedicated slot, candidate, comparison, totals, validation, and action UI.
-- `BattlePanel`: battle status plus Attack, Defend, Flee, and Potion.
+- `BattlePanel`: locked enemy intent plus Attack, Defend, Flee, and Potion. The intent line uses a shared text label and `[POWER]`, `[OPEN]`, or `[BASIC]` marker instead of relying on color.
 - compact `Hud` and `GameStatus` regions above the state panels.
 
 Rest, Craft Treasure, and battle actions persistently target `UIActions/GameActionBridge`. Hunt Contract and Equipment are mutually exclusive Camp-local panels owned by `HuntContractPanelController` and `EquipmentPanelController`. Quarry confirmation sends the selected stable ID and content revision to `GameManager`; runtime rows never own reward authority.
@@ -67,6 +67,7 @@ Focused implementation checks:
 & '<Unity.exe>' -batchmode -nographics -projectPath '<repo>\unity' -runTests -testPlatform EditMode -testResults '<edit-results.xml>' -logFile '<edit.log>'
 & '<Unity.exe>' -batchmode -nographics -projectPath '<repo>\unity' -runTests -testPlatform PlayMode -testFilter 'ToilRelic.PlayModeTests.PurposefulHuntRuntimePlayModeTests' -testResults '<runtime-results.xml>' -logFile '<runtime.log>'
 & '<Unity.exe>' -batchmode -nographics -projectPath '<repo>\unity' -runTests -testPlatform PlayMode -testCategory 'PurposefulHuntActionContracts' -testResults '<action-results.xml>' -logFile '<actions.log>'
+& '<Unity.exe>' -batchmode -nographics -projectPath '<repo>\unity' -runTests -testPlatform PlayMode -testCategory 'TacticalHuntGrammar' -testResults '<tactical-results.xml>' -logFile '<tactical.log>'
 ```
 
 The Purposeful Hunt action-category run must report a non-zero test total. A successful Unity exit with `total=0` does not validate the action flow.

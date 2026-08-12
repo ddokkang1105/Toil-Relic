@@ -5,6 +5,7 @@ namespace ToilRelic.Unity.Systems
 {
     public sealed class EnemyRuntime
     {
+        public string Id { get; }
         public string Name { get; }
         public int MaxHp { get; }
         public int Hp { get; private set; }
@@ -14,6 +15,7 @@ namespace ToilRelic.Unity.Systems
 
         public EnemyRuntime(EnemyData data)
         {
+            Id = data.id;
             Name = data.displayName;
             MaxHp = data.maxHp;
             Hp = data.maxHp;
@@ -32,12 +34,16 @@ namespace ToilRelic.Unity.Systems
 
     public sealed class CombatSystem
     {
-        public int RollPlayerAttack(int attackBonus) => Random.Range(4, 9) + attackBonus;
+        public int RollPlayerAttack(int attackBonus, EnemyIntent intent)
+        {
+            var rolled = Random.Range(4, 9) + attackBonus;
+            return TacticalCombatRules.ApplyPlayerAttack(rolled, intent);
+        }
 
-        public int RollEnemyAttack(EnemyRuntime enemy, bool playerDefending)
+        public int RollEnemyAttack(EnemyRuntime enemy, EnemyIntent intent, bool playerDefending)
         {
             var raw = Random.Range(enemy.AttackMin, enemy.AttackMax + 1);
-            return playerDefending ? Mathf.Max(0, raw - 3) : raw;
+            return TacticalCombatRules.ApplyEnemyAttack(raw, intent, playerDefending);
         }
 
         public bool TryFlee() => Random.value < 0.55f;

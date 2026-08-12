@@ -1,0 +1,22 @@
+stage: closed
+profile: small
+gates:
+  office_hours: false
+  ceo_review: false
+  eng_review: false
+  design_review: false
+  brainstorm: false
+  multi_agent: false
+  ce_plan: active_answer_seeking
+  ce_work: active_documentation_update
+  ce_review: active_non_interactive_passed
+  gstack_qa: equivalent_document_validation
+  ce_compound: skipped_not_solved_problem_task_local_learning
+artifacts:
+  task: task.md
+  decisions: decisions.md
+  plan: plan.md
+  review: review.md
+  qa: qa.md
+  followups: followups.md
+updated: 2026-08-11

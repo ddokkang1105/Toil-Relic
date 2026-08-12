@@ -213,17 +213,17 @@
     <header>
         <p class="eyebrow">Repo-grounded ideation</p>
         <h1>Toil Relic의 다음 작업 선택</h1>
-        <p class="lede"><strong>Purposeful Hunt Vertical Slice</strong>가 2026-08-10에 완료되었다. 기존 후보와 현재 저장 경계를 다시 확인한 결과, 다음 작업은 <strong>Ironclad Save Envelope</strong>—원자적 교체와 last-known-good 복구로 누적 진행을 보호하는 양쪽 런타임의 저장 내구성 작업이다.</p>
+        <p class="lede"><strong>Purposeful Hunt Vertical Slice</strong>와 <strong>Ironclad Save Envelope</strong>가 차례로 완료되었다. 기존 후보와 현재 전투 경계를 다시 확인한 결과, 다음 작업은 <strong>Tactical Hunt Grammar</strong>—매 선택 전에 적 의도를 읽고 기존 Attack/Defend로 대응하는 양쪽 런타임의 전술 사냥 작업이다.</p>
         <dl class="meta">
             <div><dt>Date</dt><dd><time datetime="2026-08-11">2026-08-11</time></dd></div>
             <div><dt>Topic</dt><dd>open-ideation</dd></div>
-            <div><dt>Focus</dt><dd>Purposeful Hunt 완료 후 다음 작업 선택</dd></div>
+            <div><dt>Focus</dt><dd>Ironclad Save Envelope 완료 후 다음 작업 선택</dd></div>
             <div><dt>Mode</dt><dd>repo-grounded</dd></div>
         </dl>
         <div class="metrics" aria-label="아이디어 선별 요약">
             <div class="metric"><strong>42</strong><small>raw candidates</small></div>
             <div class="metric"><strong>6</strong><small>ranked survivors</small></div>
-            <div class="metric"><strong>2</strong><small>independently sound now</small></div>
+            <div class="metric"><strong>2</strong><small>completed leaders</small></div>
         </div>
     </header>
 
@@ -243,28 +243,30 @@
         <h2>Codebase Context</h2>
         <ul class="ground-list">
             <li>콘솔과 Unity 모두 <strong>사냥 → 전투 → 보상/경험치 → 제작 → 반복</strong>이라는 핵심 루프를 이미 공유한다.</li>
-            <li>저장 피드백, 장비 비교, HUD 중첩, 16:9 전투 패널, PlayMode QA에 이어 Purposeful Hunt까지 완료되었다. 추적 중인 Personal Flow 태스크는 모두 종료 상태다.</li>
+            <li>저장 피드백, 장비 비교, HUD 중첩, 16:9 전투 패널, PlayMode QA에 이어 Purposeful Hunt와 Ironclad Save Envelope까지 완료되었다.</li>
             <li>기존 1순위였던 목적성 공백은 안내형 Hunt Contract, 사냥감별 보상, First Relic Project로 닫혔다.</li>
-            <li>가장 명확한 신뢰성 부채는 저장 내구성이다. 기존 후속 문서는 원자적 쓰기와 last-known-good 복구를 높은 우선순위로 기록한다.</li>
-            <li>현재 콘솔은 같은 디렉터리의 임시 파일을 교체하지만 이전 정상본 복구 경로가 없고, Unity는 live 저장 파일에 직접 쓴다.</li>
-            <li>게임플레이 변경은 콘솔과 Unity에 함께 반영해야 한다. 따라서 전투·세션·영속성을 한 번에 다시 설계하는 아이디어는 체감보다 비용이 빠르게 커진다.</li>
+            <li>기존 2순위였던 저장 내구성 공백도 원자적 live 교체, last-known-good 보존·복구, 결정론적 장애 검증으로 닫혔다.</li>
+            <li>이제 가장 큰 플레이어 체감 공백은 전투 표현력이다. Unity는 Attack/Defend/Flee/Potion을 제공하지만 적 의도를 미리 보여주지 않고, Defend는 평면적인 피해 감소다. 콘솔 전투는 여전히 자율 진행된다.</li>
+            <li>게임플레이 변경은 콘솔과 Unity에 함께 반영해야 한다. Tactical Hunt Grammar는 콘솔도 턴별 플레이어 선택으로 전환해 이 비대칭을 직접 다루되, 새 버튼보다 공유 가능한 의도·대응 규칙에서 시작해야 한다.</li>
         </ul>
         <div class="decision">
-            <p><strong>순위 원칙:</strong> 기존 1순위가 완료되었고, 그 작업은 계약과 유물 진행이라는 새 영속 상태를 추가했다. 이제 납품 확실성, 진행 보호, 후속 기능의 안전한 기반을 함께 고려하면 Ironclad Save Envelope가 가장 강한 다음 작업이다.</p>
+            <p><strong>순위 원칙:</strong> 원래 1·2순위가 모두 완료되어 목적성과 진행 보호 기반이 갖춰졌다. 남은 후보 중 즉각적인 플레이어 가치, 기존 시스템 활용, Quarry Mastery의 선행 조건을 함께 만족하는 Tactical Hunt Grammar가 가장 강한 다음 작업이다.</p>
         </div>
     </section>
 
     <section id="continuation-decision">
-        <p class="eyebrow">Updated 2026-08-11</p>
+        <p class="eyebrow">Updated 2026-08-11 · second continuation</p>
         <h2>Continuation Decision</h2>
         <div class="decision">
-            <p><strong>다음 작업: Ironclad Save Envelope.</strong> 범위는 콘솔과 Unity에 공통 저장 내구성 계약을 적용하는 것이다. 임시 파일 쓰기, 원자적 live 교체, last-known-good 보존·복구, 복구 사실을 알리는 결과, 진짜 중간 쓰기 실패를 모사하는 결정론적 테스트를 포함한다.</p>
+            <p><strong>다음 작업: Tactical Hunt Grammar.</strong> 공통 턴 문법은 각 플레이어 선택 전에 다음 적 의도를 공개·고정하고, Attack/Defend 한 번을 받은 뒤 예고한 적 행동과 결과를 해결하고, 전투가 계속되면 다음 의도를 공개하는 순서다. 콘솔은 이 턴별 선택을 직접 받고 Unity는 기존 전투 버튼을 사용한다.</p>
         </div>
         <ul class="ground-list">
-            <li><strong>완료 근거:</strong> Purposeful Hunt 태스크는 2026-08-10에 QA와 close를 통과했고, 자체 follow-up에서 이 저장 작업을 High로 남겼다.</li>
-            <li><strong>현재 결손:</strong> 콘솔과 Unity 모두 스키마 검증과 저장 UX는 갖췄지만, 중간 쓰기 장애 뒤 이전 정상 진행을 복구하는 양쪽 런타임 공통 계약은 없다.</li>
-            <li><strong>왜 지금인가:</strong> 계약 및 유물 진행이 저장 상태에 추가되어 손상 시 잃는 플레이어 가치가 커졌다. Tactical Hunt Grammar보다 범위가 명확하고, 이후 게임플레이 확장을 안전하게 만든다.</li>
-            <li><strong>범위 상한:</strong> 수동 저장, 클라우드 동기화, 새 세션 모델, 범용 직렬화 프레임워크는 포함하지 않는다.</li>
+            <li><strong>완료 근거:</strong> Purposeful Hunt와 Ironclad Save Envelope Personal Flow 태스크는 모두 QA와 close를 통과했다. Ironclad의 최종 검증은 콘솔 152개와 Unity Play Mode 176개의 통과를 기록한다.</li>
+            <li><strong>현재 결손:</strong> Unity의 전투 동사는 존재하지만 적의 다음 행동을 읽고 대응하는 규칙이 없고, 콘솔은 같은 동사를 플레이어 선택으로 제공하지 않는다.</li>
+            <li><strong>전술 증명:</strong> 첫 slice는 서로 다른 최선 대응을 요구하는 의도 최소 2개를 기존 적 패턴 1~2개로 증명한다. Attack만 또는 Defend만 반복하면 적어도 한 의도에서 불리한 결과가 보여야 하며, 나머지 적은 같은 문법의 기본 공격 의도를 사용한다.</li>
+            <li><strong>표현 계약:</strong> 모든 의도는 양쪽 런타임이 공유하는 짧은 텍스트 label을 갖는다. Unity는 색상에만 의존하지 않는 시각 상태를 함께 제공하고 콘솔은 같은 label과 의미를 텍스트로 보여준다.</li>
+            <li><strong>왜 지금인가:</strong> 원래 상위 두 기반 작업이 끝났고, 이 작업은 새 버튼을 늘리지 않으면서 전투 체감과 적 정체성을 함께 높인다. 이후 Quarry Mastery가 기록할 실제 학습 대상도 만든다.</li>
+            <li><strong>범위 상한:</strong> 완전한 콤보 시스템, 추가 전투 버튼, 대규모 적 로스터, Quarry Mastery/도감, 새 세션 구조는 포함하지 않는다.</li>
         </ul>
     </section>
 
@@ -461,6 +463,10 @@
             <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/src/ToilRelic/Systems/CraftingSystem.cs#L7">CraftingSystem.cs — current recipe surface</a></li>
             <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/src/ToilRelic/Systems/SaveSystem.cs#L20">Console SaveSystem.cs</a></li>
             <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/unity/Assets/Scripts/Save/SaveService.cs#L72">Unity SaveService.cs</a></li>
+            <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/src/ToilRelic/Systems/CombatSystem.cs">Console CombatSystem.cs — autonomous combat loop</a></li>
+            <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/unity/Assets/Scripts/Core/GameManager.cs#L264">Unity GameManager.cs — player combat actions and turn phases</a></li>
+            <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/unity/Assets/Scripts/Systems/CombatSystem.cs">Unity CombatSystem.cs — Attack/Defend/Flee rules</a></li>
+            <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/.flow/tasks/ironclad-save-envelope/qa.md">Ironclad Save Envelope — final QA evidence</a></li>
             <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/.flow/tasks/%EC%A0%80%EC%9E%A5-ux-%EB%B3%B4%EA%B0%95/plan.md#L50">Save UX follow-up — atomic recovery priority</a></li>
             <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/docs/solutions/architecture-patterns/pure-equipment-preview-with-commit-revalidation.md">Equipment preview/commit learning</a></li>
             <li><a href="https://github.com/ddokkang1105/Toil-Relic/blob/main/docs/solutions/best-practices/deterministic-unity-playmode-action-contracts.md">Deterministic PlayMode action contracts</a></li>
@@ -469,7 +475,7 @@
         </ul>
     </section>
 
-    <footer class="composition-signal">Composed 2026-08-06T10:55:28+09:00 and continued 2026-08-11T09:32:04+09:00 by ce-ideate from the current repository state. Current selection: Ironclad Save Envelope.</footer>
+    <footer class="composition-signal">Composed 2026-08-06T10:55:28+09:00, continued 2026-08-11T09:32:04+09:00, and continued again 2026-08-11T17:09:19+09:00 from the current repository state. Current selection: Tactical Hunt Grammar.</footer>
 </main>
 </body>
 </html>

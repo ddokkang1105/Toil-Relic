@@ -81,6 +81,7 @@ namespace ToilRelic.Unity.Core
         public static event Action<SaveFeedbackStatus> SaveStatusChanged;
         public static event Action<bool> RecoveryNoticeChanged;
         public static event Action<string, int, int> EnemyChanged;
+        public static event Action<string, string, string> EnemyIntentChanged;
         public static event Action<GameState> StateChanged;
         public static event Action<BattlePhase> BattlePhaseChanged;
         public static event Action<HuntContractSnapshot> HuntContractPresented;
@@ -95,6 +96,8 @@ namespace ToilRelic.Unity.Core
         public static void RaiseSaveStatusChanged(SaveFeedbackStatus status) => SaveStatusChanged?.Invoke(status);
         public static void RaiseRecoveryNoticeChanged(bool pending) => RecoveryNoticeChanged?.Invoke(pending);
         public static void RaiseEnemyChanged(string name, int hp, int maxHp) => EnemyChanged?.Invoke(name, hp, maxHp);
+        public static void RaiseEnemyIntentChanged(string label, string marker, string cue) =>
+            EnemyIntentChanged?.Invoke(label, marker, cue);
         public static void RaiseStateChanged(GameState state) => StateChanged?.Invoke(state);
         public static void RaiseBattlePhaseChanged(BattlePhase phase) => BattlePhaseChanged?.Invoke(phase);
         public static void RaiseHuntContractPresented(HuntContractSnapshot snapshot) => HuntContractPresented?.Invoke(snapshot);

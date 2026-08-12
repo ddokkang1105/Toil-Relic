@@ -28,6 +28,7 @@ namespace ToilRelic.PlayModeTests
         private const string GameEventsTypeName = "ToilRelic.Unity.Core.GameEvents";
         private const string CombatSystemTypeName = "ToilRelic.Unity.Systems.CombatSystem";
         private const string PlayModeActionContractsCategory = "PlayModeActionContracts";
+        private const string TacticalHuntGrammarCategory = "TacticalHuntGrammar";
         private const string IroncladRecoveryUxCategory = "IroncladRecoveryUx";
         private const string IroncladNewGameUxCategory = "IroncladNewGameUx";
         private const string RecoveryNotice = "Recovered a previous valid save. Recent progress may be missing.";
@@ -2035,6 +2036,9 @@ namespace ToilRelic.PlayModeTests
                 "Potion success: exactly one healing potion must be consumed.");
             Assert.That((int)playerType.GetProperty("Hp").GetValue(player), Is.EqualTo(26),
                 "Potion success: HP must reflect 12 recovery followed by one fixed enemy damage.");
+            Assert.That(IntentKind(gameManager), Is.EqualTo("PowerAttack"),
+                "Potion success: the consuming action must publish the next locked intent.");
+            Assert.That((int)GetPrivateField(gameManager, "resolvedEnemyTurns"), Is.EqualTo(1));
             Assert.That(GetPrivateField(gameManager, "state").ToString(), Is.EqualTo("Battle"),
                 "Potion success: the encounter must remain active.");
             Assert.That(GetPrivateField(gameManager, "battlePhase").ToString(), Is.EqualTo("PlayerAction"),
@@ -2088,6 +2092,84 @@ namespace ToilRelic.PlayModeTests
         }
 
         [UnityTest]
+        [Category(TacticalHuntGrammarCategory)]
+        public IEnumerator TacticalIntent_IsVisibleAndAdvancesOnlyAfterAConsumingAction()
+        {
+            yield return EnterBattle();
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var battlePanel = RequireComponent(BattlePanelControllerTypeName);
+            var phaseText = GetPrivateField(battlePanel, "phaseText") as Text;
+            var player = GetPrivateField(gameManager, "player");
+            var playerType = player.GetType();
+            var tacticalEnemy = CreateEnemyRuntime(
+                "Tactical Locked Enemy", maxHp: 100, attackMin: 5, attackMax: 5, expReward: 1);
+            SetPrivateField(gameManager, "currentEnemy", tacticalEnemy);
+            gameManager.GetType().GetMethod("PublishEnemy", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(gameManager, null);
+
+            Assert.That(IntentKind(gameManager), Is.EqualTo("ExposedOpening"));
+            Assert.That((int)GetPrivateField(gameManager, "resolvedEnemyTurns"), Is.Zero);
+            Assert.That(phaseText.text,
+                Does.Contain("Exposed Opening").And.Contain("[OPEN]").And.Contain("Attack +3"));
+
+            ClickVisibleActionButton("PotionButton", "UsePotion");
+            yield return null;
+
+            Assert.That(IntentKind(gameManager), Is.EqualTo("ExposedOpening"),
+                "A full-HP Potion rejection must retain the locked intent.");
+            Assert.That((int)GetPrivateField(gameManager, "resolvedEnemyTurns"), Is.Zero,
+                "A rejected action must not advance the resolved-turn index.");
+            Assert.That(phaseText.text,
+                Does.Contain("Exposed Opening").And.Contain("[OPEN]").And.Contain("Attack +3"));
+
+            var hpBeforeOpening = (int)playerType.GetProperty("Hp").GetValue(player);
+            ClickVisibleActionButton("DefendButton", "Defend");
+            yield return null;
+
+            Assert.That((int)playerType.GetProperty("Hp").GetValue(player), Is.EqualTo(hpBeforeOpening - 2),
+                "The first Exposed Opening must resolve its fixed five-damage strike with the standard reduction.");
+            Assert.That(IntentKind(gameManager), Is.EqualTo("PowerAttack"));
+            Assert.That((int)GetPrivateField(gameManager, "resolvedEnemyTurns"), Is.EqualTo(1));
+            Assert.That(phaseText.text,
+                Does.Contain("Power Attack").And.Contain("[POWER]").And.Contain("Defend -6"));
+            Assert.That(GetPrivateField(gameManager, "battlePhase").ToString(), Is.EqualTo("PlayerAction"));
+
+            var hpBeforePower = (int)playerType.GetProperty("Hp").GetValue(player);
+            ClickVisibleActionButton("DefendButton", "Defend");
+            yield return null;
+
+            Assert.That((int)playerType.GetProperty("Hp").GetValue(player), Is.EqualTo(hpBeforePower - 1),
+                "The displayed Power Attack must be the intent resolved by the second action.");
+            Assert.That(IntentKind(gameManager), Is.EqualTo("ExposedOpening"));
+            Assert.That((int)GetPrivateField(gameManager, "resolvedEnemyTurns"), Is.EqualTo(2));
+            Assert.That(phaseText.text,
+                Does.Contain("Exposed Opening").And.Contain("[OPEN]").And.Contain("Attack +3"));
+        }
+
+        [UnityTest]
+        [Category(TacticalHuntGrammarCategory)]
+        public IEnumerator TacticalIntent_OpeningAddsAttackDamageBeforeNextIntent()
+        {
+            yield return EnterBattle();
+            var gameManager = RequireComponent(GameManagerTypeName);
+            var player = GetPrivateField(gameManager, "player");
+            var attackBonus = (int)player.GetType().GetProperty("AttackBonus").GetValue(player);
+            var enemy = InstallHarmlessDurableEnemy(gameManager, "Tactical Opening Enemy");
+            var enemyType = enemy.GetType();
+            var hpBefore = (int)enemyType.GetProperty("Hp").GetValue(enemy);
+
+            Assert.That(IntentKind(gameManager), Is.EqualTo("ExposedOpening"));
+            using var randomState = PreserveRandomState();
+            ClickVisibleActionButton("AttackButton", "Attack");
+            yield return null;
+
+            var damage = hpBefore - (int)enemyType.GetProperty("Hp").GetValue(enemy);
+            Assert.That(damage, Is.InRange(4 + attackBonus + 3, 8 + attackBonus + 3));
+            Assert.That(IntentKind(gameManager), Is.EqualTo("PowerAttack"));
+            Assert.That((int)GetPrivateField(gameManager, "resolvedEnemyTurns"), Is.EqualTo(1));
+        }
+
+        [UnityTest]
         [Category(PlayModeActionContractsCategory)]
         public IEnumerator P0_AttackButtonKeepsDurableEnemyAndReturnsControl()
         {
@@ -2115,8 +2197,8 @@ namespace ToilRelic.PlayModeTests
             var playerHitMessage = $"You hit P0 Durable Attack Enemy for {playerDamage}.";
             const string enemyResponse = "P0 Durable Attack Enemy hits you for 1.";
 
-            Assert.That(playerDamage, Is.InRange(4 + attackBonus, 8 + attackBonus),
-                "Attack: enemy HP must decrease within the runtime player-attack bounds.");
+            Assert.That(playerDamage, Is.InRange(4 + attackBonus + 3, 8 + attackBonus + 3),
+                "Attack: the opening bonus must extend the runtime player-attack bounds.");
             Assert.That((bool)enemyType.GetProperty("IsAlive").GetValue(enemy), Is.True,
                 "Attack: the durable enemy must survive the single visible action.");
             Assert.That(GetPrivateField(gameManager, "currentEnemy"), Is.SameAs(enemy),
@@ -2181,6 +2263,9 @@ namespace ToilRelic.PlayModeTests
                 "Failed Flee: the encounter must remain in Battle.");
             Assert.That(GetPrivateField(gameManager, "battlePhase").ToString(), Is.EqualTo("PlayerAction"),
                 "Failed Flee: control must return after the enemy response.");
+            Assert.That(IntentKind(gameManager), Is.EqualTo("PowerAttack"),
+                "Failed Flee: the consuming failure must publish the next locked intent.");
+            Assert.That((int)GetPrivateField(gameManager, "resolvedEnemyTurns"), Is.EqualTo(1));
             Assert.That(File.Exists(fixtureSavePath), Is.False,
                 "Failed Flee: a nonterminal action must not write a save.");
         }
@@ -2295,18 +2380,18 @@ namespace ToilRelic.PlayModeTests
 
             foreach (var phase in new[]
                      {
-                         "Your turn — choose an action.",
-                         "Enemy turn — resolving attack.",
+                         "Your turn | Exposed Opening [OPEN] | Attack +3",
+                         "Enemy turn — resolving intent.",
                          "Resolving battle result..."
                      })
             {
                 phaseText.text = phase;
                 Canvas.ForceUpdateCanvases();
-                AssertTextContract(phaseText, requireSingleVisualLine: true);
+                AssertTextContract(phaseText, requireSingleVisualLine: false);
                 AssertGeneratedGlyphsInsideRect(phaseText, canvasRect);
             }
 
-            phaseText.text = "Your turn — choose an action.";
+            phaseText.text = "Your turn | Exposed Opening [OPEN] | Attack +3";
             Canvas.ForceUpdateCanvases();
 
             var enemyRect = CalculateRectInAncestor(canvasRect, enemyText.rectTransform);
@@ -2829,7 +2914,7 @@ namespace ToilRelic.PlayModeTests
                 null, new object[] { "Ruin Wraith hits you for 6." });
             yield return null;
 
-            Assert.That(phaseText.text, Is.EqualTo("Your turn — choose an action."));
+            Assert.That(phaseText.text, Is.EqualTo("Your turn | Exposed Opening [OPEN] | Attack +3"));
             Assert.That(logText.text, Is.EqualTo(
                 "You used a healing potion and recovered 12 HP.\nRuin Wraith hits you for 6."));
             Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.False,
@@ -2851,7 +2936,7 @@ namespace ToilRelic.PlayModeTests
                 null, new object[] { "Ruin Wraith hits you for 6." });
             yield return null;
 
-            Assert.That(phaseText.text, Is.EqualTo("Your turn — choose an action."));
+            Assert.That(phaseText.text, Is.EqualTo("Your turn | Exposed Opening [OPEN] | Attack +3"));
             Assert.That(logText.text, Is.EqualTo(
                 "You used a healing potion and recovered 12 HP.\nRuin Wraith hits you for 6."));
             Assert.That(saveStatusText.gameObject.activeInHierarchy, Is.False,
@@ -3885,6 +3970,12 @@ namespace ToilRelic.PlayModeTests
         private static RandomStateScope PreserveRandomState()
         {
             return new RandomStateScope();
+        }
+
+        private static string IntentKind(Component gameManager)
+        {
+            var intent = GetPrivateField(gameManager, "currentEnemyIntent");
+            return intent.GetType().GetProperty("Kind").GetValue(intent).ToString();
         }
 
         private static int FindFirstFailingFleeSeed(Component gameManager, int maximumSeedExclusive = 10000)

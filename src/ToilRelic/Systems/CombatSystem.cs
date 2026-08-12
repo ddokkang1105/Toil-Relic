@@ -6,12 +6,18 @@ namespace ToilRelic.Systems;
 
 public sealed class CombatSystem
 {
-    private const int CombatDurationSeconds = 8;
+    private readonly Random _random;
+
+    public CombatSystem(Random? random = null)
+    {
+        _random = random ?? Random.Shared;
+    }
 
     public CombatResult Fight(Player player, Enemy enemy)
     {
         var log = new StringBuilder();
-        var startTime = DateTime.UtcNow;
+        var resolvedTurnIndex = 0;
+        var playerFled = false;
 
         void AppendLog(string message)
         {
@@ -19,46 +25,87 @@ public sealed class CombatSystem
             Console.WriteLine(message);
         }
 
-        while (player.IsAlive && enemy.IsAlive && (DateTime.UtcNow - startTime).TotalSeconds < CombatDurationSeconds)
+        while (player.IsAlive && enemy.IsAlive)
         {
-            var elapsedSeconds = (int)(DateTime.UtcNow - startTime).TotalSeconds;
-            ConsoleUI.Section("전투", $"진행 시간 {elapsedSeconds}/{CombatDurationSeconds}초 | {player.Name} HP {player.Hp} vs {enemy.Name} HP {enemy.Hp}");
-
-            if (ShouldUseHealingPotion(player) && player.Consume(ItemType.HealingPotion, 1))
+            var intent = TacticalCombatRules.GetIntent(enemy.Id, resolvedTurnIndex);
+            ConsoleUI.Section(
+                "Enemy intent",
+                $"{intent.DisplayLabel} | {intent.Cue}\n{player.Name} HP {player.Hp} vs {enemy.Name} HP {enemy.Hp}");
+            ConsoleUI.Menu("Combat action", new Dictionary<int, string>
             {
-                var hpBeforeHeal = player.Hp;
-                player.Heal(12);
-                var healed = player.Hp - hpBeforeHeal;
-                AppendLog($"HP 물약을 사용해 체력 {healed} 회복.");
+                { 1, "Attack" },
+                { 2, "Defend" },
+                { 3, "Use potion" },
+                { 4, "Flee" }
+            });
+
+            var action = ConsoleUI.ReadInt("Select", 1, 4);
+            var playerDefending = false;
+            switch (action)
+            {
+                case 1:
+                    var rolledPlayerDamage = _random.Next(4, 9) + player.AttackBonus;
+                    var playerDamage = TacticalCombatRules.ApplyPlayerAttack(rolledPlayerDamage, intent);
+                    enemy.TakeDamage(playerDamage);
+                    AppendLog($"You hit {enemy.Name} for {playerDamage}.");
+                    break;
+
+                case 2:
+                    playerDefending = true;
+                    AppendLog("You brace for the revealed intent.");
+                    break;
+
+                case 3:
+                    if (player.Hp >= player.MaxHp)
+                    {
+                        AppendLog("HP is already full.");
+                        continue;
+                    }
+
+                    if (!player.Consume(ItemType.HealingPotion, 1))
+                    {
+                        AppendLog("No healing potion in inventory.");
+                        continue;
+                    }
+
+                    var hpBeforeHeal = player.Hp;
+                    player.Heal(12);
+                    AppendLog($"You used a healing potion and recovered {player.Hp - hpBeforeHeal} HP.");
+                    break;
+
+                case 4:
+                    if (_random.NextDouble() < 0.55d)
+                    {
+                        AppendLog("Escape successful.");
+                        playerFled = true;
+                        break;
+                    }
+
+                    AppendLog("Escape failed.");
+                    break;
             }
 
-            var playerAttack = Random.Shared.Next(4, 9) + player.AttackBonus;
-            enemy.TakeDamage(playerAttack);
-            AppendLog($"{enemy.Name}에게 {playerAttack} 피해.");
+            if (playerFled || !enemy.IsAlive)
+            {
+                break;
+            }
 
-            if (!enemy.IsAlive) break;
-
-            var enemyAttack = enemy.Attack + Random.Shared.Next(0, 3);
+            var rolledEnemyDamage = enemy.Attack + _random.Next(0, 3);
+            var enemyAttack = TacticalCombatRules.ApplyEnemyAttack(rolledEnemyDamage, intent, playerDefending);
             player.TakeDamage(enemyAttack);
-            AppendLog($"{player.Name}가 {enemyAttack} 피해를 입었다.");
+            AppendLog($"{enemy.Name} hits {player.Name} for {enemyAttack}.");
 
             if (!player.IsAlive)
             {
-                AppendLog("기절했다.");
+                AppendLog("You collapsed.");
+                break;
             }
 
-            Thread.Sleep(1000);
+            resolvedTurnIndex++;
         }
 
         var playerWon = player.IsAlive && !enemy.IsAlive;
-        var timeExpired = player.IsAlive && enemy.IsAlive;
-        return new CombatResult(playerWon, false, timeExpired, log.ToString());
-    }
-
-    private static bool ShouldUseHealingPotion(Player player)
-    {
-        if (player.Hp <= 0) return false;
-        return player.Hp * 100 < player.MaxHp * 20;
+        return new CombatResult(playerWon, playerFled, false, log.ToString());
     }
 }
 

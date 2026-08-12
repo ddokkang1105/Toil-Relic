@@ -14,6 +14,16 @@ The combat substate that determines whether player input is accepted or an actio
 
 Battle Phase is separate from Game State so presentation can wait for animation, effects, or camera transitions without changing combat rules.
 
+### Enemy Intent
+
+The encounter-local commitment that reveals an enemy's next response before the player chooses an action.
+
+An Enemy Intent stays locked until a turn-consuming action resolves; presentation may vary by runtime, but its label and tactical outcome are shared.
+
+### Tactical Turn
+
+The combat sequence that reveals and locks an Enemy Intent, accepts one player action, resolves the promised response, and reveals the next intent only when combat continues.
+
 ### Save Load Status
 
 The classification of the startup save-load attempt that distinguishes missing, normally loaded, automatically recovered, and unreadable progress.

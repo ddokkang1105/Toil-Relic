@@ -29,5 +29,8 @@
     <None Include="..\..\unity\Assets\Tests\Fixtures\IroncladSaveEnvelopeContracts.json"
           Link="Fixtures\IroncladSaveEnvelopeContracts.json"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\unity\Assets\Tests\Fixtures\TacticalHuntGrammarContracts.json"
+          Link="Fixtures\TacticalHuntGrammarContracts.json"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

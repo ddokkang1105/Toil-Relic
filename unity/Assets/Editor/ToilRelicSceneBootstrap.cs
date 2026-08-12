@@ -313,8 +313,8 @@ namespace ToilRelic.Unity.Editor
             EditorUtility.SetDirty(equipmentController);
             equipmentPanel.SetActive(false);
             CreatePanelText("EnemyText", battlePanel.transform, 119f, 280f, 24f);
-            CreatePanelText("PhaseText", battlePanel.transform, 91f, 280f, 24f);
-            CreatePanelText("BattleLogText", battlePanel.transform, 42f, 280f, 66f);
+            CreatePanelText("PhaseText", battlePanel.transform, 85f, 280f, 42f);
+            CreatePanelText("BattleLogText", battlePanel.transform, 30f, 280f, 66f);
             var attackButton = CreateButton(
                 "Attack", battlePanel.transform, new Vector2(-72f, -19f), bridge.Attack, BattleActionButtonSize);
             var defendButton = CreateButton(

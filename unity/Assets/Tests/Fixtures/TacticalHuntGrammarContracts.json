@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "intents": [
+    {
+      "kind": "DirectStrike",
+      "label": "Direct Strike",
+      "marker": "[BASIC]",
+      "cue": "Defend -3",
+      "playerAttackBonus": 0,
+      "enemyDamageBonus": 0,
+      "defendReduction": 3
+    },
+    {
+      "kind": "PowerAttack",
+      "label": "Power Attack",
+      "marker": "[POWER]",
+      "cue": "Defend -6",
+      "playerAttackBonus": 0,
+      "enemyDamageBonus": 2,
+      "defendReduction": 6
+    },
+    {
+      "kind": "ExposedOpening",
+      "label": "Exposed Opening",
+      "marker": "[OPEN]",
+      "cue": "Attack +3",
+      "playerAttackBonus": 3,
+      "enemyDamageBonus": 0,
+      "defendReduction": 3
+    }
+  ],
+  "profiles": [
+    {
+      "enemyId": "mine-vermin",
+      "sequence": ["ExposedOpening", "PowerAttack", "ExposedOpening", "PowerAttack"]
+    },
+    {
+      "enemyId": "rust-golem",
+      "sequence": ["PowerAttack", "ExposedOpening", "PowerAttack", "ExposedOpening"]
+    },
+    {
+      "enemyId": "ruin-wraith",
+      "sequence": ["DirectStrike", "DirectStrike", "DirectStrike", "DirectStrike"]
+    },
+    {
+      "enemyId": "mine-alpha-wolf",
+      "sequence": ["DirectStrike", "DirectStrike", "DirectStrike", "DirectStrike"]
+    },
+    {
+      "enemyId": "unknown-enemy",
+      "sequence": ["DirectStrike", "DirectStrike", "DirectStrike", "DirectStrike"]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+stage: closed
+profile: standard
+gates:
+  office_hours: false
+  ceo_review: false
+  eng_review: false
+  design_review: false
+  brainstorm: active_product_contract
+  multi_agent: false
+  ce_plan: completed_implementation_ready
+  ce_work: completed
+  ce_review: completed_with_verified_fixes
+  gstack_qa: equivalent_console_unity_regression_and_render_validation
+  ce_compound: task_local_learning
+artifacts:
+  task: task.md
+  decisions: decisions.md
+  plan: plan.md
+  review: review.md
+  qa: qa.md
+  followups: followups.md
+updated: 2026-08-11

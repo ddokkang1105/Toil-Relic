@@ -89,6 +89,8 @@ namespace ToilRelic.Unity.Core
         private readonly CraftingSystem crafting = new();
 
         private EnemyRuntime currentEnemy;
+        private EnemyIntent currentEnemyIntent;
+        private int resolvedEnemyTurns;
         private ConfirmedQuarryReward confirmedQuarryReward;
         private string currentQuarryId;
         private string currentContributionName;
@@ -244,11 +246,14 @@ namespace ToilRelic.Unity.Core
             currentQuarryId = quarry.id;
             currentContributionName = quarry.contributionDisplayName;
             currentEnemy = new EnemyRuntime(enemyData);
+            resolvedEnemyTurns = 0;
+            currentEnemyIntent = TacticalCombatRules.GetIntent(currentEnemy.Id, resolvedEnemyTurns);
             presentedHuntContract = null;
             GameEvents.RaiseHuntContractClosed();
             ChangeState(GameState.Battle);
             ChangeBattlePhase(BattlePhase.PlayerAction);
             PublishEnemy();
+            PublishEnemyIntent();
             GameEvents.RaiseBattleLog($"Confirmed quarry: {currentEnemy.Name}. The selected target and rewards are locked for this battle.");
             return true;
         }
@@ -268,7 +273,7 @@ namespace ToilRelic.Unity.Core
                 return;
             }
 
-            var playerDamage = combat.RollPlayerAttack(player.AttackBonus);
+            var playerDamage = combat.RollPlayerAttack(player.AttackBonus, currentEnemyIntent);
             currentEnemy.TakeDamage(playerDamage);
             GameEvents.RaiseBattleLog($"You hit {currentEnemy.Name} for {playerDamage}.");
             PublishEnemy();
@@ -305,9 +310,7 @@ namespace ToilRelic.Unity.Core
                 const string outcome = "Escape successful.";
                 GameEvents.RaiseBattleLog(outcome);
                 GameEvents.RaiseBattleOutcome(outcome);
-                currentEnemy = null;
-                ClearConfirmedQuarry();
-                PublishEnemy();
+                ClearCurrentEncounter();
                 ChangeState(GameState.Camp);
                 ChangeBattlePhase(BattlePhase.None);
                 return;
@@ -455,7 +458,7 @@ namespace ToilRelic.Unity.Core
         private void ResolveEnemyTurn(bool playerDefending)
         {
             ChangeBattlePhase(BattlePhase.EnemyAction);
-            var enemyDamage = combat.RollEnemyAttack(currentEnemy, playerDefending);
+            var enemyDamage = combat.RollEnemyAttack(currentEnemy, currentEnemyIntent, playerDefending);
             player.TakeDamage(enemyDamage);
             GameEvents.RaiseBattleLog($"{currentEnemy.Name} hits you for {enemyDamage}.");
             PublishPlayer();
@@ -466,9 +469,7 @@ namespace ToilRelic.Unity.Core
                 GameEvents.RaiseBattleLog(outcome);
                 GameEvents.RaiseBattleOutcome(outcome);
                 player.HealAll();
-                currentEnemy = null;
-                ClearConfirmedQuarry();
-                PublishEnemy();
+                ClearCurrentEncounter();
                 ChangeState(GameState.Camp);
                 ChangeBattlePhase(BattlePhase.None);
                 PublishPlayer();
@@ -476,6 +477,9 @@ namespace ToilRelic.Unity.Core
                 return;
             }
 
+            resolvedEnemyTurns++;
+            currentEnemyIntent = TacticalCombatRules.GetIntent(currentEnemy.Id, resolvedEnemyTurns);
+            PublishEnemyIntent();
             ChangeBattlePhase(BattlePhase.PlayerAction);
         }
 
@@ -492,9 +496,7 @@ namespace ToilRelic.Unity.Core
                 const string failure = "Victory reward rejected. No loot, EXP, profile equipment, or project progress changed.";
                 GameEvents.RaiseBattleLog(failure);
                 GameEvents.RaiseBattleOutcome(failure);
-                currentEnemy = null;
-                ClearConfirmedQuarry();
-                PublishEnemy();
+                ClearCurrentEncounter();
                 ChangeState(GameState.Camp);
                 ChangeBattlePhase(BattlePhase.None);
                 return;
@@ -507,9 +509,7 @@ namespace ToilRelic.Unity.Core
             {
                 levelUpMessage = $"Level up! +{levelResult.LevelsGained} -> Lv.{levelResult.NewLevel}. HP fully restored.";
             }
-            currentEnemy = null;
-            ClearConfirmedQuarry();
-            PublishEnemy();
+            ClearCurrentEncounter();
             ChangeState(GameState.Camp);
             ChangeBattlePhase(BattlePhase.None);
             PublishPlayer();
@@ -541,6 +541,30 @@ namespace ToilRelic.Unity.Core
             }
 
             GameEvents.RaiseEnemyChanged(currentEnemy.Name, currentEnemy.Hp, currentEnemy.MaxHp);
+        }
+
+        private void PublishEnemyIntent()
+        {
+            if (currentEnemy == null)
+            {
+                GameEvents.RaiseEnemyIntentChanged(string.Empty, string.Empty, string.Empty);
+                return;
+            }
+
+            GameEvents.RaiseEnemyIntentChanged(
+                currentEnemyIntent.Label,
+                currentEnemyIntent.Marker,
+                currentEnemyIntent.Cue);
+        }
+
+        private void ClearCurrentEncounter()
+        {
+            currentEnemy = null;
+            currentEnemyIntent = default;
+            resolvedEnemyTurns = 0;
+            ClearConfirmedQuarry();
+            PublishEnemy();
+            PublishEnemyIntent();
         }
 
         private void ChangeState(GameState next)
